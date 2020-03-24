@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/orientwalt/htdf/x/staking/types"
 	"net/http"
 	"strconv"
 	"time"
@@ -275,6 +276,14 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
 
 						//fmt.Printf("msg|from=%s|to=%s\n", msg.From, msg.To)
+
+					case types.MsgDelegate:
+						displayTx.From = msg.DelegatorAddress
+						displayTx.To = msg.ValidatorAddress.Bytes() //todo 普通地址转为valoper地址
+						displayTx.Hash = hex.EncodeToString(tx.Hash())
+						displayTx.Amount = unit_convert.DefaultCoinsToBigCoins([]sdk.Coin{msg.Amount})
+						displayTx.Memo = currTx.Memo
+						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
 
 					default:
 						fmt.Printf("ignore type|type=%s|route=%s\n", msg.Type(), msg.Route())
