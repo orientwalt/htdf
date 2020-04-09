@@ -2,8 +2,8 @@
     "type": "auth/StdTx", 
     "value": {
         "fee": {
-            "gas_wanted": "200000",
-            "gas_price": "100"
+            "gas_price": "100", 
+            "gas_wanted": "200000"
         }, 
         "memo": "contract test", 
         "msg": [
@@ -16,10 +16,10 @@
                             "denom": "satoshi"
                         }
                     ], 
-                    "Data": "07546172", 
-                    "From": "htdf1nkkc48lfchy92ahg50akj2384v4yfqpm4hsq6y",
-                    "GasPrice": "100",
-                    "GasWanted": "90000",
+                    "Data": "70a0823100000000000000000000000067ee5cbe5cb9ae6794ca1437186f12066b0196af", 
+                    "From": "htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3", 
+                    "GasPrice": "100", 
+                    "GasWanted": "200000", 
                     "To": "htdf1nkkc48lfchy92ahg50akj2384v4yfqpm4hsq6y"
                 }
             }

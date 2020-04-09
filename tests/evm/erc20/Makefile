@@ -61,40 +61,22 @@ execute:
 	 hscli query tx $$txid > ${TMP_PATH};\
 	 findkey logs ${TMP_PATH};
 
-# function name: minter
-# 0x07546172
-# caution: 0 must be included. DO NOT OMITT IT.
-minter:
-	@replkey From $$(hscli accounts list|row 1) unsigned.tx y;\
-	 replkey Data 07546172 unsigned.tx y;\
-	 make -sC . execute;
-
-# function name: balances
+# function name: balanceOf
 # parameters: 'address'
 # 0x27e235e3
-balances: #param.address
+balanceOf: #param.address
 	@queryaddr=$$(make -sC . param.address);\
 	 replkey From $$(hscli accounts list|row 1) unsigned.tx y;\
-	 replkey Data 27e235e3$$queryaddr unsigned.tx y;\
+	 replkey Data 70a08231$$queryaddr unsigned.tx y;\
 	 make -sC . execute;
-
-# function name: mint
+ 
+# function name: transfer
 # parameters: 'address','uint256'
-# 0x40c10f19
-mint: #param.address param.int
-	@receiver=$$(make -sC . param.address);\
-	 amount=$$(make -sC . param.int);\
-	 replkey From $$(hscli accounts list|row 1) unsigned.tx y;\
-	 replkey Data 40c10f19$$receiver$$amount unsigned.tx y;\
-	 make -sC . execute;
-	 
-# function name: send
-# parameters: 'address','uint256'
-# 0xd0679d34
-send: #param.address param.int
+# 0xa9059cbb
+transfer: #param.address param.int
 	@read -p "fromaddress: " sender;\
 	 echo toaddress@; receiver=$$(make -sC . param.address);\
 	 echo amount@; amount=$$(make -sC . param.int);\
 	 replkey From $$sender unsigned.tx y;\
-	 replkey Data d0679d34$$receiver$$amount unsigned.tx y;\
+	 replkey Data a9059cbb$$receiver$$amount unsigned.tx y;\
 	 make -sC . execute;
