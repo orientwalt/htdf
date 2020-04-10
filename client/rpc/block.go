@@ -271,6 +271,7 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 						displayTx.Hash = hex.EncodeToString(tx.Hash())
 						displayTx.Amount = unit_convert.DefaultCoinsToBigCoins(msg.Amount)
 						displayTx.Memo = currTx.Memo
+						displayTx.Data = msg.Data
 						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
 
 						//fmt.Printf("msg|from=%s|to=%s\n", msg.From, msg.To)
