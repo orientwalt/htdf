@@ -207,8 +207,8 @@ test.local:
 	@rm -rf ${HOME}/.hsd;mkdir -p ${HOME}/.hsd/config
 	@cp ${VALDIR}/node1/.hsd/config/config.toml ${HOME}/.hsd/config
 	@cp ${VALDIR}/node1/.hsd/config/genesis.json ${HOME}/.hsd/config
-	@nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
-	@nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
+	# @nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
+	# @nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
 
 test.route:
 	@ansible tests -m shell -a "rm /root/.hsd/Makefile"	
