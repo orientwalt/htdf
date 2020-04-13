@@ -16,6 +16,11 @@
     # use proxy
     export GOPROXY=https://goproxy.io
     
+    # use proxy (another proxy)
+    # when depend on your private github.com repository , use 'https://goproxy.cn,direct' , and go get your  repository 
+    #   $export GOPROXY=https://goproxy.cn,direct
+    #   $go get github.com/orientwalt/tendermint    
+    
     # set ApiSecuritylevel
     #   see below #ApiSecuritylevel for more detail 
     export DEBUGAPI=ON  ##  "ON", develop and test version (ApiSecuritylevel=low); "OFF", default value, production version (ApiSecuritylevel=high); 
