@@ -3,7 +3,8 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/orientwalt/htdf/x/staking/types"
+	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
+	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 	"net/http"
 	"strconv"
 	"time"
@@ -161,14 +162,21 @@ func LatestBlockRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 }
 
 //BlockDetails struct
+const (
+	TxClassify_Normal    uint32 = 0
+	TxClassify_Contract  uint32 = 1
+	TxClassify_Extension uint32 = 2
+)
 
 type DisplayTx struct {
-	From   string
-	To     string
-	Amount []sdk.BigCoin
-	Hash   string
-	Memo   string
-	Data   string
+	From       string
+	To         string
+	Amount     []sdk.BigCoin
+	Hash       string
+	Memo       string
+	Data       string
+	TxClassify uint32
+	TypeName   string
 }
 
 type DisplayBlock struct {
@@ -273,16 +281,35 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 						displayTx.Amount = unit_convert.DefaultCoinsToBigCoins(msg.Amount)
 						displayTx.Memo = currTx.Memo
 						displayTx.Data = msg.Data
+
+						if len(displayTx.Data) > 0 {
+							displayTx.TxClassify = TxClassify_Contract
+						} else {
+							displayTx.TxClassify = TxClassify_Normal
+						}
+						displayTx.TypeName = msg.Type()
+
 						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
 
 						//fmt.Printf("msg|from=%s|to=%s\n", msg.From, msg.To)
 
-					case types.MsgDelegate:
+					case stakingTypes.MsgDelegate:
 						displayTx.From = msg.DelegatorAddress.String()
 						displayTx.To = msg.ValidatorAddress.String()
 						displayTx.Hash = hex.EncodeToString(tx.Hash())
 						displayTx.Amount = unit_convert.DefaultCoinsToBigCoins([]sdk.Coin{msg.Amount})
 						displayTx.Memo = currTx.Memo
+						displayTx.TxClassify = TxClassify_Extension
+						displayTx.TypeName = msg.Type()
+						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
+
+					case distrTypes.MsgWithdrawDelegatorReward:
+						displayTx.From = msg.DelegatorAddress.String()
+						displayTx.To = msg.ValidatorAddress.String()
+						displayTx.Hash = hex.EncodeToString(tx.Hash())
+						displayTx.Memo = currTx.Memo
+						displayTx.TxClassify = TxClassify_Extension
+						displayTx.TypeName = msg.Type()
 						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
 
 					default:
