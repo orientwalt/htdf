@@ -1,0 +1,26 @@
+{
+    "type": "auth/StdTx", 
+    "value": {
+        "fee": {
+            "gas_price": "100", 
+            "gas_wanted": "200000"
+        }, 
+        "memo": "contract test", 
+        "msg": [
+            {
+            "type": "htdf/MsgEditValidator",
+            "value": {
+                "Description": {
+                "moniker": "client",
+                "identity": "23870f5bb12ba2c4967c46db",
+                "website": "https://htdf.network",
+                "details": "To infinity and beyond!"
+                },
+                "address": "htdfvaloper1nqa6y9aa57vw5uv86kv26y5efhutfp2s94xfph",
+                "commission_rate": "0.010000000000000000",
+                "min_self_delegation": null
+            }
+            }
+        ]
+    }
+}
