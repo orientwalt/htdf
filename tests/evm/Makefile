@@ -40,7 +40,7 @@ param.address:
 	@read -p "bech32addr: " bech32addr;\
 	 byteaddr=$$(hsutils bech2hex $$bech32addr|row 3|fromstr ": ");\
 	 loweraddr=$$(lowerstr $$byteaddr);\
-	 param_addr=$$(python -c "print '0'*(64-len('$$loweraddr'))+'$$loweraddr'");\
+	 param_addr=$$(python -c "print( '0'*(64-len('$$loweraddr'))+'$$loweraddr')");\
 	 echo $$param_addr
 
 # param: int
@@ -50,8 +50,8 @@ param.address:
 #	   
 param.int:
 	@read -p "uint: " uint;\
-	 python -c "hexstr=hex($$uint)[2:];\
-	 			print '0'*(64-len(hexstr))+hexstr"
+	 python3 -c "hexstr=hex($$uint)[2:];\
+	 			print('0'*(64-len(hexstr))+hexstr)"
 ##############################################################################################################################
 # contract test part
 ##############################################################################################################################
