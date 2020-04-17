@@ -1,9 +1,9 @@
 package rest
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/codec"
-	"github.com/gorilla/mux"
 	svrConfig "github.com/orientwalt/htdf/server/config"
 )
 
@@ -23,6 +23,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec) 
 
 	if svrConfig.ApiSecurityLevel == svrConfig.ValueSecurityLevel_Low {
 		r.HandleFunc("/accounts/newaccount", NewAccountRequestHandlerFn).Methods("POST")
+		r.HandleFunc("/accounts/export", ExportAccountRequestHandlerFn(cliCtx, cdc)).Methods("POST")
 	}
 
 	r.HandleFunc("/accounts/list", AccountListRequestHandlerFn).Methods("GET")
