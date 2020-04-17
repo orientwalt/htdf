@@ -4,17 +4,19 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/orientwalt/htdf/accounts/keystore"
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/client/rpc"
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	sdkRest "github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/accounts/keystore"
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	"net/http"
 
 	"github.com/orientwalt/htdf/x/auth"
 	"github.com/orientwalt/htdf/x/core"
+	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
+	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 )
 
 func AccountListRequestHandlerFn(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +162,7 @@ func GetAccountTxsFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFu
 
 				switch iMsg := sdkTx.(type) {
 				case auth.StdTx:
-
+					var displayTx DisplayTx
 					for _, msg := range iMsg.GetMsgs() {
 						//fmt.Printf("msg|route=%s|type=%s\n", msg.Route(), msg.Type())
 
@@ -172,16 +174,44 @@ func GetAccountTxsFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFu
 								(accountTxsReq.Flag == 1 && msg.From.String() == accountTxsReq.Address) ||
 								(accountTxsReq.Flag == 2 && msg.To.String() == accountTxsReq.Address) {
 								//fmt.Printf("msg found|from=%s|to=%s\n", msg.From, msg.To)
-								var displayTx DisplayTx
-								displayTx.From = msg.From
-								displayTx.To = msg.To
+
+								displayTx.From = msg.From.String()
+								displayTx.To = msg.To.String()
 								displayTx.Amount = unit_convert.DefaultCoinsToBigCoins(msg.Amount)
 								displayTx.Hash = hex.EncodeToString(tx.Hash())
 								displayTx.Height = height
 								displayTx.Time = resultBlock.BlockMeta.Header.Time.Local().Format("2006-01-02 15:04:05")
 								displayTx.Memo = iMsg.Memo
+								displayTx.Data = msg.Data
+
+								if len(displayTx.Data) > 0 {
+									displayTx.TxClassify = rpc.TxClassify_Contract
+								} else {
+									displayTx.TxClassify = rpc.TxClassify_Normal
+								}
+								displayTx.TypeName = msg.Type()
+
 								result.ArrTx = append(result.ArrTx, displayTx)
 							}
+
+						case stakingTypes.MsgDelegate:
+							displayTx.From = msg.DelegatorAddress.String()
+							displayTx.To = msg.ValidatorAddress.String()
+							displayTx.Hash = hex.EncodeToString(tx.Hash())
+							displayTx.Amount = unit_convert.DefaultCoinsToBigCoins([]sdk.Coin{msg.Amount})
+							displayTx.Memo = iMsg.Memo
+							displayTx.TxClassify = rpc.TxClassify_Extension
+							displayTx.TypeName = msg.Type()
+							result.ArrTx = append(result.ArrTx, displayTx)
+
+						case distrTypes.MsgWithdrawDelegatorReward:
+							displayTx.From = msg.DelegatorAddress.String()
+							displayTx.To = msg.ValidatorAddress.String()
+							displayTx.Hash = hex.EncodeToString(tx.Hash())
+							displayTx.Memo = iMsg.Memo
+							displayTx.TxClassify = rpc.TxClassify_Extension
+							displayTx.TypeName = msg.Type()
+							result.ArrTx = append(result.ArrTx, displayTx)
 
 						default:
 							fmt.Printf("ignore type|type=%s|route=%s\n", msg.Type(), msg.Route())

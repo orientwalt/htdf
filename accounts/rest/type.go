@@ -53,13 +53,16 @@ type CreateShiftReq struct {
 }
 
 type DisplayTx struct {
-	From   sdk.AccAddress
-	To     sdk.AccAddress
-	Amount []sdk.BigCoin
-	Hash   string
-	Height int64
-	Time   string
-	Memo   string
+	From       string
+	To         string
+	Amount     []sdk.BigCoin
+	Hash       string
+	Height     int64
+	Time       string
+	Memo       string
+	Data       string
+	TxClassify uint32
+	TypeName   string
 }
 
 type ResultAccountTxs struct {
