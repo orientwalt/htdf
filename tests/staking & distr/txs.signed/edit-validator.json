@@ -1,0 +1,35 @@
+{
+    "type": "auth/StdTx",
+    "value": {
+      "msg": [
+        {
+          "type": "htdf/MsgEditValidator",
+          "value": {
+            "Description": {
+              "moniker": "xxx",
+              "identity": "23870f5bb12ba2c4967c46db",
+              "website": "https://htdf.network",
+              "details": "To infinity and beyond!"
+            },
+            "address": "htdfvaloper1n8lxc8n7dhc50hv5rqemuljrkmm0tstpawx96y",
+            "commission_rate": "0.100000000000000000",
+            "min_self_delegation": null
+          }
+        }
+      ],
+      "fee": {
+        "gas_wanted": "200000",
+        "gas_price": "100"
+      },
+      "signatures": [
+        {
+          "pub_key": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "AlGjRD3sJ/f0N0WpU68tH3J+VUcpUWSxH7iBaloa/3Px"
+          },
+          "signature": "fg8ug4dsslVA6ZbxOTiM6GmGHxwPOL4fr0Kp+Bni3P5YJsMnPsN88udyRx2Xt14wq0UGylu2nOqb5Fic2YI48w=="
+        }
+      ],
+      "memo": ""
+    }
+}

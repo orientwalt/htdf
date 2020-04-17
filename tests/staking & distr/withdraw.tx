@@ -10,8 +10,8 @@
             {
                 "type": "htdf/MsgWithdrawDelegationReward", 
                 "value": {
-                    "delegator_address": "htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3", 
-                    "validator_address": "htdfvaloper1hv3hgjq9qadlnsf38qsrmnjwua92gm80ql45g7"
+                    "delegator_address": "htdf1sejc6tedytvkgshf5yfyfl2dlw4xxkq0lkgjcu", 
+                    "validator_address": "htdfvaloper1n8lxc8n7dhc50hv5rqemuljrkmm0tstpawx96y"
                 }
             }
         ]

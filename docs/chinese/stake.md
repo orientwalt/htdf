@@ -24,4 +24,4 @@
     hscli query staking delegation [delegator-addr] [validator-addr]
 
     [许可]
-    hscli tx staking uds [delegator-addr] --delegator-manager [validator-addr] --delegator-status true --gas-price=100
+    hscli tx staking uds [delegator-addr] --delegator-manager=[validator-addr] --delegator-status=true --gas-price=100

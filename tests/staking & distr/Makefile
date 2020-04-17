@@ -9,4 +9,4 @@ run.withdraw:
 	 echo "$$unsigned";\
 	 signed=$$(hscli tx sign "$$unsigned");\
 	 echo "signed############################################################";\
-	 echo "signed=$$signed";
+	 echo "$$signed";

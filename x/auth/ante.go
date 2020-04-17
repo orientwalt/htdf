@@ -70,6 +70,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 		// all transactions must be of type auth.StdTx
 		stdTx, ok := tx.(StdTx)
 		log.Debugln("NewAnteHandler:tx", tx)
+		log.Debugln("NewAnteHandler:tx.GetMsgs()[0].GetSignBytes()", tx.GetMsgs()[0].GetSignBytes())
 		log.Debugln("NewAnteHandler:stdTx.Msgs", stdTx.Msgs)
 		log.Debugln("NewAnteHandler:stdTx.Memo", stdTx.Memo)
 		log.Debugln("NewAnteHandler:stdTx.Fee.Amount", stdTx.Fee.Amount())
