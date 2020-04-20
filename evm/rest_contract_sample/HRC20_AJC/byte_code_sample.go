@@ -2,14 +2,12 @@ package main
 
 import (
 	"encoding/hex"
-	"github.com/orientwalt/htdf/params"
-	"github.com/orientwalt/htdf/types"
-	"math/big"
-
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/orientwalt/htdf/params"
+	"math/big"
 
 	sdk "github.com/orientwalt/htdf/types"
 
@@ -32,6 +30,8 @@ func loadBin(filename string) []byte {
 	if err != nil {
 		panic(errors.New("loadBin error"))
 	}
+
+	fmt.Printf("code=%x\n", code)
 
 	return hexutil.MustDecode("0x" + string(code))
 }
@@ -72,44 +72,44 @@ func main() {
 	data := loadBin(binFileName)
 	fmt.Printf("contractCode, create contract|Code=%s\n", hex.EncodeToString(data))
 
-	//minter
+	////minter
 	abiObj := loadAbi(abiFileName)
-	contractByteCode, err := abiObj.Pack("minter")
-	must(err)
-	fmt.Printf("contractCode, minter|Code=%s\n", hex.EncodeToString(contractByteCode))
-
+	//contractByteCode, err := abiObj.Pack("minter")
+	//must(err)
+	//fmt.Printf("contractCode, minter|Code=%s\n", hex.EncodeToString(contractByteCode))
+	//
 	//==================access created contract=====================================
 	if strMinterAddress == "nil" {
 		fmt.Printf("have no strMinterAddress\n")
 		os.Exit(0)
 	}
-
+	//
 	//address convert
-	testContractToAddress, err := sdk.AccAddressFromBech32(strTestContractToAddress)
+	accTestContractToAddress, err := sdk.AccAddressFromBech32(strTestContractToAddress)
 	must(err)
-	eaTestContractToAddress := types.ToEthAddress(testContractToAddress)
+	hexTestContractToAddress := sdk.ToEthAddress(accTestContractToAddress)
 
 	minterAddress, err := sdk.AccAddressFromBech32(strMinterAddress)
 	must(err)
-	eaMinterAddress := types.ToEthAddress(minterAddress)
+	eaMinterAddress := sdk.ToEthAddress(minterAddress)
 
-	//mint
-	contractByteCode, err = abiObj.Pack("mint", eaMinterAddress, big.NewInt(1000000))
+	////mint
+	//contractByteCode, err = abiObj.Pack("mint", eaMinterAddress, big.NewInt(1000000))
+	//must(err)
+	//fmt.Printf("contractCode, mint|minterAddress=%s|Code=%s\n", minterAddress.String(), hex.EncodeToString(contractByteCode))
+	//
+	//transfer
+	contractByteCode, err := abiObj.Pack("transfer", hexTestContractToAddress, big.NewInt(30))
 	must(err)
-	fmt.Printf("contractCode, mint|minterAddress=%s|Code=%s\n", minterAddress.String(), hex.EncodeToString(contractByteCode))
-
-	//send
-	contractByteCode, err = abiObj.Pack("send", eaTestContractToAddress, big.NewInt(30))
-	must(err)
-	fmt.Printf("contractCode, send|testContractToAddress=%s|Code=%s\n", testContractToAddress.String(), hex.EncodeToString(contractByteCode))
+	fmt.Printf("contractCode, send|accTestContractToAddress=%s|Code=%s\n", accTestContractToAddress.String(), hex.EncodeToString(contractByteCode))
 
 	//get balance
-	contractByteCode, err = abiObj.Pack("balances", eaTestContractToAddress)
+	contractByteCode, err = abiObj.Pack("balanceOf", hexTestContractToAddress)
 	must(err)
-	fmt.Printf("contractCode, get balance|testContractToAddress=%s|Code=%s\n", testContractToAddress.String(), hex.EncodeToString(contractByteCode))
+	fmt.Printf("contractCode, get balance|accTestContractToAddress=%s|Code=%s\n", accTestContractToAddress.String(), hex.EncodeToString(contractByteCode))
 
 	//get minter balance
-	contractByteCode, err = abiObj.Pack("balances", eaMinterAddress)
+	contractByteCode, err = abiObj.Pack("balanceOf", eaMinterAddress)
 	must(err)
 	fmt.Printf("contractCode, get balance|strMinterAddress=%s|Code=%s\n", strMinterAddress, hex.EncodeToString(contractByteCode))
 
