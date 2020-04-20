@@ -31,7 +31,7 @@ func loadBin(filename string) []byte {
 		panic(errors.New("loadBin error"))
 	}
 
-	fmt.Printf("code=%x\n", code)
+	//fmt.Printf("code=%x\n", code)
 
 	return hexutil.MustDecode("0x" + string(code))
 }
@@ -101,7 +101,7 @@ func main() {
 	//transfer
 	contractByteCode, err := abiObj.Pack("transfer", hexTestContractToAddress, big.NewInt(30))
 	must(err)
-	fmt.Printf("contractCode, send|accTestContractToAddress=%s|Code=%s\n", accTestContractToAddress.String(), hex.EncodeToString(contractByteCode))
+	fmt.Printf("contractCode, transfer|accTestContractToAddress=%s|Code=%s\n", accTestContractToAddress.String(), hex.EncodeToString(contractByteCode))
 
 	//get balance
 	contractByteCode, err = abiObj.Pack("balanceOf", hexTestContractToAddress)

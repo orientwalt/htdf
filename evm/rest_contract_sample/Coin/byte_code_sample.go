@@ -33,7 +33,7 @@ func loadBin(filename string) []byte {
 		panic(errors.New("loadBin error"))
 	}
 
-	fmt.Printf("code=%x\n", code)
+	//fmt.Printf("code=%x\n", code)
 
 	return hexutil.MustDecode("0x" + string(code))
 }
