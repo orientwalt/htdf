@@ -1,0 +1,29 @@
+{
+    "type": "auth/StdTx",
+    "value": {
+      "msg": [
+        {
+          "type": "htdf/MsgSetUndelegateStatus",
+          "value": {
+            "delegator_address": "htdf1sejc6tedytvkgshf5yfyfl2dlw4xxkq0lkgjcu",
+            "validator_address": "htdfvaloper1n8lxc8n7dhc50hv5rqemuljrkmm0tstpawx96y",
+            "Status": true
+          }
+        }
+      ],
+      "fee": {
+        "gas_wanted": "200000",
+        "gas_price": "100"
+      },
+      "signatures": [
+        {
+          "pub_key": {
+            "type": "tendermint/PubKeySecp256k1",
+            "value": "AlGjRD3sJ/f0N0WpU68tH3J+VUcpUWSxH7iBaloa/3Px"
+          },
+          "signature": "o8b0rtHwMnPxGh57AOeP1aTErZgoARjwuSbxhjL/RAlawO2PL4oklWK8ChEPluIIWEUO0/qsqltb4gbjBVsuyQ=="
+        }
+      ],
+      "memo": ""
+    }
+  }

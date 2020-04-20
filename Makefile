@@ -10,7 +10,7 @@ GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 
 # variables
-DEBUGAPI=OFF  # disable DEBUGAPI by default
+DEBUGAPI=ON  # disable DEBUGAPI by default
 PACKAGES = $(shell go list ./... | grep -Ev 'vendor|importer')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
 GIT_BRANCH :=$(shell git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //")

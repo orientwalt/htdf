@@ -77,10 +77,26 @@ func queryAnnualProvisions(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 	return res, nil
 }
 
+// This is for block-reward query inferencing(cmd & rest)
+type TotalProvisions struct {
+	Provision sdk.Int
+}
+
+func NewTotalProvisions(p sdk.Int) TotalProvisions {
+	return TotalProvisions{
+		Provision: p,
+	}
+}
+
+func (tp TotalProvisions) String() string {
+	return tp.Provision.String()
+}
+
 // junying-todo, 2020-03-09
 func queryTotalProvisions(ctx sdk.Context, k Keeper) ([]byte, sdk.Error) {
 
-	res, err := codec.MarshalJSONIndent(k.cdc, k.sk.TotalTokens(ctx))
+	res, err := codec.MarshalJSONIndent(k.cdc, NewTotalProvisions(k.sk.TotalTokens(ctx)))
+	// res, err := codec.MarshalJSONIndent(k.cdc, k.sk.TotalTokens(ctx))
 	if err != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal JSON", err.Error()))
 	}
@@ -93,15 +109,15 @@ type QueryBlockRewardParams struct {
 	Height int64
 }
 
-type BlockReward struct {
-	Reward int64
-}
-
-// constructors
 func NewQueryBlockRewardParams(h int64) QueryBlockRewardParams {
 	return QueryBlockRewardParams{
 		Height: h,
 	}
+}
+
+// This is for block-reward query inferencing(cmd & rest)
+type BlockReward struct {
+	Reward int64
 }
 
 func NewBlockReward(r int64) BlockReward {
@@ -114,6 +130,8 @@ func (br BlockReward) String() string {
 	return strconv.FormatInt(int64(br.Reward), 10)
 }
 
+// querydata part that queries a block reward
+// it can be called by route "/custom/mint/rewards" from cmd & rest
 func queryBlockRewards(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	var params QueryBlockRewardParams
 	if err := keeper.cdc.UnmarshalJSON(req.Data, &params); err != nil {
@@ -125,8 +143,9 @@ func queryBlockRewards(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([
 		return nil, sdk.ErrUnknownAddress(fmt.Sprintf("height %s does not exist", strconv.FormatInt(params.Height, 10)))
 	}
 
-	//res, err := codec.MarshalJSONIndent(keeper.cdc, sdk.NewInt(reward))
-	res, err := codec.MarshalJSONIndent(keeper.cdc, reward)
+	res, err := codec.MarshalJSONIndent(keeper.cdc, NewBlockReward(reward))
+	// res, err := codec.MarshalJSONIndent(keeper.cdc, sdk.NewInt(reward))
+	// res, err := codec.MarshalJSONIndent(keeper.cdc, reward)
 	if err != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal JSON", err.Error()))
 	}

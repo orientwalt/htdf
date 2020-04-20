@@ -24,6 +24,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec, 
 		"/bank/balances/{address}",
 		QueryBalancesRequestHandlerFn(storeName, cdc, context.GetAccountDecoder(cdc), cliCtx),
 	).Methods("GET")
+
 }
 
 // query accountREST Handler

@@ -34,7 +34,7 @@ MINIMUM_GAS_PRICES = 100satoshi
 ISSUER_ADDRESS = htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3
 DEFAULT_PORT = 26656
 ## setup
-CONFIGDIR = $(HOME)/config/nosentry/htdf/public
+CONFIGDIR = $(HOME)/config/nosentry/htdf/testnet-2019
 SERVER_INFO = $(CONFIGDIR)/servers.info
 SERVER_LIST = $(CONFIGDIR)/server.list
 PEMDIR = $(CONFIGDIR)/pems
@@ -65,12 +65,13 @@ chk.var: pre
 	@if [ -f ${SERVER_INFO} ]; then echo servers.info exists; fi
 	@echo "number_of_validators = ${VALS_COUNT}"
 	@echo "validator indeces = [${VALS_INDEX}]"
-	@echo [nodes]
+	@echo [tests]
 	@for index in $(VALS_INDEX); do \
 	 ipaddr=$$(row $$index ${SERVER_LIST} 1|column ${PUB_COL_INDEX});\
-	 pem=${PEMDIR}/$$(row $$index ${SERVER_LIST} 1|column ${PEM_COL_INDEX});\
 	 usrname=$$(row $$index ${SERVER_LIST} 1|column ${USRNAME_COL_INDEX});\
-	 echo node$$(($$index+1)) ansible_host=$$ipaddr ansible_user=$$usrname ansible_ssh_private_key_file=$$pem;done
+	 passwd=$$(row $$index ${SERVER_LIST} 1|column ${PEM_COL_INDEX});\
+	 encrypted=$$(python -c "from passlib.hash import sha512_crypt; print(sha512_crypt.using(rounds=5000).hash('$$passwd'))");\
+	 echo test$$(($$index+1)) ansible_host=$$ipaddr ansible_ssh_user=$$usrname ansible_ssh_pass=$$passwd;done
 
 clean: clear
 	@rm -rf ${GENDIR} ${VALDIR} ${CONFIGTMPDIR}
@@ -121,89 +122,93 @@ refine:
 
 clear:
 	@read -p "Are you sure to delete all in nodes?(Y/N): " answer; \
-	 if [ "$$answer" = "Y" ]; then ansible nodes -m shell -a "make -sC /root clean";fi
+	 if [ "$$answer" = "Y" ]; then ansible tests -m shell -a "make -sC /root clean";fi
 # distribute
 distr.val: refine distr.mkfile distr.exe distr.config
 
 distr.mkfile:
-	@ansible nodes -m copy -a "src=$(CONFIGDIR)/Makefile dest=/root force=yes"	
+	@ansible tests -m copy -a "src=$(CONFIGDIR)/Makefile dest=/root force=yes"	
 
 distr.exe:
-	@ansible nodes -m copy -a "src=$$(which hsd) dest=/usr/local/bin force=yes mode=755"
-	@ansible nodes -m copy -a "src=$$(which hscli) dest=/usr/local/bin force=yes mode=755"
+	@ansible tests -m copy -a "src=$$(which hsd) dest=/usr/local/bin force=yes mode=755"
+	@ansible tests -m copy -a "src=$$(which hscli) dest=/usr/local/bin force=yes mode=755"
 
 distr.config:
 	@for index in $(VALS_INDEX); do \
 	 ipaddr=$$(row $$index ${SERVER_LIST} 1|column ${PUB_COL_INDEX});\
-	 passwd=${PEMDIR}/$$(row $$index ${SERVER_LIST} 1|column ${PEM_COL_INDEX});\
+	 passwd=$$(row $$index ${SERVER_LIST} 1|column ${PEM_COL_INDEX});\
 	 echo "compressing ${VALDIR}/node$$index/.hsd to node$$index.tar.gz";\
 	 cd ${VALDIR}/node$$index; tar cf ${VALDIR}/node$$index.tar.gz .hsd;\
 	 echo "copying node$$index.tar.gz to $$ipaddr";\
-	 scp -i $$passwd ${VALDIR}/node$$index.tar.gz root@$$ipaddr:/root;\
+	 sshpass -p $$passwd scp ${VALDIR}/node$$index.tar.gz root@$$ipaddr:/root;\
 	 echo "extracting node$$index.tar.gz on $$ipaddr";\
-	 ssh -i $$passwd root@$$ipaddr tar xf /root/node$$index.tar.gz;\
+	 sshpass -p $$passwd ssh root@$$ipaddr tar xf /root/node$$index.tar.gz;\
 	 echo "removing node$$index.tar.gz from $$ipaddr";\
-	 ssh -i $$passwd root@$$ipaddr rm /root/node$$index.tar.gz; done
+	 sshpass -p $$passwd ssh root@$$ipaddr rm /root/node$$index.tar.gz; done
+
 # run
 restart: stop start
 stop: stop.rest stop.daemon
 start: start.daemon start.rest
 
 stop.daemon:
-	@ansible nodes -m shell -a "make stop-daemon"
+	@ansible tests -m shell -a "make stop-daemon"
 
 stop.rest:
-	@ansible nodes -m shell -a "make stop-rest"
+	@ansible tests -m shell -a "make stop-rest"
 
 start.setconfig:
-	@ansible nodes -m shell -a "hscli config chain-id ${CHAIN_ID}"
-	@ansible nodes -m shell -a "hscli config trust-node true"
+	@ansible tests -m shell -a "hscli config chain-id ${CHAIN_ID}"
+	@ansible tests -m shell -a "hscli config trust-node true"
 
 start.daemon: 
-	@ansible nodes -m shell -a "make start-daemon"
+	@ansible tests -m shell -a "make start-daemon"
 
 start.rest:start.setconfig
-	@ansible nodes -m shell -a "make start-rest"
+	@ansible tests -m shell -a "make start-rest"
 
 # check servers
 confirm.validator.address:
-	@ansible node1 -m shell -a "hscli query staking validators|grep 'Operator Address'"|grep 'Operator Address'|column 3
+	@ansible test1 -m shell -a "hscli query staking validators|grep 'Operator Address'"|grep 'Operator Address'|column 3
 
 confirm.height:
-	@ansible nodes -m shell -a "curl http://localhost:26657/status|grep latest_block_height"|grep latest_block_height
+	@ansible tests -m shell -a "curl http://localhost:26657/status|grep latest_block_height"|grep latest_block_height
 
 confirm.delegator.share:
-	@ansible node1 -m shell -a "hscli query staking validators|grep 'Delegator Shares'"
+	@ansible test1 -m shell -a "hscli query staking validators|grep 'Delegator Shares'"
 
 confirm.validating.power:
-	@ansible node1 -m shell -a "hscli query tendermint-validator-set|grep VotingPower"
+	@ansible test1 -m shell -a "hscli query tendermint-validator-set|grep VotingPower"
 
 confirm.validator.commission:
 	@if ! [ -f "$(CONFIGDIR)/validators.list" ]; then make -sC confirm.validator.address > $(CONFIGDIR)/validators.list;fi
 	@for index in $(VALS_INDEX); do \
 	 valaddr=$$(row $$index $(CONFIGDIR)/validators.list 1);\
 	 echo $$valaddr;\
-	 ansible node1 -m shell -a "hscli query distr commission $$valaddr"|grep satoshi; done
+	 ansible test1 -m shell -a "hscli query distr commission $$valaddr"|grep satoshi; done
 
 confirm.community-pool:
-	@ansible node1 -m shell -a "hscli query distr community-pool"
+	@ansible test1 -m shell -a "hscli query distr community-pool"
 
 ssh.vals:
 	@read -p "Enter Server Index To Check: " index; \
 	 ipaddr=$$(row $$index ${SERVER_LIST}|column ${PUB_COL_INDEX});\
-	 passwd=${PEMDIR}/$$(row $$index ${SERVER_LIST}|column ${PEM_COL_INDEX});\
-	 ssh -i $$passwd root@$$ipaddr
+	 passwd=$$(row $$index ${SERVER_LIST}|column ${PEM_COL_INDEX});\
+	 echo sshpass -p $$passwd ssh root@$$ipaddr;\
+	 sshpass -p $$passwd ssh root@$$ipaddr
+
+backup:
+	@ansible tests -m shell -a "mkdir .2019";
+	@ansible tests -m shell -a "mv .hs* .2019";
+	@ansible tests -m shell -a "mv /usr/local/bin/hs* .2019";
+	@ansible tests -m shell -a "ls -a .2019";
 
 test.local:
 	@rm -rf ${HOME}/.hsd;mkdir -p ${HOME}/.hsd/config
-	# @ipaddr=$$(row 1 ${SERVER_LIST}|column ${PUB_COL_INDEX});\
-	#  passwd=${PEMDIR}/$$(row 1 ${SERVER_LIST}|column ${PEM_COL_INDEX});\
-	#  scp -i $$passwd root@$$ipaddr:/root/.hsd/config/config.toml ${HOME}/.hsd/config;\
-	#  scp -i $$passwd root@$$ipaddr:/root/.hsd/config/genesis.json ${HOME}/.hsd/config;
 	@cp ${VALDIR}/node1/.hsd/config/config.toml ${HOME}/.hsd/config
 	@cp ${VALDIR}/node1/.hsd/config/genesis.json ${HOME}/.hsd/config
 	# @nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
 	# @nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
 
 test.route:
-	@ansible nodes -m shell -a "rm /root/.hsd/Makefile"	
+	@ansible tests -m shell -a "rm /root/.hsd/Makefile"	

@@ -1,0 +1,13 @@
+{
+    "Amount": [
+        {
+            "amount": "100000000000", 
+            "denom": "satoshi"
+        }
+    ], 
+    "Data": "", 
+    "From": "htdf1n8lxc8n7dhc50hv5rqemuljrkmm0tstphh7ud0", 
+    "GasPrice": 100, 
+    "GasWanted": 200000, 
+    "To": "htdf1fglamlsk8j45mwsthl5h8094yqqkm0w8t5r53p"
+}

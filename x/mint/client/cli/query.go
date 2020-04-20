@@ -106,7 +106,8 @@ func GetCmdQueryTotalProvisions(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var provisions sdk.Int
+			// var provisions sdk.Int
+			var provisions mint.TotalProvisions
 			if err := cdc.UnmarshalJSON(res, &provisions); err != nil {
 				return err
 			}
@@ -142,14 +143,15 @@ func GetCmdQueryBlockRewards(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			//var reward sdk.Int
-			var reward int64
+			var reward mint.BlockReward
+			// var reward sdk.Int
+			// var reward int64
 			if err := cliCtx.Codec.UnmarshalJSON(res, &reward); err != nil {
 				return err
 			}
 
-			//return cliCtx.PrintOutput(reward)
-			return cliCtx.PrintOutput(sdk.NewDec(reward))
+			return cliCtx.PrintOutput(reward)
+			// return cliCtx.PrintOutput(sdk.NewDec(reward))
 		},
 	}
 }

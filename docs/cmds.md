@@ -14,11 +14,21 @@
     hscli tx broadcast [rawdata]
 
 ### query cmds
-    hscli query accounts [addr]
-    hscli query block
-    hscli query txs
-    hscli query tx
+```
+hscli query accounts [addr]
+hscli query block
+hscli query txs
+hscli query tx
 
+[additional]
+hscli query rewards [block-height]
+hscli query total-provisions
+
+[contractcall]
+contract-addr: htdf1l03rqalmg58wgw9ya39wwc3466lyy20xnpeaee
+callcode: 27e235e300000000000000000000000027681ceb7de9bae3c5f7f10f81ff5106e2ca48a7
+hscli query contract [contract-addr] [callcode]
+```
 ### check
     hscli query staking pool
     hscli query staking params

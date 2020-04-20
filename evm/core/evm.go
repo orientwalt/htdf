@@ -17,9 +17,10 @@
 package core
 
 import (
-	"github.com/orientwalt/htdf/utils"
 	"math/big"
 	"time"
+
+	"github.com/orientwalt/htdf/utils"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -58,13 +59,11 @@ func (self FooChainContext) GetHeader(hash common.Hash, number uint64) *types.He
 func NewEVMContext(msg IMessage, author *common.Address, height uint64) vm.Context {
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	var beneficiary common.Address
-	/*
-		if author == nil {
-			beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
-		} else {
-			beneficiary = *author
-		}
-	*/
+	// if author == nil {
+	// 	beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
+	// } else {
+	// 	beneficiary = *author
+	// }
 	beneficiary = *author
 
 	var fooChainContext FooChainContext

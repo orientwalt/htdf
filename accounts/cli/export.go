@@ -20,7 +20,7 @@ func GetExportPivKeyCmd() *cobra.Command {
 
 			ksw := keystore.NewKeyStoreWallet(keystore.DefaultKeyStoreHome())
 
-			priv, err := getPrivateKey(ksw, args[0], args[1])
+			priv, err := GetPrivateKey(ksw, args[0], args[1])
 			if err != nil {
 				return err
 			}
@@ -30,7 +30,7 @@ func GetExportPivKeyCmd() *cobra.Command {
 	}
 }
 
-func getPrivateKey(ksw *keystore.KeyStoreWallet, addr string, passphrase string) (string, error) {
+func GetPrivateKey(ksw *keystore.KeyStoreWallet, addr string, passphrase string) (string, error) {
 	privKeyArmor, err := ksw.GetPrivKey(addr)
 	if err != nil {
 		return "", err

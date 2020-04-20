@@ -12,7 +12,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&Params{}, "htdf/mint/Params", nil)
 	cdc.RegisterConcrete(&sdk.Dec{}, "htdf/mint/rewards", nil)
 	// cdc.RegisterConcrete(&Params{}, "mint/Params", nil)
-	// cdc.RegisterConcrete(&BlockReward{}, "mint/BlockReward", nil)
+	// cdc.RegisterConcrete(&BlockReward{}, "htdf/mint/BlockReward", nil)
 	// cdc.RegisterConcrete(&sdk.Dec{}, "types/Dec", nil)
 	// cdc.RegisterConcrete(&sdk.Int{}, "types/Int", nil)
 }

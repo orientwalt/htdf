@@ -74,5 +74,5 @@
                              $(grep -nr validator_address  ~/.hsd/config/genesis.json |sed -n '1p'|awk '{print $3F}' | cut -d'"' -f 2) \
                              100000000satoshi \
                              --gas-adjustment 1.5 --gas-price=100
-    hscli tx distr withdraw-rewards $(hscli accounts list| sed -n '2p') \
-                                     $(grep -nr validator_address  ~/.hsd/config/genesis.json |sed -n '2p'|awk '{print $3F}' | cut -d'"' -f 2) \ --gas-adjustment 1.5 --gas-price=100
+    hscli tx distr withdraw-rewards $(hscli accounts list| sed -n '1p') \
+                                     $(grep -nr validator_address  ~/.hsd/config/genesis.json |sed -n '1p'|awk '{print $3F}' | cut -d'"' -f 2) \ --gas-adjustment 1.5 --gas-price=100
