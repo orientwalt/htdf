@@ -24,13 +24,19 @@ fi
 ##
 ## Run binary with all parameters
 ##
+# echo `pwd`
+# echo `ls -la ${BINARY}`
+# echo `which hsd`
 
 export HSDHOME="/root/node${ID}/.hsd"
 
-if [ -d "`dirname ${HSDHOME}/${LOG}`" ]; then
-  "$BINARY" --home "$HSDHOME" "$@" | tee "${HSDHOME}/${LOG}"
-else
-  "$BINARY" --home "$HSDHOME" "$@"
-fi
+hsd --home "$HSDHOME" "$@" | tee "${HSDHOME}/${LOG}"
+
+# if [ -d "`dirname ${HSDHOME}/${LOG}`" ]; then
+#   "$BINARY" --home "$HSDHOME" "$@" | tee "${HSDHOME}/${LOG}"
+# else
+#   "$BINARY" --home "$HSDHOME" "$@"
+# fi
 
 chmod 0600 -R /root
+# chown root:root -R /root

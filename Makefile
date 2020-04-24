@@ -11,6 +11,7 @@ GO ?= latest
 
 # variables
 DEBUGAPI=ON  # disable DEBUGAPI by default
+LOG_LEVEL=debug # default: log
 PACKAGES = $(shell go list ./... | grep -Ev 'vendor|importer')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
 GIT_BRANCH :=$(shell git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //")
@@ -170,20 +171,6 @@ clean:
 clear: clean
 	@rm -rf ~/.hs*
 
-# git part
-down:
-	@git pull
-	
-up:	clean
-	@git add .
-	@read -p "Enter a Comment: " comment;\
-	git commit -m "$$comment";\
-	git push origin master
-
-# misc
-conv:
-	@find -iregex '.*\.\(go\)'| xargs sed -i "s/x\/htdfservice/x\/core/g"
-
 DOCKER_VALIDATOR_IMAGE = falcon0125/hsdnode
 DOCKER_CLIENT_IMAGE = falcon0125/hsclinode
 VALIDATOR_COUNT = 4
@@ -198,7 +185,7 @@ LIVENETDIR = build/livenet
 # docker-compose part[multi-node part, also test mode]
 # Local validator nodes using docker and docker-compose
 hsnode: clean build# hstop
-	$(MAKE) -C networks/local
+	$(MAKE) -C tools/deploy/docker
 
 init-testnet:
 	@if ! [ -d ${TESTNETDIR} ]; then mkdir -p ${TESTNETDIR}; fi
@@ -225,7 +212,7 @@ hsinit-o1:
 	@mkdir -p ${TESTNETDIR}/node4/.hsd ${TESTNETDIR}/node4/.hscli
 	@hsd init node4 --home ${TESTNETDIR}/node4/.hsd
 	@cp ${TESTNETDIR}/node0/.hsd/config/genesis.json ${TESTNETDIR}/node4/.hsd/config
-	@cp ${TESTNETDIR}/node0/.hsd/config/hsd.toml ${TESTNETDIR}/node4/.hsd/config
+	# @cp ${TESTNETDIR}/node0/.hsd/config/hsd.toml ${TESTNETDIR}/node4/.hsd/config
 	@cp ${TESTNETDIR}/node0/.hsd/config/config.toml ${TESTNETDIR}/node4/.hsd/config
 	@sed -i s/node0/node4/g ${TESTNETDIR}/node4/.hsd/config/config.toml
 	@cp -rf ${TESTNETDIR}/node0/.hscli/* ${TESTNETDIR}/node4/.hscli
@@ -234,13 +221,16 @@ hsinit-o2:
 	@mkdir -p ${TESTNETDIR}/node5/.hsd ${TESTNETDIR}/node5/.hscli
 	@hsd init node5 --home ${TESTNETDIR}/node5/.hsd
 	@cp ${TESTNETDIR}/node0/.hsd/config/genesis.json ${TESTNETDIR}/node5/.hsd/config
-	@cp ${TESTNETDIR}/node0/.hsd/config/hsd.toml ${TESTNETDIR}/node5/.hsd/config
+	# @cp ${TESTNETDIR}/node0/.hsd/config/hsd.toml ${TESTNETDIR}/node5/.hsd/config
 	@cp ${TESTNETDIR}/node0/.hsd/config/config.toml ${TESTNETDIR}/node5/.hsd/config
 	@sed -i s/node0/node5/g ${TESTNETDIR}/node5/.hsd/config/config.toml
 	@cp -rf ${TESTNETDIR}/node1/.hscli/* ${TESTNETDIR}/node5/.hscli
 
 hstart: build hsinit-test hsinit-o1 hsinit-o2 init-testnet
 	@docker-compose up -d
+
+hstart.debug: build hsinit-test hsinit-o1 hsinit-o2 init-testnet
+	@docker-compose up
 
 hsattach:
 	@docker attach hsclinode1
@@ -261,70 +251,65 @@ hsclean:
 clean-t:
 	@find build -name testnet |xargs rm -rf
 	
-addrs:
-	@if [ -f ipaddrs.conf ]; then rm ipaddrs.conf ;fi
-	# modify conf files
-	@read -p "Enter node0 IP addr: " ipaddr;\
-	echo $${ipaddr} >> ipaddrs.conf
-	@read -p "Enter node1 IP addr: " ipaddr;\
-	echo $${ipaddr} >> ipaddrs.conf
-	@read -p "Enter node2 IP addr: " ipaddr;\
-	echo $${ipaddr} >> ipaddrs.conf
-	@read -p "Enter node3 IP addr: " ipaddr;\
-	echo $${ipaddr} >> ipaddrs.conf
+# addrs:
+# 	@if [ -f ipaddrs.conf ]; then rm ipaddrs.conf ;fi
+# 	# modify conf files
+# 	@for index in $$(seq -s ' ' 4); do \
+# 	 read -p "Enter node$$index IP addr: " ipaddr;\
+# 	 echo $$ipaddr >> ipaddrs.conf; done
 
-killall:
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') pkill -9 hsd
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') pkill -9 hsd
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') pkill -9 hsd
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') pkill -9 hsd
+# killall:
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') pkill -9 hsd
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') pkill -9 hsd
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') pkill -9 hsd
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') pkill -9 hsd
 
-startall:
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') nohup hsd start & > /dev/null
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') nohup hsd start & > /dev/null
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') nohup hsd start & > /dev/null
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') nohup hsd start & > /dev/null
+# startall:
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') nohup hsd start & > /dev/null
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') nohup hsd start & > /dev/null
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') nohup hsd start & > /dev/null
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') nohup hsd start & > /dev/null
 
-cleanall:
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') rm -rf /root/.hsd /root/.hscli
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') rm -rf /root/.hsd /root/.hscli
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') rm -rf /root/.hsd /root/.hscli
-	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') rm -rf /root/.hsd /root/.hscli
+# cleanall:
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') rm -rf /root/.hsd /root/.hscli
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') rm -rf /root/.hsd /root/.hscli
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') rm -rf /root/.hsd /root/.hscli
+# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') rm -rf /root/.hsd /root/.hscli
 
-copyall:
-	# upload files
-	### 1st server
-	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
-	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
-	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/usr/local/bin
-	### 2nd server
-	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
-	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
-	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/usr/local/bin
-	### 3rd server
-	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node2/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
-	@sshpass -p miss16980 scp -r build/testnet/node2/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
-	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/usr/local/bin
-	### 4th server
-	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
-	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
-	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/usr/local/bin
+# copyall:
+# 	# upload files
+# 	### 1st server
+# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
+# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
+# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/usr/local/bin
+# 	### 2nd server
+# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
+# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
+# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/usr/local/bin
+# 	### 3rd server
+# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node2/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
+# 	@sshpass -p miss16980 scp -r build/testnet/node2/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
+# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/usr/local/bin
+# 	### 4th server
+# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
+# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
+# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/usr/local/bin
 
-resetall: #clean-4 install-
-	@if ! [ -d ${TESTNETDIR} ]; then mkdir -p ${TESTNETDIR}; fi
-	@hsd testnet --chain-id mainchain \
-				 --v 4 \
-				 -o ${TESTNETDIR} \
-				 --validator-ip-addresses $(CURDIR)/networks/remote/ipaddrs.conf \
-				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
+# resetall: #clean-4 install-
+# 	@if ! [ -d ${TESTNETDIR} ]; then mkdir -p ${TESTNETDIR}; fi
+# 	@hsd testnet --chain-id mainchain \
+# 				 --v 4 \
+# 				 -o ${TESTNETDIR} \
+# 				 --validator-ip-addresses $(CURDIR)/networks/remote/ipaddrs.conf \
+# 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
 
-clean-testnet:
-	@rm -rf $(CURDIR)/build/testnet
+# clean-testnet:
+# 	@rm -rf $(CURDIR)/build/testnet
 
-testnet: clean-testnet install resetall #copyall startall # killall cleanall 
+# testnet: clean-testnet install resetall #copyall startall # killall cleanall 
 
-chketh:
-	@sshpass -p miss16980 ssh root@192.168.10.69
+# chketh:
+# 	@sshpass -p miss16980 ssh root@192.168.10.69
 
 ##############################################################################################################################
 # ethernet distribution part
