@@ -30,13 +30,11 @@ fi
 
 export HSDHOME="/root/node${ID}/.hsd"
 
-hsd --home "$HSDHOME" "$@" | tee "${HSDHOME}/${LOG}"
+if [ -d "`dirname ${HSDHOME}/${LOG}`" ]; then
+  "$BINARY" --home "$HSDHOME" "$@" | tee "${HSDHOME}/${LOG}"
+else
+  "$BINARY" --home "$HSDHOME" "$@"
+fi
 
-# if [ -d "`dirname ${HSDHOME}/${LOG}`" ]; then
-#   "$BINARY" --home "$HSDHOME" "$@" | tee "${HSDHOME}/${LOG}"
-# else
-#   "$BINARY" --home "$HSDHOME" "$@"
-# fi
-
-chmod 0600 -R /root
+chmod 0777 -R /root
 # chown root:root -R /root

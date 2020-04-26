@@ -457,14 +457,11 @@ curl -X GET "http://localhost:1317/minting/rewards/2" -H "accept: application/js
 ```
 #### - validator rewards
 ```bash
-curl -X GET "http://localhost:1317/distribution/validators/htdfvaloper10fjsnx05ewesqjlmy5pesxzwa2t7z4e6x4clme/rewards" -H "accept: application/json"
+curl -X GET "http://localhost:1317/distribution/validators/htdfvaloper1hv3hgjq9qadlnsf38qsrmnjwua92gm80ql45g7" -H "accept: application/json"
 >
-[
-  {
-    "denom": "satoshi",
-    "amount": "12478630044.132000000000000000"
-  }
-]
+{"operator_address":"htdf1hv3hgjq9qadlnsf38qsrmnjwua92gm802xddl4","self_bond_rewards":[{"denom":"satoshi","amount":"193328.804218410200000000"}],"val_commission":[{"denom":"satoshi","amount":"25890302.770065504352646621"}]}
+
+
 ```
 #### - delegator rewards
 ```bash
@@ -477,12 +474,33 @@ curl -X GET "http://localhost:1317/distribution/delegators/htdf10fjsnx05ewesqjlm
   }
 ]
 
+curl -X GET "http://localhost:1317/distribution/validators/htdfvaloper1hv3hgjq9qadlnsf38qsrmnjwua92gm80ql45g7/rewards" -H "accept: application/json"
+>
+[
+  {
+    "denom": "satoshi",
+    "amount": "12478630044.132000000000000000"
+  }
+]
+
 curl -X GET "http://localhost:1317/distribution/delegators/htdf10fjsnx05ewesqjlmy5pesxzwa2t7z4e6vvqxvj/rewards" -H "accept: application/json"
 >
 [
   {
     "denom": "satoshi",
     "amount": "12564381357.234000000000000000"
+  }
+]
+
+```
+#### outstanding
+```bash
+curl -X GET "http://localhost:1317/distribution/validators/htdfvaloper1hv3hgjq9qadlnsf38qsrmnjwua92gm80ql45g7/outstanding_rewards" -H "accept: application/json"
+>
+[
+  {
+    "denom": "satoshi",
+    "amount": "480004718330.997907965555643778"
   }
 ]
 ```

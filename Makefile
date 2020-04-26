@@ -5,19 +5,20 @@ else
     CURRENT_OS := $(shell uname -s)
 endif
 
+# export GO111MODULE = on
+# default: log
+export LOG_LEVEL=debug
+
 #GOBIN
 GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 
 # variables
 DEBUGAPI=ON  # disable DEBUGAPI by default
-LOG_LEVEL=debug # default: log
+
 PACKAGES = $(shell go list ./... | grep -Ev 'vendor|importer')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
 GIT_BRANCH :=$(shell git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //")
-BUILD_FLAGS = -tags netgo -ldflags "-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}"
-HTDFSERVICE_DAEMON_BINARY = hsd
-HTDFSERVICE_CLI_BINARY = hscli
 # tool checking
 DEP_CHK := $(shell command -v dep 2> /dev/null)
 GOLINT_CHK := $(shell command -v golint 2> /dev/null)
@@ -27,6 +28,41 @@ INEFFASSIGN_CHK := $(shell command -v ineffassign 2> /dev/null)
 MISSPELL_CHK := $(shell command -v misspell 2> /dev/null)
 ERRCHECK_CHK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHK := $(shell command -v unparam 2> /dev/null)
+#
+LEDGER_ENABLED ?= true
+
+build_tags = netgo
+ifeq ($(LEDGER_ENABLED),true)
+  ifeq ($(OS),Windows_NT)
+    GCCEXE = $(shell where gcc.exe 2> NUL)
+    ifeq ($(GCCEXE),)
+      $(error gcc.exe not installed for ledger support, please install or set LEDGER_ENABLED=false)
+    else
+      build_tags += ledger
+    endif
+  else
+    UNAME_S = $(shell uname -s)
+    ifeq ($(UNAME_S),OpenBSD)
+      $(warning OpenBSD detected, disabling ledger support (https://github.com/cosmos/cosmos-sdk/issues/1988))
+    else
+      GCC = $(shell command -v gcc 2> /dev/null)
+      ifeq ($(GCC),)
+        $(error gcc not installed for ledger support, please install or set LEDGER_ENABLED=false)
+      else
+        build_tags += ledger
+      endif
+    endif
+  endif
+endif
+
+ifeq ($(WITH_CLEVELDB),yes)
+  build_tags += gcc
+endif
+build_tags += $(BUILD_TAGS)
+build_tags := $(strip $(build_tags))
+
+BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
+BUILD_FLAGS_STATIC_LINK = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH} -linkmode external -w -extldflags "-static"'
 
 all: tools deps build
 
@@ -48,42 +84,44 @@ update:
 	@rm -rf .vendor-new
 	@dep ensure -v -update
 
-buildquick:
-	echo BUILD_FLAGS=$(BUILD_FLAGS)
-	@go build  $(BUILD_FLAGS) -o ./build/bin/hsd ./cmd/hsd
-	@go build  $(BUILD_FLAGS) -o ./build/bin/hscli ./cmd/hscli
-	@go build  $(BUILD_FLAGS) -o ./build/bin/hsutils ./cmd/hsutil
-	@go build  $(BUILD_FLAGS) -o ./build/bin/hsinfo ./cmd/hsinfo
+buildquick: go.sum
+ifeq ($(CURRENT_OS),Windows)
+	@echo BUILD_FLAGS=$(BUILD_FLAGS)
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsd.exe ./cmd/hsd
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli.exe ./cmd/hscli
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsutils.exe ./cmd/hsutil
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli.exe ./cmd/hsinfo
+else
+	@echo BUILD_FLAGS=$(BUILD_FLAGS)
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsd ./cmd/hsd
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli ./cmd/hscli
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsutils ./cmd/hsutil
+	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsinfo ./cmd/hsinfo
+endif
+
+# https://stackoverflow.com/questions/34729748/installed-go-binary-not-found-in-path-on-alpine-linux-docker
+# https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host,
+# failed because dependency path modified
+build.CGO_DISABLED: go.sum
+	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(MAKE) buildquick
+
+build.static: go.sum
+	@echo BUILD_FLAGS=$(BUILD_FLAGS_STATIC_LINK)
+	@go build -mod=readonly $(BUILD_FLAGS_STATIC_LINK) -o build/testnet/hsd ./cmd/hsd
+	@go build -mod=readonly $(BUILD_FLAGS_STATIC_LINK) -o build/testnet/hscli ./cmd/hscli
 
 build: unittest buildquick
 
 build-batchsend:
 	@build/env.sh go run build/ci.go install ./cmd/hsbatchsend
 
-install: buildquick
-	@if [ -d build/bin ]; then cp build/bin/* $(GOPATH)/bin; fi
-	@$(MAKE) -sC . clean
+install: go.sum
+	go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsd ./cmd/hsd
+	go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli ./cmd/hscli
 
-# build-:
-# ifeq ($(CURRENT_OS),Windows)
-# 	@echo building all....
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hsd.exe ./cmd/hsd
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hscli.exe ./cmd/hscli
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hsutils.exe ./cmd/hsutil
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hscli.exe ./cmd/hsinfo
-# else
-# 	@echo building all....
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hsd ./cmd/hsd
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hscli ./cmd/hscli
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hsutils ./cmd/hsutil
-# 	@go build  $(BUILD_FLAGS) -o ./build/bin/hsinfo ./cmd/hsinfo
-# endif
-
-# install-:
-# 	@echo installing all ....
-# 	@go install ./cmd/hsd
-# 	@go install ./cmd/hscli
-# 	@go install ./cmd/hsutil
+go.sum: go.mod
+	@echo "--> Ensure dependencies have not been modified"
+	@go mod verify
 
 # test part
 test:
@@ -184,12 +222,8 @@ LIVENETDIR = build/livenet
 
 # docker-compose part[multi-node part, also test mode]
 # Local validator nodes using docker and docker-compose
-hsnode: clean build# hstop
+hsnode: clean build.static# hstop
 	$(MAKE) -C tools/deploy/local
-
-init-testnet:
-	@if ! [ -d ${TESTNETDIR} ]; then mkdir -p ${TESTNETDIR}; fi
-	@if [ -d build/bin ]; then cp build/bin/* ${TESTNETDIR}; fi
 
 echotest:
 	@echo  $(CURDIR)/${TESTNETDIR}
@@ -226,10 +260,10 @@ hsinit-o2:
 	@sed -i s/node0/node5/g ${TESTNETDIR}/node5/.hsd/config/config.toml
 	@cp -rf ${TESTNETDIR}/node1/.hscli/* ${TESTNETDIR}/node5/.hscli
 
-hstart: build hsinit-test hsinit-o1 hsinit-o2 init-testnet
+hstart: build.static hsinit-test hsinit-o1 hsinit-o2
 	@docker-compose up -d
 
-hstart.debug: build hsinit-test hsinit-o1 hsinit-o2 init-testnet
+hstart.debug: build hsinit-test hsinit-o1 hsinit-o2
 	@docker-compose up
 
 hsattach:
