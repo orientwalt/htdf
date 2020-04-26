@@ -5,6 +5,7 @@ import sdk "github.com/orientwalt/htdf/types"
 const (
 	// all store name
 	AccountStore         = "acc"
+	CoreStore            = "hs"
 	StakeStore           = "staking"
 	StakeTransientStore  = "transient_stake"
 	MintStore            = "mint"
@@ -24,6 +25,7 @@ const (
 	// all route for query and handler
 	BankRoute     = "bank"
 	AccountRoute  = AccountStore
+	CoreRoute     = CoreStore
 	StakeRoute    = StakeStore
 	DistrRoute    = DistrStore
 	SlashingRoute = SlashingStore
@@ -32,7 +34,7 @@ const (
 	ServiceRoute  = ServiceStore
 	GuardianRoute = GuardianStore
 	UpgradeRoute  = UpgradeStore
-	MintRoute = MintStore // junying-todo, 2020-02-05
+	MintRoute     = MintStore // junying-todo, 2020-02-05
 )
 
 var (

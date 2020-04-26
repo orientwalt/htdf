@@ -17,6 +17,7 @@ import (
 	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
 	"github.com/orientwalt/htdf/x/distribution/client/common"
 	"github.com/orientwalt/htdf/x/distribution/types"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -69,6 +70,8 @@ $ hscli tx distr withdraw-rewards htdf1keyvaa4u5rcjwq3gncvct4hrmq553fpkremp5v ht
 			if viper.GetBool(flagComission) {
 				msgs = append(msgs, types.NewMsgWithdrawValidatorCommission(valAddr))
 			}
+			str, err := cliCtx.Codec.MarshalJSON(msgs)
+			log.Infoln(string(str))
 			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, msgs, delAddr)
 		},
 	}

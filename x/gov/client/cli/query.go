@@ -56,8 +56,8 @@ func GetCmdQueryProposals(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Long: strings.TrimSpace(`
 Query for a all proposals. You can filter the returns with the following flags:
 
-$ hscli query gov proposals --depositor cosmos1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
-$ hscli query gov proposals --voter cosmos1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ hscli query gov proposals --depositor htdf1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ hscli query gov proposals --voter htdf1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
 $ hscli query gov proposals --status (DepositPeriod|VotingPeriod|Passed|Rejected)
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -143,7 +143,7 @@ func GetCmdQueryVote(queryRoute string, cdc *codec.Codec) *cobra.Command {
 Query details for a single vote on a proposal given its identifier.
 
 Example:
-$ hscli query gov vote 1 cosmos1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ hscli query gov vote 1 htdf1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -261,7 +261,7 @@ func GetCmdQueryDeposit(queryRoute string, cdc *codec.Codec) *cobra.Command {
 Query details for a single proposal deposit on a proposal by its identifier.
 
 Example:
-$ hscli query gov deposit 1 cosmos1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
+$ hscli query gov deposit 1 htdf1skjwj5whet0lpe65qaq4rpq03hjxlwd9nf39lk
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

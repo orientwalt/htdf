@@ -2,33 +2,25 @@
 [![](https://godoc.org/github.com/orientwalt/htdf?status.svg)](http://godoc.org/github.com/orientwalt/htdf) [![Go Report Card](https://goreportcard.com/badge/github.com/orientwalt/htdf)](https://goreportcard.com/report/github.com/orientwalt/htdf)
 [![Travis](https://travis-ci.org/orientwalt/htdf.svg?branch=master)](https://travis-ci.org/orientwalt/htdf)
 [![version](https://img.shields.io/github/tag/orientwalt/htdf.svg)](https://github.com/orientwalt/htdf/releases/latest)
-[![](https://tokei.rs/b1/github/orientwalt/htdf?category=lines)](https://github.com/orientwalt/htdf)
+[![Go version](https://img.shields.io/badge/go-1.12.9-blue.svg)](https://github.com/moovweb/gvm)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# HTDFService
-### What is HTDFService?
-   HTDFService is a cosmos-sdk application that provides fundamental crytocurrency functions including account management, transaction processing, and smart contract. It still uses BPOS of tendermint as its consensus algorithm. This project is now UNDER ACTIVE DEVELOPMENT.
+# HTDF
+## Introduction
+   HTDF is a high-performance public blockchain developed by HTDF Foundation. It is based on [ethereum](https://github.com/ethereum/go-ethereum) & [cosmos-sdk](https://github.com/cosmos/cosmos-sdk) on [tendermint](https://github.com/tendermint/tendermint)  . We merged tendermint's consensus, cosmos-sdk's application logic, and ethereum's account system & smart contract architecture into a brand new architecture - htdf blockchain.  This project is now UNDER ACTIVE DEVELOPMENT.
    
-### Development Plan
-  * [x] **account**: database to filesystem
-  * [x] **transaction**: cold-wallet functions(create, sign, broadcast)
-  * [x] **transaction**: system_issuer increase balance 
-  * [x] **transaction**: fee, reward system
-  * [x] **rest**: auth/query rest removal - tx/sign, encode, broadcast
-  * [ ] **block**: non-empty block
-  * [ ] **daemon & cli**: bitcoin style to ethereum style(integrated single)
-  * [x] **docker**: standalone
-  * [x] **docker-compose**: multi-node
-  * [ ] **emergency system**
-    * [ ] monitoring system
-    * [ ] alert system
-    * [x] urgent response system
-      * [x] hard fork: export-based
-    * [ ] validator abnormality detection
-  * [x] **security**
-    * [x] sentry node architecture
-    * [x] dynamic system issuer
-  * [x] **delegators, validators test**
-### [Test](https://github.com/orientwalt/htdf/blob/master/tests/plan.md)
-### [Quick Start](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
-### License
-   This project is Private.
+   **Note**: Requires Go 12.9+
+## Executables
+```
+hsd
+hscli
+```
+## [Quick Start](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
+Only one command is enough to set up a standalone blockchain on your local machine.
+```
+make new
+make start
+tail -f ~/.hsd/app.log
+```
+## Contributions
+We always welcome any issue/advice/suggestion.

@@ -8,9 +8,9 @@
     hscli tx sign [rawcode] --encode=false
 ### staking
     [validating]
-    hscli tx staking create-validator $(hscli accounts list| sed -n '2p') \
+    hscli tx staking create-validator $(hscli accounts list| sed -n '1p') \
                                        --pubkey=$(hsd tendermint show-validator)\
-                                       --amount=10000000satoshi \
+                                       --amount=100000000satoshi \
                                        --moniker=client \
                                        --commission-rate=0.10 \
                                        --commission-max-rate=0.20 \

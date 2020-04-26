@@ -90,24 +90,48 @@ func GetCmdQueryAnnualProvisions(cdc *codec.Codec) *cobra.Command {
 	}
 }
 
-// GetCmdQueryAnnualProvisions implements a command to return the current minting
-// annual provisions value.
-func GetCmdQueryBlockRewards(cdc *codec.Codec) *cobra.Command {
+// GetCmdQueryTotalProvisions implements a command to return the current minting
+// total provisions value.
+func GetCmdQueryTotalProvisions(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "rewards [block height]",
-		Short: "Get verified data for a the block reward at given height",
-		Args:  cobra.ExactArgs(1),
+		Use:   "total-provisions",
+		Short: "Query the current minting total provisions value",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			// route := fmt.Sprintf("custom/%s/%s", mint.QuerierRoute, args[0])
+			route := fmt.Sprintf("custom/%s/%s", mint.QuerierRoute, mint.QueryTotalProvisions)
+			res, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			// var provisions sdk.Int
+			var provisions mint.TotalProvisions
+			if err := cdc.UnmarshalJSON(res, &provisions); err != nil {
+				return err
+			}
+
+			return cliCtx.PrintOutput(provisions)
+		},
+	}
+}
+
+// GetCmdQueryBlockRewards implements a command to return a block reward
+// at given height.
+func GetCmdQueryBlockRewards(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "rewards [block height]",
+		Short: "Get verified data for a block reward at given height",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			height, err := strconv.ParseInt(args[0], 10, 64)
 			if err != nil {
 				return err
 			}
 
-			fmt.Println("height:=", height)
 			bz, err := cliCtx.Codec.MarshalJSON(mint.NewQueryBlockRewardParams(height))
 			if err != nil {
 				return err
@@ -119,13 +143,15 @@ func GetCmdQueryBlockRewards(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var reward int64
+			var reward mint.BlockReward
+			// var reward sdk.Int
+			// var reward int64
 			if err := cliCtx.Codec.UnmarshalJSON(res, &reward); err != nil {
 				return err
 			}
-			// reward = sdk.NewDec(mint.BytesToInt64(res))
 
-			return cliCtx.PrintOutput(sdk.NewDec(reward))
+			return cliCtx.PrintOutput(reward)
+			// return cliCtx.PrintOutput(sdk.NewDec(reward))
 		},
 	}
 }

@@ -319,7 +319,7 @@ func subtractCoins(ctx sdk.Context, ak auth.AccountKeeper, addr sdk.AccAddress, 
 
 // AddCoins adds amt to the coins at the addr.
 func addCoins(ctx sdk.Context, am auth.AccountKeeper, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, sdk.Tags, sdk.Error) {
-	fmt.Println("111111111addCoins11111111")
+
 	if !amt.IsValid() {
 		return nil, nil, sdk.ErrInvalidCoins(amt.String())
 	}

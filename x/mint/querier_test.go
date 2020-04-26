@@ -73,3 +73,17 @@ func TestQueryAnnualProvisions(t *testing.T) {
 
 	require.Equal(t, input.mintKeeper.GetMinter(input.ctx).AnnualProvisions, annualProvisions)
 }
+
+// func TestQueryTotalProvisions(t *testing.T) {
+// 	input := newTestInput(t)
+
+// 	var totalProvisions sdk.Int
+
+// 	res, sdkErr := queryTotalProvisions(input.ctx, input.mintKeeper)
+// 	require.NoError(t, sdkErr)
+
+// 	err := input.cdc.UnmarshalJSON(res, &totalProvisions)
+// 	require.NoError(t, err)
+
+// 	require.Equal(t, input.mintKeeper.sk.TotalTokens(input.ctx), totalProvisions)
+// }

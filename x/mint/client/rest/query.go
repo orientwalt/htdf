@@ -31,6 +31,11 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Co
 	).Methods("GET")
 
 	r.HandleFunc(
+		"/minting/total-provisions",
+		queryTotalProvisionsHandlerFn(cdc, cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
 		"/minting/rewards/{height}",
 		queryBlockRewardHandlerFn(cdc, cliCtx),
 	).Methods("GET")
@@ -67,6 +72,20 @@ func queryInflationHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.H
 func queryAnnualProvisionsHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		route := fmt.Sprintf("custom/%s/%s", mint.QuerierRoute, mint.QueryAnnualProvisions)
+
+		res, err := cliCtx.QueryWithData(route, nil)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cdc, res, cliCtx.Indent)
+	}
+}
+
+func queryTotalProvisionsHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		route := fmt.Sprintf("custom/%s/%s", mint.QuerierRoute, mint.QueryTotalProvisions)
 
 		res, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {

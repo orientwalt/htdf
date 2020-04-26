@@ -120,7 +120,8 @@ refine:
 	@find ${VALDIR} -name "ip.conf" |xargs rm -f
 
 clear:
-	@ansible nodes -m shell -a "make -sC /root clean"
+	@read -p "Are you sure to delete all in nodes?(Y/N): " answer; \
+	 if [ "$$answer" = "Y" ]; then ansible nodes -m shell -a "make -sC /root clean";fi
 # distribute
 distr.val: refine distr.mkfile distr.exe distr.config
 
@@ -192,6 +193,17 @@ ssh.vals:
 	 ipaddr=$$(row $$index ${SERVER_LIST}|column ${PUB_COL_INDEX});\
 	 passwd=${PEMDIR}/$$(row $$index ${SERVER_LIST}|column ${PEM_COL_INDEX});\
 	 ssh -i $$passwd root@$$ipaddr
+
+test.local:
+	@rm -rf ${HOME}/.hsd;mkdir -p ${HOME}/.hsd/config
+	# @ipaddr=$$(row 1 ${SERVER_LIST}|column ${PUB_COL_INDEX});\
+	#  passwd=${PEMDIR}/$$(row 1 ${SERVER_LIST}|column ${PEM_COL_INDEX});\
+	#  scp -i $$passwd root@$$ipaddr:/root/.hsd/config/config.toml ${HOME}/.hsd/config;\
+	#  scp -i $$passwd root@$$ipaddr:/root/.hsd/config/genesis.json ${HOME}/.hsd/config;
+	@cp ${VALDIR}/node1/.hsd/config/config.toml ${HOME}/.hsd/config
+	@cp ${VALDIR}/node1/.hsd/config/genesis.json ${HOME}/.hsd/config
+	# @nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
+	# @nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
 
 test.route:
 	@ansible nodes -m shell -a "rm /root/.hsd/Makefile"	

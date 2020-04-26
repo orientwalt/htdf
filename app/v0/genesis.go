@@ -136,8 +136,6 @@ func (ga *GenesisAccount) ToAccount() (acc *auth.BaseAccount) {
 // note that the pubkey input is this machines pubkey
 func HtdfAppGenState(cdc *codec.Codec, genDoc tmtypes.GenesisDoc, appGenTxs []json.RawMessage) (
 	genesisState GenesisState, err error) {
-	fmt.Print("--------genDoc.AppState--------	", genDoc.AppState, "\n")
-	fmt.Print("	-----genesisState---	", genesisState, "\n")
 	if err = cdc.UnmarshalJSON(genDoc.AppState, &genesisState); err != nil {
 		return genesisState, err
 	}
@@ -146,7 +144,7 @@ func HtdfAppGenState(cdc *codec.Codec, genDoc tmtypes.GenesisDoc, appGenTxs []js
 	if len(appGenTxs) == 0 {
 		return genesisState, errors.New("there must be at least one genesis tx")
 	}
-	fmt.Println("@@@@@@@@@@@@@@")
+
 	stakeData := genesisState.StakeData
 	for i, genTx := range appGenTxs {
 		var tx auth.StdTx
@@ -163,7 +161,6 @@ func HtdfAppGenState(cdc *codec.Codec, genDoc tmtypes.GenesisDoc, appGenTxs []js
 				"Genesis transaction %v does not contain a MsgCreateValidator", i)
 		}
 	}
-	fmt.Println("###############")
 
 	for _, acc := range genesisState.Accounts {
 		for _, coin := range acc.Coins {
@@ -213,15 +210,13 @@ func validateGenesisStateAccounts(accs []GenesisAccount) (err error) {
 // HtdfAppGenState but with JSON
 func HtdfAppGenStateJSON(cdc *codec.Codec, genDoc tmtypes.GenesisDoc, appGenTxs []json.RawMessage) (
 	appState json.RawMessage, err error) {
-	fmt.Println("BBBBBBBBBBBBBB")
 	// create the final app state
 	genesisState, err := HtdfAppGenState(cdc, genDoc, appGenTxs)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("CCCCCCCCCCCCCCC")
+
 	appState, err = codec.MarshalJSONIndent(cdc, genesisState)
-	fmt.Println("DDDDDDDDDDDDDDD")
 	return
 }
 

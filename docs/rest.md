@@ -445,6 +445,20 @@
 ```
 curl -X GET "http://localhost:1317/minting/rewards/2" -H "accept: application/json"
 >
-"14065554"
-
-
+{
+  "Reward": "14467592"
+}
+```
+### total provisions
+```
+curl -X GET "http://localhost:1317/minting/total-provisions" -H "accept: application/json"
+>
+{
+  "Provision": "6000005748108018"
+}
+```
+### contract call
+```
+curl -X GET "http://localhost:1317/hs/contract/htdf1l03rqalmg58wgw9ya39wwc3466lyy20xnpeaee/27e235e300000000000000000000000027681ceb7de9bae3c5f7f10f81ff5106e2ca48a7" -H "accept: application/json"
+>
+``` 

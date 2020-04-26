@@ -48,26 +48,26 @@ func ExportCmd(ctx *Context, cdc *codec.Codec, appExporter AppExporter) *cobra.C
 				fmt.Println(string(genesis))
 				return nil
 			}
-			fmt.Println("1111111111111111111111111")
+
 			db, err := openDB(config.RootDir)
 			if err != nil {
 				return err
 			}
-			fmt.Println("222222222222222222222222222")
+
 			traceWriter, err := openTraceWriter(traceWriterFile)
 			if err != nil {
 				return err
 			}
-			fmt.Println("3333333333333333333333333333")
+
 			height := viper.GetInt64(flagHeight)
 			forZeroHeight := viper.GetBool(flagForZeroHeight)
 			jailWhiteList := viper.GetStringSlice(flagJailWhitelist)
 			appState, validators, err := appExporter(ctx, ctx.Logger, db, traceWriter, height, forZeroHeight, jailWhiteList)
-			fmt.Println("44444444444444444444444444444")
+
 			if err != nil {
 				return fmt.Errorf("error exporting state: %v", err)
 			}
-			fmt.Println("55555555555555555555555555555")
+
 			doc, err := tmtypes.GenesisDocFromFile(ctx.Config.GenesisFile())
 			if err != nil {
 				return err

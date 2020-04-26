@@ -4,7 +4,6 @@ package init
 
 import (
 	"encoding/json"
-	"fmt"
 	"path/filepath"
 
 	cfg "github.com/tendermint/tendermint/config"
@@ -40,7 +39,7 @@ func CollectGenTxsCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		Use:   "collect-gentxs",
 		Short: "Collect genesis txs and output a genesis.json file",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			fmt.Println(111111111111111111)
+
 			config := ctx.Config
 			config.SetRoot(viper.GetString(cli.HomeFlag))
 			name := viper.GetString(client.FlagName)
@@ -48,25 +47,25 @@ func CollectGenTxsCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println(2222222222222222222)
+
 			genDoc, err := LoadGenesisDoc(cdc, config.GenesisFile())
 			if err != nil {
 				return err
 			}
-			fmt.Println(3333333333333333333)
+
 			genTxsDir := viper.GetString(flagGenTxDir)
 			if genTxsDir == "" {
 				genTxsDir = filepath.Join(config.RootDir, "config", "gentx")
 			}
-			fmt.Println(44444444444444444)
+
 			toPrint := newPrintInfo(config.Moniker, genDoc.ChainID, nodeID, genTxsDir, json.RawMessage(""))
 			initCfg := newInitConfig(genDoc.ChainID, genTxsDir, name, nodeID, valPubKey)
-			fmt.Println(55555555555555555)
+
 			appMessage, err := genAppStateFromConfig(cdc, config, initCfg, genDoc)
 			if err != nil {
 				return err
 			}
-			fmt.Println(6666666666666666)
+
 			toPrint.AppMessage = appMessage
 
 			// print out some key information
@@ -92,7 +91,7 @@ func genAppStateFromConfig(
 		genTxs          []json.RawMessage
 		jsonRawTx       json.RawMessage
 	)
-	fmt.Println(77777777777)
+
 	// process genesis transactions, else create default genesis.json
 	appGenTxs, persistentPeers, err = v0.CollectStdTxs(
 		cdc, config.Moniker, initCfg.GenTxsDir, genDoc,
@@ -100,10 +99,10 @@ func genAppStateFromConfig(
 	if err != nil {
 		return
 	}
-	fmt.Println(8888888888888)
+
 	genTxs = make([]json.RawMessage, len(appGenTxs))
 	config.P2P.PersistentPeers = persistentPeers
-	fmt.Println(9999999999999)
+
 	for i, stdTx := range appGenTxs {
 		jsonRawTx, err = cdc.MarshalJSON(stdTx)
 		if err != nil {
@@ -113,12 +112,12 @@ func genAppStateFromConfig(
 	}
 
 	cfg.WriteConfigFile(filepath.Join(config.RootDir, "config", "config.toml"), config)
-	fmt.Println(0000000000000)
+
 	appState, err = v0.HtdfAppGenStateJSON(cdc, genDoc, genTxs)
 	if err != nil {
 		return
 	}
-	fmt.Println("AAAAAAAAAAAA")
+
 	err = ExportGenesisFile(genFile, initCfg.ChainID, nil, appState)
 	return
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"path/filepath"
+
 	"github.com/orientwalt/htdf/accounts"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
@@ -15,12 +16,12 @@ import (
 
 var _ accounts.KeyStoreWallets = (*KeyStoreWallet)(nil)
 
-type DefaultKeyStorePath func() string 
+type DefaultKeyStorePath func() string
 
 var DefaultKeyStoreHome = defaultKeyStoreHome()
 
-func defaultKeyStoreHome() DefaultKeyStorePath{
-	return func()string{
+func defaultKeyStoreHome() DefaultKeyStorePath {
+	return func() string {
 		rootDir := viper.GetString(cli.HomeFlag)
 		defaultKeyStoreHome := filepath.Join(rootDir, "keystores")
 		return defaultKeyStoreHome
@@ -59,25 +60,25 @@ func (ksw *KeyStoreWallet) GetPrivKey(addr string) (string, error) {
 	return key.PrivKey, err
 }
 
-func (ksw *KeyStoreWallet) Update(addr string, passphrase, newPassphrase string)error{
+func (ksw *KeyStoreWallet) Update(addr string, passphrase, newPassphrase string) error {
 	key, err := ksw.scan.getSigner(addr)
 	if err != nil {
-		return  err
+		return err
 	}
 
 	ksw.keyStore.key = key
-	
+
 	account := accounts.Account{Address: addr}
 	acc, err := ksw.scan.find(account)
 	if err != nil {
 		return err
 	}
 
-	err = ksw.keyStore.update(acc,passphrase,newPassphrase)
+	err = ksw.keyStore.update(acc, passphrase, newPassphrase)
 	return err
 }
 
-func (ksw *KeyStoreWallet)Drop(addr string)error{
+func (ksw *KeyStoreWallet) Drop(addr string) error {
 
 	found := ksw.scan.hasAddress(addr)
 	if found {
@@ -86,12 +87,12 @@ func (ksw *KeyStoreWallet)Drop(addr string)error{
 		if err != nil {
 			return err
 		}
-		
+
 		err = ksw.keyStore.drop(acc)
 		return err
 	}
 
-	return  ErrNoMatch
+	return ErrNoMatch
 }
 
 func (ksw *KeyStoreWallet) BuildAndSign(txbuilder authtxb.TxBuilder, addr string, passphrase string, msgs []sdk.Msg) ([]byte, error) {
@@ -135,6 +136,7 @@ func (ksw *KeyStoreWallet) Sign(txbuilder authtxb.TxBuilder, addr string, passph
 	}
 
 	ksw.keyStore.key = key
+	// fmt.Println(msg.Bytes())
 	sig, err := ksw.makeSignature(passphrase, msg)
 	if err != nil {
 		return nil, err
@@ -142,7 +144,9 @@ func (ksw *KeyStoreWallet) Sign(txbuilder authtxb.TxBuilder, addr string, passph
 
 	en := txbuilder.TxEncoder()
 
-	return en(auth.NewStdTx(msg.Msgs, msg.Fee, []auth.StdSignature{sig}, msg.Memo))
+	tx := auth.NewStdTx(msg.Msgs, msg.Fee, []auth.StdSignature{sig}, msg.Memo)
+
+	return en(tx)
 }
 
 func (ksw *KeyStoreWallet) SignStdTx(txbuilder authtxb.TxBuilder, stdTx auth.StdTx, addr string, passphrase string) (signedStdTx auth.StdTx, err error) {

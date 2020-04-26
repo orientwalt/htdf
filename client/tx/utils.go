@@ -3,7 +3,6 @@ package tx
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -84,18 +83,17 @@ func formatTxResults(cdc *codec.Codec, resTxs []*ctypes.ResultTx, resBlocks map[
 // ValidateTxResult performs transaction verification.
 func ValidateTxResult(cliCtx context.CLIContext, resTx *ctypes.ResultTx) error {
 	if !cliCtx.TrustNode {
-		fmt.Println("1	>>>>>>ValidateTxResult>>>>>>>>>", resTx.Height)
 		check, err := cliCtx.Verify(resTx.Height)
 		if err != nil {
 			return err
 		}
-		fmt.Println("2	>>>>>>ValidateTxResult>>>>>>>>>")
+
 		err = resTx.Proof.Validate(check.Header.DataHash)
 		if err != nil {
 			return err
 		}
 	}
-	fmt.Println("3	>>>>>>ValidateTxResult>>>>>>>>>")
+
 	return nil
 }
 
@@ -146,32 +144,32 @@ func queryTx(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr string) (sd
 	if err != nil {
 		return sdk.TxResponse{}, err
 	}
-	// fmt.Println("1	>>>>>>queryTx>>>>>>>>>")
+
 	node, err := cliCtx.GetNode()
 	if err != nil {
 		return sdk.TxResponse{}, err
 	}
-	// fmt.Println("2	>>>>>>queryTx>>>>>>>>>")
+
 	resTx, err := node.Tx(hash, !cliCtx.TrustNode)
 	if err != nil {
 		return sdk.TxResponse{}, err
 	}
-	// fmt.Println("3	>>>>>>queryTx>>>>>>>>>", resTx.Height, resTx.Index, resTx.Tx, resTx.TxResult)
+
 	if !cliCtx.TrustNode {
 		if err = ValidateTxResult(cliCtx, resTx); err != nil {
 			return sdk.TxResponse{}, err
 		}
 	}
-	// fmt.Println("4	>>>>>>queryTx>>>>>>>>>")
+
 	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
 	if err != nil {
 		return sdk.TxResponse{}, err
 	}
-	// fmt.Println("5	>>>>>>queryTx>>>>>>>>>")
+
 	out, err := formatTxResult(cdc, resTx, resBlocks[resTx.Height])
 	if err != nil {
 		return out, err
 	}
-	// fmt.Println("6	>>>>>>queryTx>>>>>>>>>")
+
 	return out, nil
 }

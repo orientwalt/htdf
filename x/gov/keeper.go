@@ -1,7 +1,6 @@
 package gov
 
 import (
-	"fmt"
 	"time"
 
 	codec "github.com/orientwalt/htdf/codec"
@@ -107,7 +106,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramsKeeper params.Keeper, p
 
 func (keeper Keeper) NewSoftwareUpgradeProposal(ctx sdk.Context, msg MsgSubmitSoftwareUpgradeProposal) ProposalContent {
 	proposalID, err := keeper.getNewProposalID(ctx)
-	fmt.Println("========NewSoftwareUpgradeProposal=============================================", proposalID)
+
 	if err != nil {
 		return nil
 	}
@@ -167,14 +166,11 @@ func (keeper Keeper) SubmitProposal(ctx sdk.Context, content ProposalContent) (p
 // Get Proposal from store by ProposalID
 func (keeper Keeper) GetProposal(ctx sdk.Context, proposalID uint64) (proposal ProposalContent, ok bool) {
 	store := ctx.KVStore(keeper.storeKey)
-	fmt.Println("1--------------GetProposal---------------------", store)
 	bz := store.Get(KeyProposal(proposalID))
-	fmt.Println("2--------------GetProposal---------------------", bz)
 	if bz == nil {
 		return
 	}
 	keeper.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &proposal)
-	fmt.Println("3--------------GetProposal---------------------", proposal, ok)
 	return proposal, true
 }
 
@@ -427,11 +423,9 @@ func (keeper Keeper) setDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 
 func (keeper Keeper) AddInitialDeposit(ctx sdk.Context, proposal ProposalContent, depositorAddr sdk.AccAddress, initialDeposit sdk.Coins) (sdk.Error, bool) {
 	minInitialDeposit := keeper.GetDepositParams(ctx).MinDeposit
-	fmt.Println("1--------------AddInitialDeposit---------------------")
 	if !initialDeposit.IsAllGTE(minInitialDeposit) {
 		return ErrNotEnoughInitialDeposit(DefaultCodespace, initialDeposit, minInitialDeposit), false
 	}
-	fmt.Println("2--------------AddInitialDeposit---------------------")
 	return keeper.AddDeposit(ctx, proposal.GetProposalID(), depositorAddr, initialDeposit)
 }
 
@@ -439,24 +433,23 @@ func (keeper Keeper) AddInitialDeposit(ctx sdk.Context, proposal ProposalContent
 // Activates voting period when appropriate
 func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID uint64, depositorAddr sdk.AccAddress, depositAmount sdk.Coins) (sdk.Error, bool) {
 	// Checks to see if proposal exists
-	fmt.Println("3--------------AddDeposit---------------------", proposalID)
 	proposal, ok := keeper.GetProposal(ctx, proposalID)
 	if !ok {
 		return ErrUnknownProposal(keeper.codespace, proposalID), false
 	}
-	fmt.Println("4--------------AddDeposit---------------------")
+
 	// Check if proposal is still depositable
 	if (proposal.GetStatus() != StatusDepositPeriod) && (proposal.GetStatus() != StatusVotingPeriod) {
 		return ErrAlreadyFinishedProposal(keeper.codespace, proposalID), false
 	}
-	fmt.Println("5--------------AddDeposit---------------------")
+
 	// Send coins from depositor's account to DepositedCoinsAccAddr account
 	// TODO: Don't use an account for this purpose; it's clumsy and prone to misuse.
 	_, err := keeper.ck.SendCoins(ctx, depositorAddr, DepositedCoinsAccAddr, depositAmount)
 	if err != nil {
 		return err, false
 	}
-	fmt.Println("6--------------AddDeposit---------------------")
+
 	// Update proposal
 	proposal.SetTotalDeposit(proposal.GetTotalDeposit().Add(depositAmount))
 	keeper.SetProposal(ctx, proposal)

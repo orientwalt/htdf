@@ -448,3 +448,36 @@ $ hscli query staking params
 		},
 	}
 }
+
+func GetCmdQueryDelegationStatus(storeName string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "unbonding-delegation [delegator-addr] [validator-addr]",
+		Short: "Query an unbonding-delegation record based on delegator and validator address",
+		Long: strings.TrimSpace(`Query unbonding delegations for an individual delegator on an individual validator:
+
+$ hscli query staking unbonding-delegation htdf1u329vz5ysu9dud0q6cuyhy9dmzmvntw00s00e2 htdfvaloper1cr6cur6e4f3amarzzxe3ttwrnldkpy56q0d68w
+`),
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			valAddr, err := sdk.ValAddressFromBech32(args[1])
+			if err != nil {
+				return err
+			}
+
+			delAddr, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+
+			res, err := cliCtx.QueryStore(staking.GetUBDKey(delAddr, valAddr), storeName)
+			if err != nil {
+				return err
+			}
+
+			return cliCtx.PrintOutput(types.MustUnmarshalUBD(cdc, res))
+
+		},
+	}
+}

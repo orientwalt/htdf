@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/orientwalt/htdf/client/bech32"
 	"os"
 	"path"
 
@@ -103,6 +104,7 @@ func main() {
 		accounts.Commands(),
 		client.LineBreak,
 		hscliversion.VersionHscliCmd,
+		bech32.Bech32Commands(),
 	)
 
 	executor := cli.PrepareMainCmd(rootCmd, "HS", app.DefaultCLIHome)
@@ -152,7 +154,9 @@ func queryCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {
 		tx.QueryTxCmd(cdc),
 		client.LineBreak,
 		authcmd.GetAccountCmd(storeAcc, cdc),
+		htdfservicecmd.GetCmdCall(cdc),
 		hsmintClient.GetCmdQueryBlockRewards(cdc),
+		hsmintClient.GetCmdQueryTotalProvisions(cdc),
 		upgradecmd.GetInfoCmd("upgrade", cdc),
 		upgradecmd.GetCmdQuerySignals("upgrade", cdc),
 	)

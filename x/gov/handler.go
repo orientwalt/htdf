@@ -14,13 +14,10 @@ func NewHandler(keeper Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
 		case MsgDeposit:
-			fmt.Println("++++++++++++++++++++++++", msg)
 			return handleMsgDeposit(ctx, keeper, msg)
 		case MsgSubmitProposal:
-			fmt.Println("++++++++++++++++++++++++", msg)
 			return handleMsgSubmitProposal(ctx, keeper, msg)
 		case MsgSubmitSoftwareUpgradeProposal:
-			fmt.Println("++++++++++++++++++++++++", msg)
 			return handleMsgSubmitSoftwareUpgradeProposal(ctx, keeper, msg)
 		case MsgVote:
 			return handleMsgVote(ctx, keeper, msg)
@@ -64,35 +61,28 @@ func handleMsgSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitPropos
 		Data: keeper.cdc.MustMarshalBinaryLengthPrefixed(proposalID),
 		Tags: resTags,
 	}
-	fmt.Println("..........handleMsgSubmitSoftwareUpgradeProposal..........")
 	return sdk.Result{}
 }
 
 //Submit upgrade software proposal
 func handleMsgSubmitSoftwareUpgradeProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitSoftwareUpgradeProposal) sdk.Result {
-	fmt.Println("1--------------handleMsgSubmitSoftwareUpgradeProposal---------------------", msg.Version)
 	if !keeper.protocolKeeper.IsValidVersion(ctx, msg.Version) {
 
 		return ErrCodeInvalidVersion(keeper.codespace, msg.Version).Result()
 	}
-	fmt.Println("3--------------handleMsgSubmitSoftwareUpgradeProposal---------------------")
 	if uint64(ctx.BlockHeight()) > msg.SwitchHeight {
 		return ErrCodeInvalidSwitchHeight(keeper.codespace, uint64(ctx.BlockHeight()), msg.SwitchHeight).Result()
 	}
-	fmt.Println("4--------------handleMsgSubmitSoftwareUpgradeProposal---------------------")
 	_, found := keeper.guardianKeeper.GetProfiler(ctx, msg.Proposer)
 	if !found {
 		return ErrNotProfiler(keeper.codespace, msg.Proposer).Result()
 	}
-	fmt.Println("5--------------handleMsgSubmitSoftwareUpgradeProposal---------------------")
 	if _, ok := keeper.protocolKeeper.GetUpgradeConfig(ctx); ok {
 		return ErrSwitchPeriodInProcess(keeper.codespace).Result()
 	}
-	fmt.Println("6--------------handleMsgSubmitSoftwareUpgradeProposal---------------------")
+
 	proposal := keeper.NewSoftwareUpgradeProposal(ctx, msg)
-	fmt.Println("7--------------handleMsgSubmitSoftwareUpgradeProposal---------------------")
 	err, votingStarted := keeper.AddInitialDeposit(ctx, proposal, msg.Proposer, msg.InitialDeposit)
-	fmt.Println("8--------------handleMsgSubmitSoftwareUpgradeProposal---------------------", proposal.GetProposalID())
 	if err != nil {
 		return err.Result()
 	}
@@ -106,7 +96,7 @@ func handleMsgSubmitSoftwareUpgradeProposal(ctx sdk.Context, keeper Keeper, msg 
 	if votingStarted {
 		resTags = resTags.AppendTag(tags.VotingPeriodStart, proposalIDBytes)
 	}
-	fmt.Println("END--------------handleMsgSubmitSoftwareUpgradeProposal---------------------")
+
 	// keeper.AddProposalNum(ctx, proposal)
 	return sdk.Result{
 		Data: []byte(proposalIDBytes),
