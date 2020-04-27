@@ -116,8 +116,8 @@ build-batchsend:
 	@build/env.sh go run build/ci.go install ./cmd/hsbatchsend
 
 install: go.sum
-	go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsd ./cmd/hsd
-	go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli ./cmd/hscli
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hsd
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hscli
 
 go.sum: go.mod
 	@echo "--> Ensure dependencies have not been modified"
@@ -153,9 +153,6 @@ unittest:
 	@go test -v ./x/params/...
 	@go test -v ./x/slashing/...
 	@go test -v ./x/staking/...
-
-
-
 
 CHAIN_ID = testchain
 GENESIS_ACCOUNT_PASSWORD = 12345678

@@ -694,5 +694,8 @@ curl -X GET "http://localhost:1317/minting/total-provisions" -H "accept: applica
 ```
 ### contract call
 ```bash
-curl -X GET "http://localhost:1317/hs/contract/htdf1l03rqalmg58wgw9ya39wwc3466lyy20xnpeaee/27e235e300000000000000000000000027681ceb7de9bae3c5f7f10f81ff5106e2ca48a7" -H "accept: application/json"
+curl -X GET "http://localhost:1317/hs/contract/htdf12dvguqedrvgfrdl35hcgfmz4fz6rm6chrvf96g/27e235e300000000000000000000000027681ceb7de9bae3c5f7f10f81ff5106e2ca48a7" -H "accept: application/json"
+``` 
+```bash
+curl -X GET "http://localhost:1317/hs/contract/htdf1ks6vgnp25r2eaa9k70dmsp448wmrma8mnucrsz/0000" -H "accept: application/json"
 ``` 
