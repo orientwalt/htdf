@@ -195,23 +195,27 @@ func GetAccountTxsFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFu
 							}
 
 						case stakingTypes.MsgDelegate:
-							displayTx.From = msg.DelegatorAddress.String()
-							displayTx.To = msg.ValidatorAddress.String()
-							displayTx.Hash = hex.EncodeToString(tx.Hash())
-							displayTx.Amount = unit_convert.DefaultCoinsToBigCoins([]sdk.Coin{msg.Amount})
-							displayTx.Memo = iMsg.Memo
-							displayTx.TxClassify = rpc.TxClassify_Extension
-							displayTx.TypeName = msg.Type()
-							result.ArrTx = append(result.ArrTx, displayTx)
+							if msg.DelegatorAddress.String() == accountTxsReq.Address {
+								displayTx.From = msg.DelegatorAddress.String()
+								displayTx.To = msg.ValidatorAddress.String()
+								displayTx.Hash = hex.EncodeToString(tx.Hash())
+								displayTx.Amount = unit_convert.DefaultCoinsToBigCoins([]sdk.Coin{msg.Amount})
+								displayTx.Memo = iMsg.Memo
+								displayTx.TxClassify = rpc.TxClassify_Extension
+								displayTx.TypeName = msg.Type()
+								result.ArrTx = append(result.ArrTx, displayTx)
+							}
 
 						case distrTypes.MsgWithdrawDelegatorReward:
-							displayTx.From = msg.DelegatorAddress.String()
-							displayTx.To = msg.ValidatorAddress.String()
-							displayTx.Hash = hex.EncodeToString(tx.Hash())
-							displayTx.Memo = iMsg.Memo
-							displayTx.TxClassify = rpc.TxClassify_Extension
-							displayTx.TypeName = msg.Type()
-							result.ArrTx = append(result.ArrTx, displayTx)
+							if msg.DelegatorAddress.String() == accountTxsReq.Address {
+								displayTx.From = msg.DelegatorAddress.String()
+								displayTx.To = msg.ValidatorAddress.String()
+								displayTx.Hash = hex.EncodeToString(tx.Hash())
+								displayTx.Memo = iMsg.Memo
+								displayTx.TxClassify = rpc.TxClassify_Extension
+								displayTx.TypeName = msg.Type()
+								result.ArrTx = append(result.ArrTx, displayTx)
+							}
 
 						default:
 							fmt.Printf("ignore type|type=%s|route=%s\n", msg.Type(), msg.Route())
