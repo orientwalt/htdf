@@ -214,6 +214,29 @@ $ hscli query staking delegations htdf1u329vz5ysu9dud0q6cuyhy9dmzmvntw00s00e2
 			var delegations types.Delegations // changed by junying, 2020-02-04, origin:staking.Delegations
 			for _, kv := range resKVs {
 				delegations = append(delegations, types.MustUnmarshalDelegation(cdc, kv.Value))
+
+			}
+
+			for _, delegation := range delegations {
+				fmt.Printf("delegation=%v\n", delegation)
+				res, err := cliCtx.QueryStore(staking.GetValidatorKey(delegation.ValidatorAddress), storeName)
+				if err != nil {
+					return err
+				}
+
+				if len(res) == 0 {
+					return fmt.Errorf("No validator found with address %s", delegation.ValidatorAddress)
+				}
+
+				validator := types.MustUnmarshalValidator(cdc, res)
+				fmt.Printf("validator.GetOperator()=%s\n", validator.GetOperator().String())
+
+				fmt.Printf("Tokens=%v\n", validator.Tokens)
+				fmt.Printf("DelegatorShares=%v\n", validator.DelegatorShares)
+				fmt.Printf("TokensFromShares=%v\n", validator.TokensFromShares(delegation.Shares))
+				fmt.Printf("TokensFromShares.RoundInt64=%v\n", validator.TokensFromShares(delegation.Shares).RoundInt64())
+				fmt.Printf("2222222222222222222222\n")
+
 			}
 
 			return cliCtx.PrintOutput(delegations)
