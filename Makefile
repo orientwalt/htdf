@@ -220,7 +220,7 @@ LIVENETDIR = build/livenet
 # docker-compose part[multi-node part, also test mode]
 # Local validator nodes using docker and docker-compose
 hsnode: clean build.static# hstop
-	$(MAKE) -C tools/deploy/local
+	$(MAKE) -C tools/deploy/docker/local
 
 echotest:
 	@echo  $(CURDIR)/${TESTNETDIR}
