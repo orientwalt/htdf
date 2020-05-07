@@ -16,10 +16,16 @@ import (
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec) {
+
 	// Get all delegations from a delegator
 	r.HandleFunc(
 		"/staking/delegators/{delegatorAddr}/delegations",
 		delegatorDelegationsHandlerFn(cliCtx, cdc),
+	).Methods("GET")
+	// Extended
+	r.HandleFunc(
+		"/staking/delegators/{delegatorAddr}/delegations/extended",
+		delegatorDelegationsExHandlerFn(cliCtx, cdc),
 	).Methods("GET")
 
 	// Get all unbonding delegations from a delegator
@@ -51,6 +57,11 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Co
 		"/staking/delegators/{delegatorAddr}/delegations/{validatorAddr}",
 		delegationHandlerFn(cliCtx, cdc),
 	).Methods("GET")
+	// Extended
+	r.HandleFunc(
+		"/staking/delegators/{delegatorAddr}/delegations/{validatorAddr}/extended",
+		delegationExHandlerFn(cliCtx, cdc),
+	).Methods("GET")
 
 	// Query all unbonding delegations between a delegator and a validator
 	r.HandleFunc(
@@ -81,6 +92,11 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Co
 		"/staking/validators/{validatorAddr}/delegations",
 		validatorDelegationsHandlerFn(cliCtx, cdc),
 	).Methods("GET")
+	//
+	r.HandleFunc(
+		"/staking/validators/{validatorAddr}/delegations/extended",
+		validatorDelegationsExHandlerFn(cliCtx, cdc),
+	).Methods("GET")
 
 	// Get all unbonding delegations from a validator
 	r.HandleFunc(
@@ -105,6 +121,9 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Co
 // HTTP request handler to query a delegator delegations
 func delegatorDelegationsHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFunc {
 	return queryDelegator(cliCtx, cdc, "custom/staking/delegatorDelegations")
+}
+func delegatorDelegationsExHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFunc {
+	return queryDelegator(cliCtx, cdc, "custom/staking/delegatorDelegationsEx")
 }
 
 // HTTP request handler to query a delegator unbonding delegations
@@ -235,6 +254,9 @@ func redelegationsHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.Ha
 func delegationHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFunc {
 	return queryBonds(cliCtx, cdc, "custom/staking/delegation")
 }
+func delegationExHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFunc {
+	return queryBonds(cliCtx, cdc, "custom/staking/delegationEx")
+}
 
 // HTTP request handler to query all delegator bonded validators
 func delegatorValidatorsHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFunc {
@@ -290,6 +312,10 @@ func validatorHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.Handle
 // HTTP request handler to query all unbonding delegations from a validator
 func validatorDelegationsHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFunc {
 	return queryValidator(cliCtx, cdc, "custom/staking/validatorDelegations")
+}
+
+func validatorDelegationsExHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFunc {
+	return queryValidator(cliCtx, cdc, "custom/staking/validatorDelegationsEx")
 }
 
 // HTTP request handler to query all unbonding delegations from a validator

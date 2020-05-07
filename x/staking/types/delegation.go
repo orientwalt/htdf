@@ -103,6 +103,46 @@ func (d Delegations) String() (out string) {
 	return strings.TrimSpace(out)
 }
 
+// DelegationEx completes Delegation of no tokens.
+// It is not written into StateDB. It's just for querying.
+// junying-todo, 2020-05-06
+type DelegationEx struct {
+	DelegatorAddress sdk.AccAddress `json:"delegator_address"`
+	ValidatorAddress sdk.ValAddress `json:"validator_address"`
+	Shares           sdk.Dec        `json:"shares"`
+	Tokens           sdk.Dec        `json:"tokens"`
+	Status           bool           `json:"status"`
+}
+
+func NewDelegationEx(delegation Delegation, tokens int64) DelegationEx {
+
+	return DelegationEx{
+		DelegatorAddress: delegation.DelegatorAddress,
+		ValidatorAddress: delegation.ValidatorAddress,
+		Shares:           delegation.Shares,
+		Tokens:           sdk.NewDec(tokens),
+		Status:           delegation.Status,
+	}
+}
+
+func (d DelegationEx) String() string {
+	return fmt.Sprintf(`Delegation:
+  Delegator: %s
+  Validator: %s
+  Shares:    %s
+  Tokens:	 %s`, d.DelegatorAddress,
+		d.ValidatorAddress, d.Shares, d.Tokens)
+}
+
+type DelegationsEx []DelegationEx
+
+func (d DelegationsEx) String() (out string) {
+	for _, del := range d {
+		out += del.String() + "\n"
+	}
+	return strings.TrimSpace(out)
+}
+
 // UnbondingDelegation stores all of a single delegator's unbonding bonds
 // for a single validator in an time-ordered list
 type UnbondingDelegation struct {
