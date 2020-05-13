@@ -23,4 +23,4 @@ make start
 tail -f ~/.hsd/app.log
 ```
 ## Contributions
-We always welcome any issue/advice/suggestion.
+We always welcome any issue.
