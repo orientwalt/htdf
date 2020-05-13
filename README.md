@@ -16,7 +16,7 @@ hsd
 hscli
 ```
 ## [Quick Start](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
-Only one command is enough to set up a standalone blockchain on your local machine.
+You can follow the below steps. You should type password for your genesis account after runing first command.
 ```
 make new
 make start
