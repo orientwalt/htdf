@@ -211,9 +211,20 @@ $ hscli query staking delegations htdf1u329vz5ysu9dud0q6cuyhy9dmzmvntw00s00e2
 				return err
 			}
 
-			var delegations types.Delegations // changed by junying, 2020-02-04, origin:staking.Delegations
+			var delegations types.DelegationsEx
 			for _, kv := range resKVs {
-				delegations = append(delegations, types.MustUnmarshalDelegation(cdc, kv.Value))
+				delegation := types.MustUnmarshalDelegation(cdc, kv.Value)
+				res, err := cliCtx.QueryStore(staking.GetValidatorKey(delegation.ValidatorAddress), storeName)
+				if err != nil {
+					return err
+				}
+
+				if len(res) == 0 {
+					return fmt.Errorf("No validator found with address %s", delegation.ValidatorAddress)
+				}
+
+				validator := types.MustUnmarshalValidator(cdc, res)
+				delegations = append(delegations, types.NewDelegationEx(delegation, validator.TokensFromShares(delegation.Shares).RoundInt64()))
 			}
 
 			return cliCtx.PrintOutput(delegations)

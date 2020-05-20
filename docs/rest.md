@@ -462,3 +462,74 @@ curl -X GET "http://localhost:1317/minting/total-provisions" -H "accept: applica
 curl -X GET "http://localhost:1317/hs/contract/htdf1l03rqalmg58wgw9ya39wwc3466lyy20xnpeaee/27e235e300000000000000000000000027681ceb7de9bae3c5f7f10f81ff5106e2ca48a7" -H "accept: application/json"
 >
 ``` 
+### Delegations
+```
+curl -X GET "http://localhost:1317/staking/delegators/htdf1v8j6r7ttfac07nuhy8uhxgumy7442ck5mnj7fx/delegations" -H "accept: application/json"
+
+curl -X GET "http://localhost:1317/staking/delegators/htdf1v8j6r7ttfac07nuhy8uhxgumy7442ck5mnj7fx/delegations/htdfvaloper1v8j6r7ttfac07nuhy8uhxgumy7442ck532287d" -H "accept: application/json"
+
+curl -X GET "http://localhost:1317/staking/validators/htdfvaloper1v8j6r7ttfac07nuhy8uhxgumy7442ck532287d/delegations" -H "accept: application/json"
+```
+```json
+>
+[
+  {
+    "delegator_address": "htdf10fjsnx05ewesqjlmy5pesxzwa2t7z4e6vvqxvj",
+    "validator_address": "htdfvaloper10fjsnx05ewesqjlmy5pesxzwa2t7z4e6x4clme",
+    "shares": "10000000000.000000000000000000",
+    "status": false
+  }
+]
+```
+```
+curl -X GET "http://localhost:1317/staking/delegators/htdf1v8j6r7ttfac07nuhy8uhxgumy7442ck5mnj7fx/delegations/extended" -H "accept: application/json"
+
+curl -X GET "http://localhost:1317/staking/delegators/htdf1v8j6r7ttfac07nuhy8uhxgumy7442ck5mnj7fx/delegations/htdfvaloper1v8j6r7ttfac07nuhy8uhxgumy7442ck532287d/extended" -H "accept: application/json"
+
+curl -X GET "http://localhost:1317/staking/validators/htdfvaloper1v8j6r7ttfac07nuhy8uhxgumy7442ck532287d/delegations/extended" -H "accept: application/json"
+```
+```json
+>
+[
+  {
+    "delegator_address": "htdf10fjsnx05ewesqjlmy5pesxzwa2t7z4e6vvqxvj",
+    "validator_address": "htdfvaloper10fjsnx05ewesqjlmy5pesxzwa2t7z4e6x4clme",
+    "shares": "10000000000.000000000000000000",
+		"tokens": "99000618.000000000000000000",
+    "status": false
+  }
+]
+```
+### Validators
+```
+curl -X GET "http://localhost:1317/staking/delegators/htdf1v8j6r7ttfac07nuhy8uhxgumy7442ck5mnj7fx/validators" -H "accept: application/json"
+
+curl -X GET "http://localhost:1317/staking/validators/htdfvaloper10fjsnx05ewesqjlmy5pesxzwa2t7z4e6x4clme" -H "accept: application/json"
+```
+```json
+[
+  {
+    "operator_address": "htdfvaloper10fjsnx05ewesqjlmy5pesxzwa2t7z4e6x4clme",
+    "consensus_pubkey": "htdfvalconspub1zcjduepq7tcl9n4zrxekcnl7yqz3r9paaw2qs3vurd0z7ygl24zg73302wjq4n7nym",
+    "jailed": false,
+    "status": 2,
+    "tokens": "10000000000",
+    "delegator_shares": "10000000000.000000000000000000",
+    "description": {
+      "moniker": "yjy",
+      "identity": "",
+      "website": "",
+      "details": ""
+    },
+    "unbonding_height": "0",
+    "unbonding_time": "1970-01-01T00:00:00Z",
+    "commission": {
+      "rate": "0.100000000000000000",
+      "max_rate": "0.200000000000000000",
+      "max_change_rate": "0.010000000000000000",
+      "update_time": "2020-04-24T07:10:23.973686248Z"
+    },
+    "min_self_delegation": "1"
+  }
+]
+```
