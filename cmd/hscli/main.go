@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/orientwalt/htdf/client/bech32"
 	"os"
 	"path"
+
+	"github.com/orientwalt/htdf/client/bech32"
 
 	"github.com/orientwalt/htdf/params"
 	svrConfig "github.com/orientwalt/htdf/server/config"
@@ -176,8 +177,9 @@ func txCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {
 
 	if svrConfig.ApiSecurityLevel == svrConfig.ValueSecurityLevel_Low {
 		txCmd.AddCommand(
-			htdfservicecmd.GetCmdSend(cdc),
+			htdfservicecmd.GetCmdBurn(cdc),
 			htdfservicecmd.GetCmdCreate(cdc),
+			htdfservicecmd.GetCmdSend(cdc),
 			htdfservicecmd.GetCmdSign(cdc),
 		)
 	}
