@@ -229,7 +229,8 @@ $ hscli query gov votes 1
 				return fmt.Errorf("Failed to fetch proposal-id %d: %s", proposalID, err)
 			}
 
-			var proposal gov.Proposal
+			//var proposal gov.Proposal
+			var proposal gov.SoftwareUpgradeProposal
 			cdc.MustUnmarshalJSON(res, &proposal)
 
 			propStatus := proposal.Status
