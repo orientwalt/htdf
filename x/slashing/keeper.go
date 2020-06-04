@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/tendermint/tendermint/crypto"
@@ -10,7 +11,25 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/params"
 	stake "github.com/orientwalt/htdf/x/staking/types"
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := log.ParseLevel(lvl)
+	if err != nil {
+		ll = log.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	log.SetLevel(ll)
+	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
+}
 
 // Keeper of the slashing store
 type Keeper struct {
@@ -191,6 +210,7 @@ func (k Keeper) handleValidatorSignature(ctx sdk.Context, addr crypto.Address, p
 			// junying-todo, 2020-05-26
 			// Disable Slashing for ValidatorSignatureMissing.
 			// k.validatorSet.Slash(ctx, consAddr, distributionHeight, power, k.SlashFractionDowntime(ctx))
+			log.Infof("No Slashing For ValidatorSignatureMissing(Jailed:%s)\n", pubkey.Address())
 			k.validatorSet.Jail(ctx, consAddr)
 			signInfo.JailedUntil = ctx.BlockHeader().Time.Add(k.DowntimeJailDuration(ctx))
 
