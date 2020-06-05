@@ -20,7 +20,7 @@ import (
 	"github.com/orientwalt/htdf/x/mint"
 	"github.com/orientwalt/htdf/x/params"
 	"github.com/orientwalt/htdf/x/service"
-	"github.com/orientwalt/htdf/x/slashing"
+	"github.com/orientwalt/htdf/app/v1/slashing"
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/orientwalt/htdf/x/upgrade"
 	"github.com/sirupsen/logrus"

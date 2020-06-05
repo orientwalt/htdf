@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/orientwalt/htdf/app/protocol"
+	"github.com/orientwalt/htdf/app/v1/slashing"
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
@@ -14,7 +15,6 @@ import (
 	"github.com/orientwalt/htdf/x/guardian"
 	"github.com/orientwalt/htdf/x/mint"
 	"github.com/orientwalt/htdf/x/service"
-	"github.com/orientwalt/htdf/x/slashing"
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/orientwalt/htdf/x/upgrade"
 	tmtypes "github.com/tendermint/tendermint/types"
