@@ -55,3 +55,23 @@ hscli query contract [contract-addr] [callcode]
     [withdraw]
     hscli tx distr withdraw-rewards [delegator-addr] [validator-addr] --gas-adjustment 1.5 --gas-price=100
     hscli tx distr withdraw-rewards [delegator-addr] [validator-addr] --commission --gas-adjustment 1.5 --gas-price=100
+
+### upgrade
+```
+[query]
+hscli query gov proposal [proposal-id]
+hscli query gov proposal 2
+hscli query gov votes [proposal-id] 
+hscli query gov votes 1
+
+[submit]
+hscli tx gov submit-proposal [flags]
+hscli tx gov submit-proposal htdf1vml5e83h3gcy2927nltqwrgec92l4a2qdqwecf --gas-price=100  --switch-height=12500 --description="first proposal"  --title="test0" --type="software_upgrade" --deposit="1000000000satoshi" --version="1"
+
+[vote]
+hscli tx gov vote [voter-addr] [proposal-id] [option] [flags]
+hscli tx gov vote  htdf148asterza2u7ww0vptntmy8ut84hdeetr927hl 3  yes --gas-price=100 
+
+[deposit]
+hscli tx gov deposit [proposal-id] [deposit] [flags]
+```
