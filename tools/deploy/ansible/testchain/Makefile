@@ -31,6 +31,7 @@ FIRST_ROW_INDEX = 2
 ## chain
 CHAIN_ID = testchain
 MINIMUM_GAS_PRICES = 100satoshi
+GUARDIAN_ADDRESS = htdf172n2nj7z0purlg8dnc6pkd6xgmljr3c7wt94c5
 ISSUER_ADDRESS = htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3
 DEFAULT_PORT = 26656
 ## setup
@@ -96,6 +97,7 @@ vals:
 
 genesis.json:
 	@if ! [ -d ${GENDIR} ]; then mkdir -p ${GENDIR}; fi
+	@hsd add-guardian-account ${GUARDIAN_ADDRESS} --home $(VALDIR)/node0/.hsd
 	@rmempty $(VALDIR)/node0/.hsd/config/genesis.json ${GENESIS_JSON_FILE}
 	@for index in $(VALS_INDEX); do cp -f ${GENESIS_JSON_FILE} ${VALDIR}/node$$index/.hsd/config ; done
 
