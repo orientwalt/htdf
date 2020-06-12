@@ -61,12 +61,13 @@ hscli query contract [contract-addr] [callcode]
 [query]
 hscli query gov proposal [proposal-id]
 hscli query gov proposal 2
+hscli query gov proposals
 hscli query gov votes [proposal-id] 
 hscli query gov votes 1
 
 [submit]
 hscli tx gov submit-proposal [flags]
-hscli tx gov submit-proposal htdf1vml5e83h3gcy2927nltqwrgec92l4a2qdqwecf --gas-price=100  --switch-height=12500 --description="first proposal"  --title="test0" --type="software_upgrade" --deposit="1000000000satoshi" --version="1"
+hscli tx gov submit-proposal htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3 --gas-price=100  --switch-height=4100 --description="third proposal"  --title="test2" --type="software_upgrade" --deposit="1000000000satoshi" --version="1"
 
 [vote]
 hscli tx gov vote [voter-addr] [proposal-id] [option] [flags]
@@ -74,4 +75,9 @@ hscli tx gov vote  htdf148asterza2u7ww0vptntmy8ut84hdeetr927hl 3  yes --gas-pric
 
 [deposit]
 hscli tx gov deposit [proposal-id] [deposit] [flags]
+```
+### unjail
+```
+hscli tx slashing unjail [validator-address] --gas-price=100
+hscli query staking validators|egrep -e "jail|status|token|share"
 ```
