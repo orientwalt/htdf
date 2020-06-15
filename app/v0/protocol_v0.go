@@ -30,7 +30,8 @@ import (
 
 const (
 	//
-	RouterKey   = "htdfservice"
+	RouterKey = "htdfservice"
+	// junying-comment, 2020-06-15
 	TxSizeLimit = 1200000 // tx size is limited to 1200000(bytes)
 )
 
