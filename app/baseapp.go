@@ -701,9 +701,10 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	}
 }
 
-// // junying-todo, 2019-11-13
-// // ValidateBasic executes basic validator calls for all messages
-// // and checking minimum for ?
+// junying-todo, 2019-11-13
+// ValidateBasic executes basic validator calls for all messages
+// and checking minimum for ?
+// what made this deactivated, why this activated in ante?
 // func ValidateBasic(ctx sdk.Context, tx sdk.Tx) sdk.Error {
 // 	stdtx, ok := tx.(auth.StdTx)
 // 	if !ok {

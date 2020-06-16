@@ -79,6 +79,11 @@ func (tx StdTx) ValidateFee() sdk.Error {
 	if tx.Fee.GasWanted < minTxGasWanted {
 		return sdk.ErrInvalidGas(fmt.Sprintf("Tx[count(msgs)=%d] gaswanted must be greater than %d", len(msgs), minTxGasWanted))
 	}
+
+	// Checking maximum gaswanted condition for transactions
+	if tx.Fee.GasWanted > params.TxGasLimit {
+		return sdk.ErrInvalidGas(fmt.Sprintf("Tx's GasWanted Amount[%d] can't excess TxGasLimit[%d]", tx.Fee.GasWanted, params.TxGasLimit))
+	}
 	return nil
 }
 
