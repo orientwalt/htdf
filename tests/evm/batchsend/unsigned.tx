@@ -1,0 +1,28 @@
+{
+    "type": "auth/StdTx", 
+    "value": {
+        "fee": {
+            "gas_price": "100", 
+            "gas_wanted": "1500000"
+        }, 
+        "memo": "contract test", 
+        "msg": [
+            {
+                "type": "htdfservice/send", 
+                "value": {
+                    "Amount": [
+                        {
+                            "amount": "0", 
+                            "denom": "satoshi"
+                        }
+                    ], 
+                    "Data": "", 
+                    "From": "htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3", 
+                    "GasPrice": "100", 
+                    "GasWanted": "1500000", 
+                    "To": "htdf1aluln32wfnsd0r868t6j262la58xcw8h289462"
+                }
+            }
+        ]
+    }
+}
