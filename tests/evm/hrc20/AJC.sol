@@ -44,6 +44,7 @@ contract AJCToken {
   function AJCToken() public {
     totalSupply = 199000000 * 10**18;
     balances[msg.sender] = totalSupply;
+    founder = msg.sender;
   }
   
   uint256 public totalSupply;
@@ -87,8 +88,7 @@ contract AJCToken {
   }  
   
   function changeFounder(address newFounder) public {
-	require(msg.sender == founder);
-
-	founder = newFounder;
+	  require(msg.sender == founder);
+	  founder = newFounder;
   }  
 }

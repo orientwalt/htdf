@@ -13,6 +13,10 @@ pragma solidity ^0.4.20;
 contract  PayableTest {
     uint accumulated =0;
     address public founder = address(0);
+    // constructor
+    function PayableTest() public {
+        founder = msg.sender;
+    }    
     function receive() public payable{
         accumulated += msg.value;
     }
@@ -57,6 +61,7 @@ contract  PayableTest {
         if (!receiver.call.gas(30000).value(amount)()){
             return false;
         }
+        accumulated -= amount;
         return true;
     }   
     // junying-todo, 2020-06-17, test passed
@@ -69,17 +74,31 @@ contract  PayableTest {
             // No need to call throw here, just reset the amount owing
             return false;
         }
+        accumulated -= amount;
         return true;
     }
 }
 
 contract BatchSend {
+    uint accumulated =0;
     address public founder = address(0);
+    // constructor
+    function BatchSend() public {
+        founder = msg.sender;
+    }
+    //
+    function receive() public payable{
+        accumulated += msg.value;
+    }
     // only founder has privilege to call this function
     function distribute(address[] dests, uint256[] values) public payable {
         require(msg.sender == founder);
         for (uint i = 0; i < dests.length; i++) {
-            dests[i].transfer(values[i]);
+            accumulated -= values[i];
+            if(!dests[i].call.value(values[i])(true, 3)){
+                accumulated += values[i];
+                break;
+            }
         }
     }
 }
@@ -87,6 +106,9 @@ contract BatchSend {
 // this contract is designed to distribute qutoa to the parties.
 // every receiver will call withdraw to receive the corresponding quota.
 contract QuotaReceive {
+    uint accumulated =0;
+    address public founder = address(0);
+
     // quota mapp, which is initialized when contract creating.
     mapping(address => uint) public qutoas;
     // constructor
@@ -98,6 +120,10 @@ contract QuotaReceive {
             qutoas[dests[i]]=values[i];
         }
     }
+    //
+        function receive() public payable {
+        accumulated += msg.value;
+    }
     // qutoa receiving
     function withdraw() public returns (bool) {
         uint amount = qutoas[msg.sender];
@@ -106,10 +132,11 @@ contract QuotaReceive {
             // can call this function again as part of the receiving call
             // before `send` returns.
             qutoas[msg.sender] = 0;
-
-            if (!msg.sender.send(amount)) {
+            accumulated -= amount;
+            if (!msg.sender.call.value(amount)(true, 3)) {
                 // No need to call throw here, just reset the amount owing
                 qutoas[msg.sender] = amount;
+                accumulated += amount;
                 return false;
             }
         }

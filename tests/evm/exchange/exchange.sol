@@ -14,31 +14,43 @@ contract ERC20Token {
 // premise:
 // all exchange users including the exchange founder need to approve their accounts for this exchange contract in the corresponding hrc20 token contract.
 // checkpoints:
-// like in function htdf2token, is it possible to call transferfrom without signature?
+// like in function htdf2token, is it possible to call transferfrom without signature? absolutely no.
 contract Exchange {
     address public founder = address(0);
+    uint accumulated = 0;
     mapping(address => uint) public htdf;
-    function selfincrease(uint256 amount) public returns (bool) {
-        if (!msg.sender.send(amount)) {
-            return false;
-        }
-        return true;
+    // constructor
+    function Exchange() public {
+        founder = msg.sender;
     }
-
+    //
+    function receive() public payable{
+        accumulated += msg.value;
+    }
+    // test passed
     function htdf2token(address tokenAddr) public payable {
         // htdf: sender to contract
-        htdf[msg.sender] += msg.value;
+        accumulated += msg.value;
         // token: founder to sender
         ERC20Token(tokenAddr).transferFrom(founder, msg.sender, msg.value);
     }
-
-    function token2htdf(address tokenAddr, uint256 value) public payable returns (bool) {
+    // test passed
+    function token2htdf(address tokenAddr, uint256 amount) public payable returns (bool) {
+        require(accumulated > amount);
         // token: sender to founder
-        ERC20Token(tokenAddr).transferFrom(msg.sender, founder, value);
-        // htdf:  founder to sender
-        if (!msg.sender.send(value)) {
+        if (!ERC20Token(tokenAddr).transferFrom(msg.sender, founder, amount)) {
             return false;
         }
+        // htdf:  founder to sender
+        if (!msg.sender.call.value(amount)(true, 3)) {
+            return false;
+        }
+        accumulated -= amount;
         return true;
     }
+    //
+    function changeFounder(address newFounder) public {
+	  require(msg.sender == founder);
+	  founder = newFounder;
+    }  
 }
