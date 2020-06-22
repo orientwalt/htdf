@@ -1,5 +1,31 @@
 pragma solidity ^0.4.20;
 
+library SafeMath {
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+	if (a == 0) {
+		return 0;
+	}
+	uint256 c = a * b;
+	assert(c / a == b);
+	return c;
+  }
+
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
+	uint256 c = a / b;
+	return c;
+  }
+
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+	assert(b <= a);
+	return a - b;
+  }
+
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+	uint256 c = a + b;
+	assert(c >= a);
+	return c;
+  }
+}
 
 contract ERC20Token {
     uint256 public totalSupply;
@@ -16,6 +42,7 @@ contract ERC20Token {
 // checkpoints:
 // like in function htdf2token, is it possible to call transferfrom without signature? absolutely no.
 contract Exchange {
+    using SafeMath for uint256;
     address public founder = address(0);
     uint accumulated = 0;
     mapping(address => uint) public htdf;
@@ -23,14 +50,21 @@ contract Exchange {
     function Exchange() public {
         founder = msg.sender;
     }
+    // increase exchange ether amount
+    function donate() public payable{
+        accumulated = accumulated.add(msg.value);
+    }
     //
-    function receive() public payable{
-        accumulated += msg.value;
+    function balanceOf(address addr) public view returns (uint256) {
+        return address(addr).balance;
+    }
+    function tokenbalanceOf(address tokenAddr,address addr) public view returns (uint256) {
+        return ERC20Token(tokenAddr).balanceOf(addr);
     }
     // test passed
     function htdf2token(address tokenAddr) public payable {
         // htdf: sender to contract
-        accumulated += msg.value;
+        accumulated = accumulated.add(msg.value);
         // token: founder to sender
         ERC20Token(tokenAddr).transferFrom(founder, msg.sender, msg.value);
     }
@@ -45,7 +79,7 @@ contract Exchange {
         if (!msg.sender.call.value(amount)(true, 3)) {
             return false;
         }
-        accumulated -= amount;
+        accumulated = accumulated.sub(amount);
         return true;
     }
     //
