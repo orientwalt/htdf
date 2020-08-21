@@ -45,6 +45,10 @@ import (
 	hslashingClient "github.com/orientwalt/htdf/x/slashing/client"
 	hstakingClient "github.com/orientwalt/htdf/x/staking/client"
 	upgradecmd "github.com/orientwalt/htdf/x/upgrade/client/cli"
+
+	//
+	ethrpc "github.com/ethereum/go-ethereum/rpc"
+	web3rpc "github.com/orientwalt/htdf/web3/rpc"
 )
 
 const (
@@ -127,6 +131,24 @@ func registerRoutes(rs *lcd.RestServer) {
 	slashing.RegisterRoutes(rs.CliCtx, rs.Mux, rs.Cdc, rs.KeyBase)
 	gov.RegisterRoutes(rs.CliCtx, rs.Mux, rs.Cdc)
 	mint.RegisterRoutes(rs.CliCtx, rs.Mux, rs.Cdc)
+	// ethermint rpc
+	s := ethrpc.NewServer()
+
+	apis := web3rpc.GetRPCAPIs(rs.CliCtx)
+
+	// TODO: Allow cli to configure modules https://github.com/ChainSafe/ethermint/issues/74
+	whitelist := make(map[string]bool)
+
+	// Register all the APIs exposed by the services
+	for _, api := range apis {
+		if whitelist[api.Namespace] || (len(whitelist) == 0 && api.Public) {
+			if err := s.RegisterName(api.Namespace, api.Service); err != nil {
+				panic(err)
+			}
+		}
+	}
+	// Web3 RPC API route
+	rs.Mux.HandleFunc("/", s.ServeHTTP).Methods("POST", "OPTIONS")
 }
 
 func versionCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {
