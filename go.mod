@@ -39,7 +39,7 @@ require (
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/iavl v0.12.1
-	github.com/tendermint/tendermint v0.31.5
+	github.com/tendermint/tendermint v0.33.4
 	github.com/tendermint/tmlibs v0.9.0
 	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
 	gopkg.in/fatih/set.v0 v0.1.0 // indirect
@@ -50,6 +50,6 @@ require (
 
 replace (
 	github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
-	github.com/tendermint/tendermint v0.31.5 => github.com/orientwalt/tendermint v90.0.7+incompatible
+	github.com/tendermint/tendermint v0.33.4 => gitee.com/gaojunying/tendermint v90.0.7+incompatible
 	golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 )
