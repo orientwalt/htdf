@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/kv"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/store/types"

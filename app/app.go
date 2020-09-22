@@ -27,7 +27,7 @@ import (
 	v0 "github.com/orientwalt/htdf/app/v0"
 	v1 "github.com/orientwalt/htdf/app/v1"
 	cfg "github.com/tendermint/tendermint/config"
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/os"
 )
 
 func init() {

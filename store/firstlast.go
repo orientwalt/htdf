@@ -3,7 +3,7 @@ package store
 import (
 	"bytes"
 
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/kv"
 
 	"github.com/orientwalt/htdf/store/types"
 )

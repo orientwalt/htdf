@@ -8,9 +8,10 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	cmn "github.com/tendermint/tendermint/libs/common"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -230,7 +231,7 @@ func ErrInvalidLength(codespace CodespaceType, codeType CodeType, descriptor str
 //----------------------------------------
 // Error & sdkError
 
-type cmnError = cmn.Error
+type cmnError = error
 
 // sdk Error type
 type Error interface {
@@ -270,7 +271,7 @@ func newError(codespace CodespaceType, code CodeType, format string, args ...int
 	return &sdkError{
 		codespace: codespace,
 		code:      code,
-		cmnError:  cmn.NewError(format, args...),
+		cmnError:  errors.Errorf(format, args...),
 	}
 }
 

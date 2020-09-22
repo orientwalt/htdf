@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
@@ -93,7 +93,7 @@ func (s *Server) RunProxy() error {
 	logger.Info("Constructing Verifier...")
 	cert, err := proxy.NewVerifier(s.chainID, s.home, node, logger, s.cacheSize)
 	if err != nil {
-		return cmn.ErrorWrap(err, "constructing Verifier")
+		return errors.Wrap(err, "constructing Verifier")
 	}
 	cert.SetLogger(logger)
 	sc := proxy.SecureClient(node, cert)
@@ -101,7 +101,7 @@ func (s *Server) RunProxy() error {
 	logger.Info("Starting proxy...")
 	err = proxy.StartProxy(sc, listenAddr, logger, s.maxOpenConnections)
 	if err != nil {
-		return cmn.ErrorWrap(err, "starting proxy")
+		return errors.Wrap(err, "starting proxy")
 	}
 
 	return nil

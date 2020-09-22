@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/kv"
 )
 
 // Type synonym for convenience
-type Tag = cmn.KVPair
+type Tag = cmn.Pair
 
 // Type synonym for convenience
-type Tags cmn.KVPairs
+type Tags cmn.Pairs
 
 // New empty tags
 func EmptyTags() Tags {
@@ -29,8 +29,8 @@ func (t Tags) AppendTags(tags Tags) Tags {
 }
 
 // Turn tags into KVPair list
-func (t Tags) ToKVPairs() []cmn.KVPair {
-	return []cmn.KVPair(t)
+func (t Tags) ToKVPairs() []cmn.Pair {
+	return []cmn.Pair(t)
 }
 
 // New variadic tags, must be k string, v []byte repeating

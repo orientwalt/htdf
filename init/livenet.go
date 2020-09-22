@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/viper"
 	tmconfig "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/rand"
 	tmtime "github.com/tendermint/tendermint/types/time"
 
 	"github.com/orientwalt/htdf/accounts/keystore"
@@ -102,7 +102,7 @@ func initLiveNet(config *tmconfig.Config, cdc *codec.Codec) error {
 
 	chainID = viper.GetString(client.FlagChainID)
 	if chainID == "" {
-		chainID = "chain-" + cmn.RandStr(6)
+		chainID = "chain-" + cmn.Str(6)
 	}
 
 	monikers := make([]string, numValidators)

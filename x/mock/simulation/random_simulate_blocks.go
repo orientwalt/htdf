@@ -15,7 +15,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	abci "github.com/tendermint/tendermint/abci/types"
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	bam "github.com/orientwalt/htdf/x/mock/baseapp"

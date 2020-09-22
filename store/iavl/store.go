@@ -8,13 +8,14 @@ import (
 	"github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/kv"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/store/cachekv"
 	"github.com/orientwalt/htdf/store/errors"
 	"github.com/orientwalt/htdf/store/tracekv"
 	"github.com/orientwalt/htdf/store/types"
+	cmnerr "github.com/pkg/errors"
 )
 
 const (
@@ -88,7 +89,7 @@ func (st *Store) Commit() types.CommitID {
 		toRelease := previous - st.numRecent
 		if st.storeEvery == 0 || toRelease%st.storeEvery != 0 {
 			err := st.tree.DeleteVersion(toRelease)
-			if err != nil && err.(cmn.Error).Data() != iavl.ErrVersionDoesNotExist {
+			if errCause := cmnerr.Cause(err); errCause != nil && errCause != iavl.ErrVersionDoesNotExist {
 				panic(err)
 			}
 		}
@@ -205,7 +206,7 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 
 		res.Key = key
 		if !st.VersionExists(res.Height) {
-			res.Log = cmn.ErrorWrap(iavl.ErrVersionDoesNotExist, "").Error()
+			res.Log = cmnerr.Wrap(iavl.ErrVersionDoesNotExist, "").Error()
 			break
 		}
 
@@ -270,7 +271,7 @@ type iavlIterator struct {
 	ascending bool
 
 	// Channel to push iteration values.
-	iterCh chan cmn.KVPair
+	iterCh chan cmn.Pair
 
 	// Close this to release goroutine.
 	quitCh chan struct{}
@@ -298,7 +299,7 @@ func newIAVLIterator(tree *iavl.ImmutableTree, start, end []byte, ascending bool
 		start:     types.Cp(start),
 		end:       types.Cp(end),
 		ascending: ascending,
-		iterCh:    make(chan cmn.KVPair), // Set capacity > 0?
+		iterCh:    make(chan cmn.Pair), // Set capacity > 0?
 		quitCh:    make(chan struct{}),
 		initCh:    make(chan struct{}),
 	}
@@ -315,7 +316,7 @@ func (iter *iavlIterator) iterateRoutine() {
 			select {
 			case <-iter.quitCh:
 				return true // done with iteration.
-			case iter.iterCh <- cmn.KVPair{Key: key, Value: value}:
+			case iter.iterCh <- cmn.Pair{Key: key, Value: value}:
 				return false // yay.
 			}
 		},

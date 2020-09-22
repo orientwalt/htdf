@@ -1,7 +1,7 @@
 package types
 
 import (
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/kv"
 
 	"github.com/orientwalt/htdf/store/types"
 )
@@ -37,7 +37,7 @@ func KVStoreReversePrefixIterator(kvs KVStore, prefix []byte) Iterator {
 // Compare two KVstores, return either the first key/value pair
 // at which they differ and whether or not they are equal, skipping
 // value comparison for a set of provided prefixes
-func DiffKVStores(a KVStore, b KVStore, prefixesToSkip [][]byte) (kvA cmn.KVPair, kvB cmn.KVPair, count int64, equal bool) {
+func DiffKVStores(a KVStore, b KVStore, prefixesToSkip [][]byte) (kvA cmn.Pair, kvB cmn.Pair, count int64, equal bool) {
 	return types.DiffKVStores(a, b, prefixesToSkip)
 }
 
