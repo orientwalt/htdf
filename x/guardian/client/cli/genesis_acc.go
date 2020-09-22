@@ -3,24 +3,24 @@ package cli
 import (
 	"fmt"
 
-	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/common"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/cli"
+	common "github.com/tendermint/tendermint/libs/os"
 
+	"github.com/orientwalt/htdf/app"
+	v0 "github.com/orientwalt/htdf/app/v0"
 	"github.com/orientwalt/htdf/client/keys"
 	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/app"
-	"github.com/orientwalt/htdf/app/v0"
-	"github.com/orientwalt/htdf/server"
 	i "github.com/orientwalt/htdf/init"
+	"github.com/orientwalt/htdf/server"
+	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/guardian"
 )
 
 const (
-	flagOverwrite    = "overwrite"
-	flagClientHome   = "home-client"
+	flagOverwrite  = "overwrite"
+	flagClientHome = "home-client"
 )
 
 // AddGuardianAccountCmd returns add-guardian-account cobra Command.
@@ -94,13 +94,13 @@ func addGenesisAccount(
 		genAcc = stateAcc.Address
 	}
 
-	guardian := guardian.NewGuardian("genesis",guardian.Genesis,addr,addr)
+	guardian := guardian.NewGuardian("genesis", guardian.Genesis, addr, addr)
 
 	if genAcc.Empty() {
 		appState.GuardianData.Profilers[0] = guardian
 		appState.GuardianData.Trustees[0] = guardian
 	} else {
-		appState.GuardianData.Profilers =  append(appState.GuardianData.Profilers, guardian)
+		appState.GuardianData.Profilers = append(appState.GuardianData.Profilers, guardian)
 		appState.GuardianData.Trustees = append(appState.GuardianData.Trustees, guardian)
 	}
 

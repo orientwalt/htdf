@@ -11,8 +11,8 @@ import (
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/codec"
 
-	"github.com/tendermint/tendermint/libs/common"
 	amino "github.com/tendermint/go-amino"
+	common "github.com/tendermint/tendermint/libs/bytes"
 
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/client/keys"

@@ -10,11 +10,11 @@ import (
 	"github.com/spf13/viper"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/common"
+	common "github.com/tendermint/tendermint/libs/rand"
 
+	"github.com/orientwalt/htdf/app"
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/app"
 	"github.com/orientwalt/htdf/server"
 )
 
@@ -58,7 +58,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command { // nolint: 
 
 			chainID := viper.GetString(client.FlagChainID)
 			if chainID == "" {
-				chainID = fmt.Sprintf("test-chain-%v", common.RandStr(6))
+				chainID = fmt.Sprintf("test-chain-%v", common.Str(6))
 			}
 
 			nodeID, _, err := InitializeNodeValidatorFiles(config)

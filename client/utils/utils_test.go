@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/libs/common"
+	common "github.com/tendermint/tendermint/libs/bytes"
 
 	"github.com/orientwalt/htdf/app"
 	"github.com/orientwalt/htdf/codec"

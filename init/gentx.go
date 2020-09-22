@@ -16,23 +16,24 @@ import (
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
 	tmcli "github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/common"
+	common "github.com/tendermint/tendermint/libs/os"
 
+	"github.com/orientwalt/htdf/accounts/keystore"
+	"github.com/orientwalt/htdf/app"
+	"github.com/orientwalt/htdf/app/v0"
+	v0 "github.com/orientwalt/htdf/app/v0"
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/context"
+	"github.com/orientwalt/htdf/client/keys"
 	"github.com/orientwalt/htdf/client/utils"
 	"github.com/orientwalt/htdf/codec"
+	"github.com/orientwalt/htdf/server"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	"github.com/orientwalt/htdf/x/staking/client/cli"
-	"github.com/orientwalt/htdf/app"
-	"github.com/orientwalt/htdf/app/v0"
-	"github.com/orientwalt/htdf/server"
-	"github.com/orientwalt/htdf/client/keys"
 	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
+	"github.com/orientwalt/htdf/x/staking/client/cli"
 	hstakingcli "github.com/orientwalt/htdf/x/staking/client/cli"
-	"github.com/orientwalt/htdf/accounts/keystore"
 )
 
 var (
@@ -146,7 +147,7 @@ following delegation and commission default parameters:
 
 			fromaddr := stdTx.GetSigners()[0]
 			ksw := keystore.NewKeyStoreWallet(keystore.DefaultKeyStoreHome())
-			signedTx, err := ksw.SignStdTx(txBldr,stdTx,sdk.AccAddress.String(fromaddr), passphrase)
+			signedTx, err := ksw.SignStdTx(txBldr, stdTx, sdk.AccAddress.String(fromaddr), passphrase)
 			if err != nil {
 				return err
 			}
