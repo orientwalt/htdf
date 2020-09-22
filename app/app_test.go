@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/libs/db"
+	"github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/stretchr/testify/require"
 

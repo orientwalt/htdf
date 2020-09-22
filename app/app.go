@@ -22,7 +22,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	abci "github.com/tendermint/tendermint/abci/types"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 
 	v0 "github.com/orientwalt/htdf/app/v0"
 	v1 "github.com/orientwalt/htdf/app/v1"

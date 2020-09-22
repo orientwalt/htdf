@@ -7,7 +7,7 @@ import (
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/stretchr/testify/require"
 	sdk "github.com/orientwalt/htdf/types"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/orientwalt/htdf/codec"

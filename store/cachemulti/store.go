@@ -3,7 +3,7 @@ package cachemulti
 import (
 	"io"
 
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/store/cachekv"
 	"github.com/orientwalt/htdf/store/dbadapter"

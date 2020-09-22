@@ -13,7 +13,7 @@ import (
 
 	"github.com/orientwalt/htdf/store"
 	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
 
 	bam "github.com/orientwalt/htdf/app"
