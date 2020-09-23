@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/tendermint/crypto/bcrypt"
 
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/armor"
@@ -13,6 +13,8 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/os"
 
 	"github.com/orientwalt/htdf/crypto/keys/keyerror"
+
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 )
 
 const (

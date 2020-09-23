@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	cmn "github.com/tendermint/tendermint/libs/kv"
+	tmkv "github.com/tendermint/tendermint/libs/kv"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/store/types"
@@ -53,6 +53,7 @@ func (store *Store) GetStoreType() types.StoreType {
 func (store *Store) Get(key []byte) (value []byte) {
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
+
 	types.AssertValidKey(key)
 
 	cacheValue, ok := store.cache[string(key)]
@@ -70,6 +71,7 @@ func (store *Store) Get(key []byte) (value []byte) {
 func (store *Store) Set(key []byte, value []byte) {
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
+
 	types.AssertValidKey(key)
 	types.AssertValidValue(value)
 
@@ -86,6 +88,7 @@ func (store *Store) Has(key []byte) bool {
 func (store *Store) Delete(key []byte) {
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
+
 	types.AssertValidKey(key)
 
 	store.setCacheValue(key, nil, true, true)
@@ -99,6 +102,7 @@ func (store *Store) Write() {
 	// We need a copy of all of the keys.
 	// Not the best, but probably not a bottleneck depending.
 	keys := make([]string, 0, len(store.cache))
+
 	for key, dbValue := range store.cache {
 		if dbValue.dirty {
 			keys = append(keys, key)
@@ -111,11 +115,13 @@ func (store *Store) Write() {
 	// at least happen atomically.
 	for _, key := range keys {
 		cacheValue := store.cache[key]
-		if cacheValue.deleted {
+
+		switch {
+		case cacheValue.deleted:
 			store.parent.Delete([]byte(key))
-		} else if cacheValue.value == nil {
+		case cacheValue.value == nil:
 			// Skip, it already doesn't exist in parent.
-		} else {
+		default:
 			store.parent.Set([]byte(key), cacheValue.value)
 		}
 	}
@@ -172,12 +178,14 @@ func (store *Store) iterator(start, end []byte, ascending bool) types.Iterator {
 
 // Constructs a slice of dirty items, to use w/ memIterator.
 func (store *Store) dirtyItems(start, end []byte) {
-	unsorted := make([]*cmn.KVPair, 0)
+	unsorted := make([]*tmkv.Pair, 0)
 
 	for key := range store.unsortedCache {
 		cacheValue := store.cache[key]
+
 		if dbm.IsKeyInDomain([]byte(key), start, end) {
-			unsorted = append(unsorted, &cmn.KVPair{Key: []byte(key), Value: cacheValue.value})
+			unsorted = append(unsorted, &tmkv.Pair{Key: []byte(key), Value: cacheValue.value})
+
 			delete(store.unsortedCache, key)
 		}
 	}
@@ -188,11 +196,13 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 	for e := store.sortedCache.Front(); e != nil && len(unsorted) != 0; {
 		uitem := unsorted[0]
-		sitem := e.Value.(*cmn.KVPair)
+		sitem := e.Value.(*tmkv.Pair)
 		comp := bytes.Compare(uitem.Key, sitem.Key)
+
 		switch comp {
 		case -1:
 			unsorted = unsorted[1:]
+
 			store.sortedCache.InsertBefore(uitem, e)
 		case 1:
 			e = e.Next()

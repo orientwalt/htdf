@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	cmn "github.com/tendermint/tendermint/libs/rand"
+	tmrand "github.com/tendermint/tendermint/libs/rand"
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/store/cachekv"
@@ -14,7 +14,7 @@ import (
 )
 
 func newCacheKVStore() types.CacheKVStore {
-	mem := dbadapter.Store{dbm.NewMemDB()}
+	mem := dbadapter.Store{DB: dbm.NewMemDB()}
 	return cachekv.NewStore(mem)
 }
 
@@ -22,7 +22,7 @@ func keyFmt(i int) []byte { return bz(fmt.Sprintf("key%0.8d", i)) }
 func valFmt(i int) []byte { return bz(fmt.Sprintf("value%0.8d", i)) }
 
 func TestCacheKVStore(t *testing.T) {
-	mem := dbadapter.Store{dbm.NewMemDB()}
+	mem := dbadapter.Store{DB: dbm.NewMemDB()}
 	st := cachekv.NewStore(mem)
 
 	require.Empty(t, st.Get(keyFmt(1)), "Expected `key1` to be empty")
@@ -65,13 +65,13 @@ func TestCacheKVStore(t *testing.T) {
 }
 
 func TestCacheKVStoreNoNilSet(t *testing.T) {
-	mem := dbadapter.Store{dbm.NewMemDB()}
+	mem := dbadapter.Store{DB: dbm.NewMemDB()}
 	st := cachekv.NewStore(mem)
 	require.Panics(t, func() { st.Set([]byte("key"), nil) }, "setting a nil value should panic")
 }
 
 func TestCacheKVStoreNested(t *testing.T) {
-	mem := dbadapter.Store{dbm.NewMemDB()}
+	mem := dbadapter.Store{DB: dbm.NewMemDB()}
 	st := cachekv.NewStore(mem)
 
 	// set. check its there on st and not on mem.
@@ -231,13 +231,13 @@ func TestCacheKVMergeIteratorDeletes(t *testing.T) {
 	// set some items and write them
 	nItems := 10
 	for i := 0; i < nItems; i++ {
-		doOp(st, truth, opSet, i)
+		doOp(t, st, truth, opSet, i)
 	}
 	st.Write()
 
 	// delete every other item, starting from 0
 	for i := 0; i < nItems; i += 2 {
-		doOp(st, truth, opDel, i)
+		doOp(t, st, truth, opDel, i)
 		assertIterateDomainCompare(t, st, truth)
 	}
 
@@ -247,13 +247,13 @@ func TestCacheKVMergeIteratorDeletes(t *testing.T) {
 
 	// set some items and write them
 	for i := 0; i < nItems; i++ {
-		doOp(st, truth, opSet, i)
+		doOp(t, st, truth, opSet, i)
 	}
 	st.Write()
 
 	// delete every other item, starting from 1
 	for i := 1; i < nItems; i += 2 {
-		doOp(st, truth, opDel, i)
+		doOp(t, st, truth, opDel, i)
 		assertIterateDomainCompare(t, st, truth)
 	}
 }
@@ -265,27 +265,27 @@ func TestCacheKVMergeIteratorChunks(t *testing.T) {
 	truth := dbm.NewMemDB()
 
 	// sets to the parent
-	setRange(st, truth, 0, 20)
-	setRange(st, truth, 40, 60)
+	setRange(t, st, truth, 0, 20)
+	setRange(t, st, truth, 40, 60)
 	st.Write()
 
 	// sets to the cache
-	setRange(st, truth, 20, 40)
-	setRange(st, truth, 60, 80)
+	setRange(t, st, truth, 20, 40)
+	setRange(t, st, truth, 60, 80)
 	assertIterateDomainCheck(t, st, truth, []keyRange{{0, 80}})
 
 	// remove some parents and some cache
-	deleteRange(st, truth, 15, 25)
+	deleteRange(t, st, truth, 15, 25)
 	assertIterateDomainCheck(t, st, truth, []keyRange{{0, 15}, {25, 80}})
 
 	// remove some parents and some cache
-	deleteRange(st, truth, 35, 45)
+	deleteRange(t, st, truth, 35, 45)
 	assertIterateDomainCheck(t, st, truth, []keyRange{{0, 15}, {25, 35}, {45, 80}})
 
 	// write, add more to the cache, and delete some cache
 	st.Write()
-	setRange(st, truth, 38, 42)
-	deleteRange(st, truth, 40, 43)
+	setRange(t, st, truth, 38, 42)
+	deleteRange(t, st, truth, 40, 43)
 	assertIterateDomainCheck(t, st, truth, []keyRange{{0, 15}, {25, 35}, {38, 40}, {45, 80}})
 }
 
@@ -295,11 +295,11 @@ func TestCacheKVMergeIteratorRandom(t *testing.T) {
 
 	start, end := 25, 975
 	max := 1000
-	setRange(st, truth, start, end)
+	setRange(t, st, truth, start, end)
 
 	// do an op, test the iterator
 	for i := 0; i < 2000; i++ {
-		doRandomOp(st, truth, max)
+		doRandomOp(t, st, truth, max)
 		assertIterateDomainCompare(t, st, truth)
 	}
 }
@@ -318,52 +318,56 @@ const (
 )
 
 func randInt(n int) int {
-	return cmn.Int() % n
+	return tmrand.NewRand().Int() % n
 }
 
 // useful for replaying a error case if we find one
-func doOp(st types.CacheKVStore, truth dbm.DB, op int, args ...int) {
+func doOp(t *testing.T, st types.CacheKVStore, truth dbm.DB, op int, args ...int) {
 	switch op {
 	case opSet:
 		k := args[0]
 		st.Set(keyFmt(k), valFmt(k))
-		truth.Set(keyFmt(k), valFmt(k))
+		err := truth.Set(keyFmt(k), valFmt(k))
+		require.NoError(t, err)
 	case opSetRange:
 		start := args[0]
 		end := args[1]
-		setRange(st, truth, start, end)
+		setRange(t, st, truth, start, end)
 	case opDel:
 		k := args[0]
 		st.Delete(keyFmt(k))
-		truth.Delete(keyFmt(k))
+		err := truth.Delete(keyFmt(k))
+		require.NoError(t, err)
 	case opDelRange:
 		start := args[0]
 		end := args[1]
-		deleteRange(st, truth, start, end)
+		deleteRange(t, st, truth, start, end)
 	case opWrite:
 		st.Write()
 	}
 }
 
-func doRandomOp(st types.CacheKVStore, truth dbm.DB, maxKey int) {
+func doRandomOp(t *testing.T, st types.CacheKVStore, truth dbm.DB, maxKey int) {
 	r := randInt(totalOps)
 	switch r {
 	case opSet:
 		k := randInt(maxKey)
 		st.Set(keyFmt(k), valFmt(k))
-		truth.Set(keyFmt(k), valFmt(k))
+		err := truth.Set(keyFmt(k), valFmt(k))
+		require.NoError(t, err)
 	case opSetRange:
 		start := randInt(maxKey - 2)
 		end := randInt(maxKey-start) + start
-		setRange(st, truth, start, end)
+		setRange(t, st, truth, start, end)
 	case opDel:
 		k := randInt(maxKey)
 		st.Delete(keyFmt(k))
-		truth.Delete(keyFmt(k))
+		err := truth.Delete(keyFmt(k))
+		require.NoError(t, err)
 	case opDelRange:
 		start := randInt(maxKey - 2)
 		end := randInt(maxKey-start) + start
-		deleteRange(st, truth, start, end)
+		deleteRange(t, st, truth, start, end)
 	case opWrite:
 		st.Write()
 	}
@@ -387,7 +391,8 @@ func assertIterateDomain(t *testing.T, st types.KVStore, expectedN int) {
 func assertIterateDomainCheck(t *testing.T, st types.KVStore, mem dbm.DB, r []keyRange) {
 	// iterate over each and check they match the other
 	itr := st.Iterator(nil, nil)
-	itr2 := mem.Iterator(nil, nil) // ground truth
+	itr2, err := mem.Iterator(nil, nil) // ground truth
+	require.NoError(t, err)
 
 	krc := newKeyRangeCounter(r)
 	i := 0
@@ -417,7 +422,8 @@ func assertIterateDomainCheck(t *testing.T, st types.KVStore, mem dbm.DB, r []ke
 func assertIterateDomainCompare(t *testing.T, st types.KVStore, mem dbm.DB) {
 	// iterate over each and check they match the other
 	itr := st.Iterator(nil, nil)
-	itr2 := mem.Iterator(nil, nil) // ground truth
+	itr2, err := mem.Iterator(nil, nil) // ground truth
+	require.NoError(t, err)
 	checkIterators(t, itr, itr2)
 	checkIterators(t, itr2, itr)
 }
@@ -437,17 +443,19 @@ func checkIterators(t *testing.T, itr, itr2 types.Iterator) {
 
 //--------------------------------------------------------
 
-func setRange(st types.KVStore, mem dbm.DB, start, end int) {
+func setRange(t *testing.T, st types.KVStore, mem dbm.DB, start, end int) {
 	for i := start; i < end; i++ {
 		st.Set(keyFmt(i), valFmt(i))
-		mem.Set(keyFmt(i), valFmt(i))
+		err := mem.Set(keyFmt(i), valFmt(i))
+		require.NoError(t, err)
 	}
 }
 
-func deleteRange(st types.KVStore, mem dbm.DB, start, end int) {
+func deleteRange(t *testing.T, st types.KVStore, mem dbm.DB, start, end int) {
 	for i := start; i < end; i++ {
 		st.Delete(keyFmt(i))
-		mem.Delete(keyFmt(i))
+		err := mem.Delete(keyFmt(i))
+		require.NoError(t, err)
 	}
 }
 

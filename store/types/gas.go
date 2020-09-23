@@ -1,6 +1,9 @@
 package types
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // Gas consumption descriptors.
 const (
@@ -42,6 +45,7 @@ type GasMeter interface {
 	UseGas(amount Gas, descriptor string) // junying-todo, 2019-11-18
 	IsPastLimit() bool
 	IsOutOfGas() bool
+	String() string
 }
 
 type basicGasMeter struct {
@@ -108,6 +112,10 @@ func (g *basicGasMeter) IsOutOfGas() bool {
 	return g.consumed >= g.limit
 }
 
+func (g *basicGasMeter) String() string {
+	return fmt.Sprintf("BasicGasMeter:\n  limit: %d\n  consumed: %d", g.limit, g.consumed)
+}
+
 type infiniteGasMeter struct {
 	consumed Gas
 }
@@ -150,6 +158,10 @@ func (g *infiniteGasMeter) IsPastLimit() bool {
 
 func (g *infiniteGasMeter) IsOutOfGas() bool {
 	return false
+}
+
+func (g *infiniteGasMeter) String() string {
+	return fmt.Sprintf("InfiniteGasMeter:\n  consumed: %d", g.consumed)
 }
 
 // junying-todo, 2019-11-////////////////////////////////////////
@@ -209,6 +221,10 @@ func (g *FalseGasMeter) IsPastLimit() bool {
 //
 func (g *FalseGasMeter) IsOutOfGas() bool {
 	return g.consumed > g.limit
+}
+
+func (g *FalseGasMeter) String() string {
+	return fmt.Sprintf("FalseGasMeter:\n  limit: %d\n  consumed: %d", g.limit, g.consumed)
 }
 
 /////////////////////////////////////////////////////////////////

@@ -23,13 +23,13 @@ type (
 	CacheWrapper     = types.CacheWrapper
 	CacheWrap        = types.CacheWrap
 	CommitID         = types.CommitID
-	StoreKey         = types.StoreKey
-	StoreType        = types.StoreType
+	Key              = types.StoreKey
+	Type             = types.StoreType
 	Queryable        = types.Queryable
 	TraceContext     = types.TraceContext
-	Gas              = stypes.Gas
+	Gas              = types.Gas
 	GasMeter         = types.GasMeter
-	GasConfig        = stypes.GasConfig
+	GasConfig        = types.GasConfig
 )
 
 // nolint - reexport

@@ -196,39 +196,30 @@ func (r TxResponse) String() string {
 	if r.Height > 0 {
 		sb.WriteString(fmt.Sprintf("  Height: %d\n", r.Height))
 	}
-
 	if r.TxHash != "" {
 		sb.WriteString(fmt.Sprintf("  TxHash: %s\n", r.TxHash))
 	}
-
 	if r.Code > 0 {
 		sb.WriteString(fmt.Sprintf("  Code: %d\n", r.Code))
 	}
-
 	if r.Data != "" {
 		sb.WriteString(fmt.Sprintf("  Data: %s\n", r.Data))
 	}
-
 	if r.RawLog != "" {
 		sb.WriteString(fmt.Sprintf("  Raw Log: %s\n", r.RawLog))
 	}
-
 	if r.Logs != nil {
 		sb.WriteString(fmt.Sprintf("  Logs: %s\n", r.Logs))
 	}
-
 	if r.Info != "" {
 		sb.WriteString(fmt.Sprintf("  Info: %s\n", r.Info))
 	}
-
 	if r.GasWanted != 0 {
 		sb.WriteString(fmt.Sprintf("  GasWanted: %d\n", r.GasWanted))
 	}
-
 	if r.GasUsed != 0 {
 		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
 	}
-
 	if len(r.Tags) > 0 {
 		sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Tags.String()))
 	}
@@ -236,7 +227,6 @@ func (r TxResponse) String() string {
 	if r.Codespace != "" {
 		sb.WriteString(fmt.Sprintf("  Codespace: %s\n", r.Codespace))
 	}
-
 	if r.Timestamp != "" {
 		sb.WriteString(fmt.Sprintf("  Timestamp: %s\n", r.Timestamp))
 	}
@@ -249,9 +239,51 @@ func (r TxResponse) Empty() bool {
 	return r.TxHash == "" && r.Logs == nil
 }
 
+// SearchTxsResult defines a structure for querying txs pageable
+type SearchTxsResult struct {
+	TotalCount int          `json:"total_count"` // Count of all txs
+	Count      int          `json:"count"`       // Count of txs in current page
+	PageNumber int          `json:"page_number"` // Index of current page, start from 1
+	PageTotal  int          `json:"page_total"`  // Count of total pages
+	Limit      int          `json:"limit"`       // Max count txs per page
+	Txs        []TxResponse `json:"txs"`         // List of txs in current page
+}
+
+func NewSearchTxsResult(totalCount, count, page, limit int, txs []TxResponse) SearchTxsResult {
+	return SearchTxsResult{
+		TotalCount: totalCount,
+		Count:      count,
+		PageNumber: page,
+		PageTotal:  int(math.Ceil(float64(totalCount) / float64(limit))),
+		Limit:      limit,
+		Txs:        txs,
+	}
+}
+
 // ParseABCILogs attempts to parse a stringified ABCI tx log into a slice of
 // ABCIMessageLog types. It returns an error upon JSON decoding failure.
 func ParseABCILogs(logs string) (res ABCIMessageLogs, err error) {
 	err = json.Unmarshal([]byte(logs), &res)
 	return res, err
+}
+
+var _, _ types.UnpackInterfacesMessage = SearchTxsResult{}, TxResponse{}
+
+// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+//
+// types.UnpackInterfaces needs to be called for each nested Tx because
+// there are generally interfaces to unpack in Tx's
+func (s SearchTxsResult) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+	for _, tx := range s.Txs {
+		err := types.UnpackInterfaces(tx, unpacker)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+func (r TxResponse) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+	return types.UnpackInterfaces(r.Tx, unpacker)
 }

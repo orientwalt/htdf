@@ -10,8 +10,6 @@ import (
 	"github.com/pkg/errors"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-
-	"github.com/pkg/errors"
 )
 
 const (

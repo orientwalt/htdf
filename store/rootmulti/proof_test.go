@@ -61,7 +61,7 @@ func TestVerifyMultiStoreQueryProof(t *testing.T) {
 	iavlStoreKey := types.NewKVStoreKey("iavlStoreKey")
 
 	store.MountStoreWithDB(iavlStoreKey, types.StoreTypeIAVL, nil)
-	store.LoadVersion(0, false)
+	require.NoError(t, store.LoadVersion(0))
 
 	iavlStore := store.GetCommitStore(iavlStoreKey).(*iavl.Store)
 	iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
@@ -109,35 +109,6 @@ func TestVerifyMultiStoreQueryProof(t *testing.T) {
 	require.NotNil(t, err)
 }
 
-func TestVerifyMultiStoreQueryProofEmptyStore(t *testing.T) {
-	// Create main tree for testing.
-	db := dbm.NewMemDB()
-	store := NewStore(db)
-	iavlStoreKey := types.NewKVStoreKey("iavlStoreKey")
-
-	store.MountStoreWithDB(iavlStoreKey, types.StoreTypeIAVL, nil)
-	store.LoadVersion(0, false)
-	cid := store.Commit() // Commit with empty iavl store.
-
-	// Get Proof
-	res := store.Query(abci.RequestQuery{
-		Path:  "/iavlStoreKey/key", // required path to get key/value+proof
-		Data:  []byte("MYKEY"),
-		Prove: true,
-	})
-	require.NotNil(t, res.Proof)
-
-	// Verify proof.
-	prt := DefaultProofRuntime()
-	err := prt.VerifyAbsence(res.Proof, cid.Hash, "/iavlStoreKey/MYKEY")
-	require.Nil(t, err)
-
-	// Verify (bad) proof.
-	prt = DefaultProofRuntime()
-	err = prt.VerifyValue(res.Proof, cid.Hash, "/iavlStoreKey/MYKEY", []byte("MYVALUE"))
-	require.NotNil(t, err)
-}
-
 func TestVerifyMultiStoreQueryProofAbsence(t *testing.T) {
 	// Create main tree for testing.
 	db := dbm.NewMemDB()
@@ -145,7 +116,8 @@ func TestVerifyMultiStoreQueryProofAbsence(t *testing.T) {
 	iavlStoreKey := types.NewKVStoreKey("iavlStoreKey")
 
 	store.MountStoreWithDB(iavlStoreKey, types.StoreTypeIAVL, nil)
-	store.LoadVersion(0, false)
+	err := store.LoadVersion(0)
+	require.NoError(t, err)
 
 	iavlStore := store.GetCommitStore(iavlStoreKey).(*iavl.Store)
 	iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
@@ -161,7 +133,7 @@ func TestVerifyMultiStoreQueryProofAbsence(t *testing.T) {
 
 	// Verify proof.
 	prt := DefaultProofRuntime()
-	err := prt.VerifyAbsence(res.Proof, cid.Hash, "/iavlStoreKey/MYABSENTKEY")
+	err = prt.VerifyAbsence(res.Proof, cid.Hash, "/iavlStoreKey/MYABSENTKEY")
 	require.Nil(t, err)
 
 	// Verify (bad) proof.
