@@ -7,6 +7,9 @@ require (
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/btcsuite/btcd v0.20.1-beta
+	github.com/confio/ics23-iavl v0.6.0
+	github.com/confio/ics23-tendermint v0.6.1
+	github.com/confio/ics23/go v0.0.0-20200604202538-6e2c36a74465
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/cosmos/ledger-cosmos-go v0.11.1
@@ -14,13 +17,12 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/emicklei/proto v1.8.0
-	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/ethereum/go-ethereum v1.8.27
 	github.com/go-kit/kit v0.10.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.0
 	github.com/gorilla/mux v1.7.3
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
+	github.com/hashicorp/golang-lru v0.5.3
 	github.com/jinzhu/gorm v1.9.11 // indirect
 	github.com/magiconair/properties v1.8.1
 	github.com/mattn/go-isatty v0.0.10
@@ -39,11 +41,11 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/stumble/gorocksdb v0.0.3 // indirect
 	github.com/tendermint/btcd v0.1.1
+	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/iavl v0.14.0
 	// github.com/tendermint/iavl v0.12.1
 	github.com/tendermint/tendermint v0.33.8
-	// github.com/tendermint/tmlibs v0.9.0
 	github.com/tendermint/tm-db v0.5.1
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8 // indirect
@@ -51,6 +53,16 @@ require (
 	gopkg.in/fatih/set.v0 v0.1.0 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
+	gopkg.in/yaml.v2 v2.2.5
 )
+
+// github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
+replace github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.33.5
+
+// replace (
+// 	// github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
+// 	github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.34.0-rc4.0.20201005135527-d7d0ffea13c6
+// 	golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
+// )
 
 go 1.13
