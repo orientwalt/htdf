@@ -13,6 +13,8 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/os"
 
 	"github.com/orientwalt/htdf/crypto/keys/keyerror"
+
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 )
 
 const (

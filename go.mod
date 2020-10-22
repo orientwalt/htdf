@@ -20,7 +20,7 @@ require (
 	github.com/ethereum/go-ethereum v1.8.27
 	github.com/go-kit/kit v0.10.0
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/jinzhu/gorm v1.9.11 // indirect
@@ -41,23 +41,27 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/stumble/gorocksdb v0.0.3 // indirect
 	github.com/tendermint/btcd v0.1.1
-	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
+	// github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/iavl v0.14.0
 	// github.com/tendermint/iavl v0.12.1
 	github.com/tendermint/tendermint v0.33.8
-	github.com/tendermint/tm-db v0.5.1
+	// github.com/tendermint/tm-db v0.5.1
+	github.com/tendermint/tm-db v0.6.2
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8 // indirect
-	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/fatih/set.v0 v0.1.0 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
-	gopkg.in/yaml.v2 v2.2.5
+	gopkg.in/yaml.v2 v2.3.0
 )
 
 // github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
-replace github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.33.5
+replace (
+	github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.33.7
+	golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
+)
 
 // replace (
 // 	// github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
