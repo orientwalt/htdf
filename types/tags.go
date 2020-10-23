@@ -50,16 +50,16 @@ func NewTags(tags ...interface{}) Tags {
 	return ret
 }
 
-func toBytes(i interface{}) []byte {
-	switch x := i.(type) {
-	case []uint8:
-		return x
-	case string:
-		return []byte(x)
-	default:
-		panic(i)
-	}
-}
+// func toBytes(i interface{}) []byte {
+// 	switch x := i.(type) {
+// 	case []uint8:
+// 		return x
+// 	case string:
+// 		return []byte(x)
+// 	default:
+// 		panic(i)
+// 	}
+// }
 
 // Make a tag from a key and a value
 func MakeTag(k string, v string) Tag {

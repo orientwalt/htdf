@@ -4,36 +4,38 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
+	codectypes "github.com/orientwalt/htdf/codec/types"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // Result is the union of ResponseFormat and ResponseCheckTx.
-type Result struct {
-	// Code is the response code, is stored back on the chain.
-	Code CodeType
+// type Result struct {
+// 	// Code is the response code, is stored back on the chain.
+// 	Code CodeType
 
-	// Codespace is the string referring to the domain of an error
-	Codespace CodespaceType
+// 	// Codespace is the string referring to the domain of an error
+// 	Codespace CodespaceType
 
-	// Data is any data returned from the app.
-	// Data has to be length prefixed in order to separate
-	// results from multiple msgs executions
-	Data []byte
+// 	// Data is any data returned from the app.
+// 	// Data has to be length prefixed in order to separate
+// 	// results from multiple msgs executions
+// 	Data []byte
 
-	// Log contains the txs log information. NOTE: nondeterministic.
-	Log string
+// 	// Log contains the txs log information. NOTE: nondeterministic.
+// 	Log string
 
-	// GasWanted is the maximum units of work we allow this tx to perform.
-	GasWanted uint64
+// 	// GasWanted is the maximum units of work we allow this tx to perform.
+// 	GasWanted uint64
 
-	// GasUsed is the amount of gas actually consumed. NOTE: unimplemented
-	GasUsed uint64
+// 	// GasUsed is the amount of gas actually consumed. NOTE: unimplemented
+// 	GasUsed uint64
 
-	// Tags are used for transaction indexing and pubsub.
-	Tags Tags
-}
+// 	// Tags are used for transaction indexing and pubsub.
+// 	Tags Tags
+// }
 
 // TODO: In the future, more codes may be OK.
 func (res Result) IsOK() bool {
@@ -44,11 +46,11 @@ func (res Result) IsOK() bool {
 type ABCIMessageLogs []ABCIMessageLog
 
 // ABCIMessageLog defines a structure containing an indexed tx ABCI message log.
-type ABCIMessageLog struct {
-	MsgIndex int    `json:"msg_index"`
-	Success  bool   `json:"success"`
-	Log      string `json:"log"`
-}
+// type ABCIMessageLog struct {
+// 	MsgIndex int    `json:"msg_index"`
+// 	Success  bool   `json:"success"`
+// 	Log      string `json:"log"`
+// }
 
 // String implements the fmt.Stringer interface for the ABCIMessageLogs type.
 func (logs ABCIMessageLogs) String() (str string) {
@@ -62,33 +64,15 @@ func (logs ABCIMessageLogs) String() (str string) {
 	return str
 }
 
-// TxResponse defines a structure containing relevant tx data and metadata. The
-// tags are stringified and the log is JSON decoded.
-type TxResponse struct {
-	Height    int64           `json:"height"`
-	TxHash    string          `json:"txhash"`
-	Code      uint32          `json:"code,omitempty"`
-	Data      string          `json:"data,omitempty"`
-	RawLog    string          `json:"raw_log,omitempty"`
-	Logs      ABCIMessageLogs `json:"logs,omitempty"`
-	Info      string          `json:"info,omitempty"`
-	GasWanted int64           `json:"gas_wanted,omitempty"`
-	GasUsed   int64           `json:"gas_used,omitempty"`
-	Tags      StringTags      `json:"tags,omitempty"`
-	Codespace string          `json:"codespace,omitempty"`
-	Tx        Tx              `json:"tx,omitempty"`
-	Timestamp string          `json:"timestamp,omitempty"`
-}
-
 // NewResponseResultTx returns a TxResponse given a ResultTx from tendermint
 func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxResponse {
 	if res == nil {
-		return TxResponse{}
+		return nil
 	}
 
 	parsedLogs, _ := ParseABCILogs(res.TxResult.Log)
 
-	return TxResponse{
+	return &TxResponse{
 		TxHash:    res.Hash.String(),
 		Height:    res.Height,
 		Code:      res.TxResult.Code,
@@ -98,7 +82,7 @@ func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxRespon
 		Info:      res.TxResult.Info,
 		GasWanted: res.TxResult.GasWanted,
 		GasUsed:   res.TxResult.GasUsed,
-		Tags:      TagsToStringTags(res.TxResult.Tags),
+		// Tags:      TagsToStringTags(res.TxResult.Tags),
 		Tx:        tx,
 		Timestamp: timestamp,
 	}
@@ -106,9 +90,9 @@ func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxRespon
 
 // NewResponseFormatBroadcastTxCommit returns a TxResponse given a
 // ResultBroadcastTxCommit from tendermint.
-func NewResponseFormatBroadcastTxCommit(res *ctypes.ResultBroadcastTxCommit) TxResponse {
+func NewResponseFormatBroadcastTxCommit(res *ctypes.ResultBroadcastTxCommit) *TxResponse {
 	if res == nil {
-		return TxResponse{}
+		return nil
 	}
 
 	if !res.CheckTx.IsOK() {
@@ -118,9 +102,9 @@ func NewResponseFormatBroadcastTxCommit(res *ctypes.ResultBroadcastTxCommit) TxR
 	return newTxResponseDeliverTx(res)
 }
 
-func newTxResponseCheckTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
+func newTxResponseCheckTx(res *ctypes.ResultBroadcastTxCommit) *TxResponse {
 	if res == nil {
-		return TxResponse{}
+		return nil
 	}
 
 	var txHash string
@@ -130,9 +114,10 @@ func newTxResponseCheckTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 
 	parsedLogs, _ := ParseABCILogs(res.CheckTx.Log)
 
-	return TxResponse{
+	return &TxResponse{
 		Height:    res.Height,
 		TxHash:    txHash,
+		Codespace: res.CheckTx.Codespace,
 		Code:      res.CheckTx.Code,
 		Data:      strings.ToUpper(hex.EncodeToString(res.CheckTx.Data)),
 		RawLog:    res.CheckTx.Log,
@@ -140,14 +125,13 @@ func newTxResponseCheckTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 		Info:      res.CheckTx.Info,
 		GasWanted: res.CheckTx.GasWanted,
 		GasUsed:   res.CheckTx.GasUsed,
-		Tags:      TagsToStringTags(res.CheckTx.Tags),
-		Codespace: res.CheckTx.Codespace,
+		// Tags:      TagsToStringTags(res.CheckTx.Tags),
 	}
 }
 
-func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
+func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) *TxResponse {
 	if res == nil {
-		return TxResponse{}
+		return nil
 	}
 
 	var txHash string
@@ -157,9 +141,10 @@ func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 
 	parsedLogs, _ := ParseABCILogs(res.DeliverTx.Log)
 
-	return TxResponse{
+	return &TxResponse{
 		Height:    res.Height,
 		TxHash:    txHash,
+		Codespace: res.DeliverTx.Codespace,
 		Code:      res.DeliverTx.Code,
 		Data:      strings.ToUpper(hex.EncodeToString(res.DeliverTx.Data)),
 		RawLog:    res.DeliverTx.Log,
@@ -167,25 +152,25 @@ func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 		Info:      res.DeliverTx.Info,
 		GasWanted: res.DeliverTx.GasWanted,
 		GasUsed:   res.DeliverTx.GasUsed,
-		Tags:      TagsToStringTags(res.DeliverTx.Tags),
-		Codespace: res.DeliverTx.Codespace,
+		// Tags:      TagsToStringTags(res.DeliverTx.Tags),
 	}
 }
 
 // NewResponseFormatBroadcastTx returns a TxResponse given a ResultBroadcastTx from tendermint
-func NewResponseFormatBroadcastTx(res *ctypes.ResultBroadcastTx) TxResponse {
+func NewResponseFormatBroadcastTx(res *ctypes.ResultBroadcastTx) *TxResponse {
 	if res == nil {
-		return TxResponse{}
+		return nil
 	}
 
 	parsedLogs, _ := ParseABCILogs(res.Log)
 
-	return TxResponse{
-		Code:   res.Code,
-		Data:   res.Data.String(),
-		RawLog: res.Log,
-		Logs:   parsedLogs,
-		TxHash: res.Hash.String(),
+	return &TxResponse{
+		Code:      res.Code,
+		Codespace: res.Codespace,
+		Data:      res.Data.String(),
+		RawLog:    res.Log,
+		Logs:      parsedLogs,
+		TxHash:    res.Hash.String(),
 	}
 }
 
@@ -239,22 +224,12 @@ func (r TxResponse) Empty() bool {
 	return r.TxHash == "" && r.Logs == nil
 }
 
-// SearchTxsResult defines a structure for querying txs pageable
-type SearchTxsResult struct {
-	TotalCount int          `json:"total_count"` // Count of all txs
-	Count      int          `json:"count"`       // Count of txs in current page
-	PageNumber int          `json:"page_number"` // Index of current page, start from 1
-	PageTotal  int          `json:"page_total"`  // Count of total pages
-	Limit      int          `json:"limit"`       // Max count txs per page
-	Txs        []TxResponse `json:"txs"`         // List of txs in current page
-}
-
-func NewSearchTxsResult(totalCount, count, page, limit int, txs []TxResponse) SearchTxsResult {
-	return SearchTxsResult{
+func NewSearchTxsResult(totalCount, count, page, limit uint64, txs []*TxResponse) *SearchTxsResult {
+	return &SearchTxsResult{
 		TotalCount: totalCount,
 		Count:      count,
 		PageNumber: page,
-		PageTotal:  int(math.Ceil(float64(totalCount) / float64(limit))),
+		PageTotal:  uint64(math.Ceil(float64(totalCount) / float64(limit))),
 		Limit:      limit,
 		Txs:        txs,
 	}
@@ -267,15 +242,15 @@ func ParseABCILogs(logs string) (res ABCIMessageLogs, err error) {
 	return res, err
 }
 
-var _, _ types.UnpackInterfacesMessage = SearchTxsResult{}, TxResponse{}
+var _, _ codectypes.UnpackInterfacesMessage = SearchTxsResult{}, TxResponse{}
 
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
 //
 // types.UnpackInterfaces needs to be called for each nested Tx because
 // there are generally interfaces to unpack in Tx's
-func (s SearchTxsResult) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+func (s SearchTxsResult) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	for _, tx := range s.Txs {
-		err := types.UnpackInterfaces(tx, unpacker)
+		err := codectypes.UnpackInterfaces(tx, unpacker)
 		if err != nil {
 			return err
 		}
@@ -284,6 +259,18 @@ func (s SearchTxsResult) UnpackInterfaces(unpacker types.AnyUnpacker) error {
 }
 
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-func (r TxResponse) UnpackInterfaces(unpacker types.AnyUnpacker) error {
-	return types.UnpackInterfaces(r.Tx, unpacker)
+func (r TxResponse) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	if r.Tx != nil {
+		var tx Tx
+		return unpacker.UnpackAny(r.Tx, &tx)
+	}
+	return nil
+}
+
+// GetTx unpacks the Tx from within a TxResponse and returns it
+func (r TxResponse) GetTx() Tx {
+	if tx, ok := r.Tx.GetCachedValue().(Tx); ok {
+		return tx
+	}
+	return nil
 }

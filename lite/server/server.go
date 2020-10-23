@@ -10,7 +10,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
+
+	// rpcclient "github.com/tendermint/tendermint/rpc/client"
+	rpcclient "github.com/tendermint/tendermint/lite/client"
 	"github.com/tendermint/tmlibs/cli"
 )
 
