@@ -1,8 +1,0 @@
-{
-    "type": "htdf/MsgSetUndelegateStatus", 
-    "value": {
-        "Status": true, 
-        "delegator_address": "htdf1sejc6tedytvkgshf5yfyfl2dlw4xxkq0lkgjcu", 
-        "validator_address": "htdfvaloper1n8lxc8n7dhc50hv5rqemuljrkmm0tstpawx96y"
-    }
-}

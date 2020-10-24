@@ -1,26 +1,28 @@
-[![CircleCI](https://circleci.com/gh/orientwalt/htdf/tree/master.svg?style=shield)](https://circleci.com/gh/orientwalt/htdf/tree/master)
-[![](https://godoc.org/github.com/orientwalt/htdf?status.svg)](http://godoc.org/github.com/orientwalt/htdf) [![Go Report Card](https://goreportcard.com/badge/github.com/orientwalt/htdf)](https://goreportcard.com/report/github.com/orientwalt/htdf)
-[![Travis](https://travis-ci.org/orientwalt/htdf.svg?branch=master)](https://travis-ci.org/orientwalt/htdf)
-[![version](https://img.shields.io/github/tag/orientwalt/htdf.svg)](https://github.com/orientwalt/htdf/releases/latest)
-[![Go version](https://img.shields.io/badge/go-1.12.9-blue.svg)](https://github.com/moovweb/gvm)
-[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
+# IRISHub
 
-# HTDF
-## Introduction
-   HTDF is a high-performance public blockchain developed by HTDF Foundation. It is based on [ethereum](https://github.com/ethereum/go-ethereum) & [cosmos-sdk](https://github.com/cosmos/cosmos-sdk) on [tendermint](https://github.com/tendermint/tendermint)  . We merged tendermint's consensus, cosmos-sdk's application logic, and ethereum's account system & smart contract architecture into a brand new architecture - htdf blockchain.  This project is now UNDER ACTIVE DEVELOPMENT.
-   
-   **Note**: Requires Go 12.9+
-## Executables
-```
-hsd
-hscli
-```
-## [Quick Start](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
-You can follow the below steps. You should type password for your genesis account after runing first command.
-```
-make new
-make start
-tail -f ~/.hsd/app.log
-```
-## Contributions
-We always welcome any issue.
+![Banner](https://raw.githubusercontent.com/irisnet/irishub/master/docs/pics/iris.jpg)
+
+[![License](https://img.shields.io/github/license/irisnet/irishub.svg)](https://github.com/irisnet/irishub/blob/master/LICENSE)
+[![Version](https://img.shields.io/github/tag/irisnet/irishub.svg)](https://github.com/irisnet/irishub/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/irisnet/irishub)](https://goreportcard.com/report/github.com/irisnet/irishub)
+[![Forum](https://img.shields.io/discourse/https/forum.irisnet.org/topics.svg)](https://forum.irisnet.org/)
+
+IRIS network (a.k.a. IRISnet) aims to establish a technology foundation to facilitate construction of next-generation distributed applications. By incorporating a comprehensive service infrastructure and an enhanced IBC protocol into the Tendermint & Cosmos stack, IRISnet enables service interoperability as well as token transfers across an internet of blockchains.
+As the centerpiece of IRISnet, IRIS Hub (a.k.a. IRIShub) will be the first regional hub connecting to the main Cosmos Hub, thus making IRISnet an inseparable part of the whole Cosmos network.
+
+## IRIS Hub Mainnet
+
+To join the mainnet, follow [this guide](https://www.irisnet.org/docs/get-started/mainnet.html).
+
+## Install
+
+See the [install instructions](https://www.irisnet.org/docs/get-started/install.html).
+
+## Resources
+
+* Explorer: <https://www.irisplorer.io>
+* Riot chat: <https://riot.im/app/#/room/#irisvalidators:matrix.org>
+
+## How To Contribute
+
+See the [contributing](./CONTRIBUTING.md).

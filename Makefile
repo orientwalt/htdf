@@ -1,35 +1,17 @@
-# detect operating system
-ifeq ($(OS),Windows_NT)
-    CURRENT_OS := Windows
-else
-    CURRENT_OS := $(shell uname -s)
-endif
+#!/usr/bin/make -f
 
-# export GO111MODULE = on
-# default: log
-export LOG_LEVEL=debug
-
-#GOBIN
-GOBIN = $(shell pwd)/build/bin
-GO ?= latest
-
-# variables
-DEBUGAPI=ON  # disable DEBUGAPI by default
-
-PACKAGES = $(shell go list ./... | grep -Ev 'vendor|importer')
-COMMIT_HASH := $(shell git rev-parse --short HEAD)
-GIT_BRANCH :=$(shell git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //")
-# tool checking
-DEP_CHK := $(shell command -v dep 2> /dev/null)
-GOLINT_CHK := $(shell command -v golint 2> /dev/null)
-GOMETALINTER_CHK := $(shell command -v gometalinter.v2 2> /dev/null)
-UNCONVERT_CHK := $(shell command -v unconvert 2> /dev/null)
-INEFFASSIGN_CHK := $(shell command -v ineffassign 2> /dev/null)
-MISSPELL_CHK := $(shell command -v misspell 2> /dev/null)
-ERRCHECK_CHK := $(shell command -v errcheck 2> /dev/null)
-UNPARAM_CHK := $(shell command -v unparam 2> /dev/null)
-#
+PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
+PACKAGES_UNITTEST=$(shell go list ./... | grep -v '/simulation' | grep -v '/cli_test')
+VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
+COMMIT := $(shell git log -1 --format='%H')
 LEDGER_ENABLED ?= true
+BINDIR ?= $(GOPATH)/bin
+SDK_PACK := $(shell go list -m github.com/cosmos/cosmos-sdk | sed  's/ /\@/g')
+NetworkType := $(shell if [ -z ${NetworkType} ]; then echo "mainnet"; else echo ${NetworkType}; fi)
+
+export GO111MODULE = on
+
+# process build tags
 
 build_tags = netgo
 ifeq ($(LEDGER_ENABLED),true)
@@ -61,310 +43,148 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
-BUILD_FLAGS_STATIC_LINK = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH} -linkmode external -w -extldflags "-static"'
+whitespace :=
+whitespace += $(whitespace)
+comma := ,
+build_tags_comma_sep := $(subst $(whitespace),$(comma),$(build_tags))
 
-all: tools deps build
+# process linker flags
 
-tools:
-ifndef DEP_CHK
-	@echo "Installing dep"
-	go get -u -v github.com/golang/dep/cmd/dep
+ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=iris \
+		  -X github.com/cosmos/cosmos-sdk/version.AppName=iris \
+		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
+		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)" \
+		  -X github.com/cosmos/cosmos-sdk/types.reDnmString=[a-zA-Z][a-zA-Z0-9/:]{2,127}
+
+ifeq ($(WITH_CLEVELDB),yes)
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
+endif
+ldflags += $(LDFLAGS)
+ldflags := $(strip $(ldflags))
+
+BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
+
+# The below include contains the tools target.
+
+all: tools install lint
+
+# The below include contains the tools.
+include contrib/devtools/Makefile
+
+build: go.sum
+ifeq ($(OS),Windows_NT)
+	go build $(BUILD_FLAGS) -o build/iris.exe ./cmd/iris
 else
-	@echo "Dep is already installed..."
+	go build $(BUILD_FLAGS) -o build/iris ./cmd/iris
 endif
 
-deps:
-	@echo "--> Generating vendor directory via dep ensure"
-	@rm -rf .vendor-new
-	@dep ensure -v -vendor-only
+build-linux: go.sum
+	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 
-update:
-	@echo "--> Running dep ensure"
-	@rm -rf .vendor-new
-	@dep ensure -v -update
-
-buildquick: go.sum
-ifeq ($(CURRENT_OS),Windows)
-	@echo BUILD_FLAGS=$(BUILD_FLAGS)
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsd.exe ./cmd/hsd
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli.exe ./cmd/hscli
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsutils.exe ./cmd/hsutil
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli.exe ./cmd/hsinfo
+build-contract-tests-hooks:
+ifeq ($(OS),Windows_NT)
+	go build -mod=readonly $(BUILD_FLAGS) -o build/contract_tests.exe ./cmd/contract_tests
 else
-	@echo BUILD_FLAGS=$(BUILD_FLAGS)
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsd ./cmd/hsd
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hscli ./cmd/hscli
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsutils ./cmd/hsutil
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/bin/hsinfo ./cmd/hsinfo
+	go build -mod=readonly $(BUILD_FLAGS) -o build/contract_tests ./cmd/contract_tests
 endif
-
-# https://stackoverflow.com/questions/34729748/installed-go-binary-not-found-in-path-on-alpine-linux-docker
-# https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host,
-# failed because dependency path modified
-build.CGO_DISABLED: go.sum
-	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 CGO_ENABLED=0 $(MAKE) buildquick
-
-build.static: go.sum
-	@echo BUILD_FLAGS=$(BUILD_FLAGS_STATIC_LINK)
-	@go build -mod=readonly $(BUILD_FLAGS_STATIC_LINK) -o build/testnet/hsd ./cmd/hsd
-	@go build -mod=readonly $(BUILD_FLAGS_STATIC_LINK) -o build/testnet/hscli ./cmd/hscli
-
-build: unittest buildquick
-
-build-batchsend:
-	@build/env.sh go run build/ci.go install ./cmd/hsbatchsend
 
 install: go.sum
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hsd
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hscli
+	go install $(BUILD_FLAGS) ./cmd/iris
+
+update-swagger-docs: statik
+	$(BINDIR)/statik -src=lite/swagger-ui -dest=lite -f -m
+	@if [ -n "$(git status --porcelain)" ]; then \
+        echo "\033[91mSwagger docs are out of sync!!!\033[0m";\
+        exit 1;\
+    else \
+    	echo "\033[92mSwagger docs are in sync\033[0m";\
+    fi
+.PHONY: update-swagger-docs
+
+########################################
+### Tools & dependencies
+
+go-mod-cache: go.sum
+	@echo "--> Download go modules to local cache"
+	@go mod download
 
 go.sum: go.mod
 	@echo "--> Ensure dependencies have not been modified"
 	@go mod verify
 
-# test part
-test:
-	@go test -v --vet=off $(PACKAGES)
-	@echo $(PACKAGES)
+draw-deps:
+	@# requires brew install graphviz or apt-get install graphviz
+	go get github.com/RobotsAndPencils/goviz
+	@goviz -i ./cmd/iris -d 2 | dot -Tpng -o dependency-graph.png
 
-unittest:
-	@go test -v ./evm/...
-	@go test -v ./types/...
-	@go test -v ./store/...
-	@go test -v ./utils/...
-	@go test -v ./x/mint/...
-	@go test -v ./x/bank/...
-	@go test -v ./x/core/...
-
-	@go test -v ./accounts/...
-	@go test -v ./app/...
-	@go test -v ./client/...
-	@go test -v ./init/...
-	@go test -v ./crypto/...
-	@go test -v ./server/...
-	@go test -v ./tools/...
-	@go test -v ./x/auth/...
-	@go test -v ./x/crisis/...
-	@go test -v ./x/distribution/...
-	@go test -v ./x/gov/...
-	@go test -v ./x/guardian/...
-	@go test -v ./x/ibc/...
-	@go test -v ./x/params/...
-	@go test -v ./x/slashing/...
-	@go test -v ./x/staking/...
-
-CHAIN_ID = testchain
-GENESIS_ACCOUNT_PASSWORD = 12345678
-GENESIS_ACCOUNT_BALANCE = 3000000000000000satoshi
-MINIMUM_GAS_PRICES = 100satoshi
-
-new: install clear hsinit accs conf vals
-
-new.pure: clear hsinit accs conf vals
-
-hsinit:
-	@hsd init yjy --chain-id $(CHAIN_ID)
-
-accs:
-	@echo create new accounts....;\
-    $(eval ACC1=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))\
-	$(eval ACC2=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))\
-	hsd add-genesis-account $(ACC1) $(GENESIS_ACCOUNT_BALANCE)
-	@hsd add-genesis-account $(ACC2) $(GENESIS_ACCOUNT_BALANCE)
-
-conf:
-	@echo setting config....
-	@hscli config chain-id $(CHAIN_ID)
-	@hscli config output json
-	@hscli config indent true
-	@hscli config trust-node true
-
-vals:
-	@echo setting validators....
-	@hsd gentx $(ACC1)
-	@hsd collect-gentxs
-
-start: start.daemon start.rest
-
-start.daemon:
-	@echo starting daemon....
-	@nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
-
-start.rest:
-	@echo starting rest server...
-	@nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
-
-stop:
-	@pkill hsd
-	@pkill hscli
-
-# clean part
 clean:
-	@find build -name bin | xargs rm -rf
+	rm -rf snapcraft-local.yaml build/ tmp-swagger-gen/
 
-clear: clean
-	@rm -rf ~/.hs*
+distclean: clean
+	rm -rf vendor/
 
-DOCKER_VALIDATOR_IMAGE = falcon0125/hsdnode
-DOCKER_CLIENT_IMAGE = falcon0125/hsclinode
-VALIDATOR_COUNT = 4
-TESTNODE_NAME = client
-TESTNETDIR = build/testnet
-LIVENETDIR = build/livenet
+proto-all: proto-tools proto-gen proto-swagger-gen
 
-##############################################################################################################################
-# Run a 4-validator testnet locally
-##############################################################################################################################
+proto-gen:
+	@./scripts/protocgen.sh
 
-# docker-compose part[multi-node part, also test mode]
-# Local validator nodes using docker and docker-compose
-hsnode: clean build.static# hstop
-	$(MAKE) -C tools/deploy/docker/local
+proto-swagger-gen:
+	@./scripts/protoc-swagger-gen.sh
 
-echotest:
-	@echo  $(CURDIR)/${TESTNETDIR}
+########################################
+### Testing
 
-hsinit-v4: 
-	@if ! [ -f ${TESTNETDIR}/node0/.hsd/config/genesis.json ]; then\
-	 docker run --rm -v $(CURDIR)/build/testnet:/root:Z ${DOCKER_VALIDATOR_IMAGE} testnet \
-																				  --chain-id ${CHAIN_ID} \
-																				  --v ${VALIDATOR_COUNT} \
-																				  -o . \
-																				  --starting-ip-address 192.168.10.2 \
-																				  --minimum-gas-prices ${MINIMUM_GAS_PRICES}; fi
-hsinit-test: 
-	@hsd testnet --chain-id ${CHAIN_ID} \
-				 --v ${VALIDATOR_COUNT} \
-				 -o ${TESTNETDIR} \
-				 --starting-ip-address 192.168.10.2 \
-				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
-hsinit-o1:
-	@mkdir -p ${TESTNETDIR}/node4/.hsd ${TESTNETDIR}/node4/.hscli
-	@hsd init node4 --home ${TESTNETDIR}/node4/.hsd
-	@cp ${TESTNETDIR}/node0/.hsd/config/genesis.json ${TESTNETDIR}/node4/.hsd/config
-	# @cp ${TESTNETDIR}/node0/.hsd/config/hsd.toml ${TESTNETDIR}/node4/.hsd/config
-	@cp ${TESTNETDIR}/node0/.hsd/config/config.toml ${TESTNETDIR}/node4/.hsd/config
-	@sed -i s/node0/node4/g ${TESTNETDIR}/node4/.hsd/config/config.toml
-	@cp -rf ${TESTNETDIR}/node0/.hscli/* ${TESTNETDIR}/node4/.hscli
 
-hsinit-o2:
-	@mkdir -p ${TESTNETDIR}/node5/.hsd ${TESTNETDIR}/node5/.hscli
-	@hsd init node5 --home ${TESTNETDIR}/node5/.hsd
-	@cp ${TESTNETDIR}/node0/.hsd/config/genesis.json ${TESTNETDIR}/node5/.hsd/config
-	# @cp ${TESTNETDIR}/node0/.hsd/config/hsd.toml ${TESTNETDIR}/node5/.hsd/config
-	@cp ${TESTNETDIR}/node0/.hsd/config/config.toml ${TESTNETDIR}/node5/.hsd/config
-	@sed -i s/node0/node5/g ${TESTNETDIR}/node5/.hsd/config/config.toml
-	@cp -rf ${TESTNETDIR}/node1/.hscli/* ${TESTNETDIR}/node5/.hscli
+test: test-unit test-build
+test-all: test-race test-cover
 
-hstart: build.static hsinit-test hsinit-o1 hsinit-o2
-	@docker-compose up -d
+test-unit:
+	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ${PACKAGES_UNITTEST}
 
-hstart.debug: build hsinit-test hsinit-o1 hsinit-o2
-	@docker-compose up
+test-race:
+	@VERSION=$(VERSION) go test -mod=readonly -race -tags='ledger test_ledger_mock' ./...
 
-hsattach:
-	@docker attach hsclinode1
+test-cover:
+	@go test -mod=readonly -timeout 30m -race -coverprofile=coverage.txt -covermode=atomic -tags='ledger test_ledger_mock' ./...
 
-# Stop testnet
-hstop:
+lint: golangci-lint
+	golangci-lint run
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./lite/statik/statik.go" -not -path "*.pb.go" | xargs gofmt -d -s
+	go mod verify
+
+format:
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./lite/statik/statik.go" -not -path "*.pb.go" | xargs gofmt -w -s
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./lite/statik/statik.go" -not -path "*.pb.go" | xargs misspell -w
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./lite/statik/statik.go" -not -path "*.pb.go" | xargs goimports -w -local github.com/irisnet/irishub
+
+benchmark:
+	@go test -mod=readonly -bench=. ./...
+
+
+########################################
+### Local validator nodes using docker and docker-compose
+
+testnet-init:
+	@if ! [ -f build/iris ]; then $(MAKE) build-linux ; fi
+	@if ! [ -f build/nodecluster/node0/iris/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/home alpine:3.11 /home/iris testnet --v 4 --output-dir /home/nodecluster --chain-id irishub-test --keyring-backend test --starting-ip-address 192.168.10.2 ; fi
+	@echo "To install jq command, please refer to this page: https://stedolan.github.io/jq/download/"
+	@jq '.app_state.accounts+= [{"address": "iaa1ljemm0yznz58qxxs8xyak7fashcfxf5lgl4zjx", "coins": [ "1000000000000uiris" ], "sequence_number": "0", "account_number": "0"}]' build/nodecluster/node0/iris/config/genesis.json > build/genesis_temp.json ;
+	@sudo cp build/genesis_temp.json build/nodecluster/node0/iris/config/genesis.json
+	@sudo cp build/genesis_temp.json build/nodecluster/node1/iris/config/genesis.json
+	@sudo cp build/genesis_temp.json build/nodecluster/node2/iris/config/genesis.json
+	@sudo cp build/genesis_temp.json build/nodecluster/node3/iris/config/genesis.json
+	@rm build/genesis_temp.json
+	@echo "Faucet address: iaa1ljemm0yznz58qxxs8xyak7fashcfxf5lgl4zjx" ;
+	@echo "Faucet coin amount: 1000000000000uiris"
+	@echo "Faucet key seed: tube lonely pause spring gym veteran know want grid tired taxi such same mesh charge orient bracket ozone concert once good quick dry boss"
+
+testnet-start:
+	docker-compose up -d
+
+testnet-stop:
 	docker-compose down
 
-hscheck:
-	@docker logs -f hsdnode0
-
-hsclean:
-	@docker rmi ${DOCKER_VALIDATOR_IMAGE} ${DOCKER_CLIENT_IMAGE}
-
-##############################################################################################################################
-# ethernet part
-##############################################################################################################################
-clean-t:
-	@find build -name testnet |xargs rm -rf
-	
-# addrs:
-# 	@if [ -f ipaddrs.conf ]; then rm ipaddrs.conf ;fi
-# 	# modify conf files
-# 	@for index in $$(seq -s ' ' 4); do \
-# 	 read -p "Enter node$$index IP addr: " ipaddr;\
-# 	 echo $$ipaddr >> ipaddrs.conf; done
-
-# killall:
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') pkill -9 hsd
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') pkill -9 hsd
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') pkill -9 hsd
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') pkill -9 hsd
-
-# startall:
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') nohup hsd start & > /dev/null
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') nohup hsd start & > /dev/null
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') nohup hsd start & > /dev/null
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') nohup hsd start & > /dev/null
-
-# cleanall:
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') rm -rf /root/.hsd /root/.hscli
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') rm -rf /root/.hsd /root/.hscli
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') rm -rf /root/.hsd /root/.hscli
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') rm -rf /root/.hsd /root/.hscli
-
-# copyall:
-# 	# upload files
-# 	### 1st server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/usr/local/bin
-# 	### 2nd server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/usr/local/bin
-# 	### 3rd server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node2/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
-# 	@sshpass -p miss16980 scp -r build/testnet/node2/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/usr/local/bin
-# 	### 4th server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/usr/local/bin
-
-# resetall: #clean-4 install-
-# 	@if ! [ -d ${TESTNETDIR} ]; then mkdir -p ${TESTNETDIR}; fi
-# 	@hsd testnet --chain-id mainchain \
-# 				 --v 4 \
-# 				 -o ${TESTNETDIR} \
-# 				 --validator-ip-addresses $(CURDIR)/networks/remote/ipaddrs.conf \
-# 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
-
-# clean-testnet:
-# 	@rm -rf $(CURDIR)/build/testnet
-
-# testnet: clean-testnet install resetall #copyall startall # killall cleanall 
-
-# chketh:
-# 	@sshpass -p miss16980 ssh root@192.168.10.69
-
-##############################################################################################################################
-# ethernet distribution part
-##############################################################################################################################
-clean-livenet:
-	@rm -rf $(CURDIR)/build/livenet
-
-distall: #clean-4 install-
-	@if ! [ -d ${LIVENETDIR} ]; then mkdir -p ${LIVENETDIR}; fi
-	@hsd livenet --chain-id livenet \
-				 --v $$(wc $(CURDIR)/networks/remote/ipaddrs.conf | awk '{print$$1F}') \
-				 -o ${LIVENETDIR} \
-				 --validator-ip-addresses $(CURDIR)/networks/remote/ipaddrs.conf \
-				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
-
-livenet: clean-livenet install distall
-
-##############################################################################################################################
-# load test part
-##############################################################################################################################
-loadtest:
-	@locust -f $(CURDIR)/tests/locustfile.py --host=http://127.0.0.1:1317
-
-.PHONY: build install build- install- \
-		test clean clean-t \
-		testnet livenet \
-		stop
+testnet-clean:
+	docker-compose down
+	sudo rm -rf build/*
