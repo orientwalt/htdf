@@ -7,9 +7,9 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	sdk "github.com/orientwalt/htdf/types"
+	sdkerrors "github.com/orientwalt/htdf/types/errors"
+	paramtypes "github.com/orientwalt/htdf/x/params/types"
 )
 
 // default paramspace for params keeper

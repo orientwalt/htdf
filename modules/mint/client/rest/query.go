@@ -6,8 +6,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/orientwalt/htdf/client"
+	"github.com/orientwalt/htdf/types/rest"
 
 	"github.com/irisnet/irishub/modules/mint/types"
 )

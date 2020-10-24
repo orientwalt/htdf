@@ -8,17 +8,17 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	authvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/orientwalt/htdf/client"
+	"github.com/orientwalt/htdf/client/flags"
+	"github.com/orientwalt/htdf/codec"
+	"github.com/orientwalt/htdf/crypto/keyring"
+	"github.com/orientwalt/htdf/server"
+	sdk "github.com/orientwalt/htdf/types"
+	authtypes "github.com/orientwalt/htdf/x/auth/types"
+	authvesting "github.com/orientwalt/htdf/x/auth/vesting/types"
+	banktypes "github.com/orientwalt/htdf/x/bank/types"
+	"github.com/orientwalt/htdf/x/genutil"
+	genutiltypes "github.com/orientwalt/htdf/x/genutil/types"
 )
 
 const (

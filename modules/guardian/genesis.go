@@ -1,7 +1,7 @@
 package guardian
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/orientwalt/htdf/types"
 
 	"github.com/irisnet/irishub/modules/guardian/keeper"
 	"github.com/irisnet/irishub/modules/guardian/types"

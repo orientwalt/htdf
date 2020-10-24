@@ -1,8 +1,8 @@
 package guardian
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/orientwalt/htdf/types"
+	sdkerrors "github.com/orientwalt/htdf/types/errors"
 
 	"github.com/irisnet/irishub/modules/guardian/keeper"
 	"github.com/irisnet/irishub/modules/guardian/types"

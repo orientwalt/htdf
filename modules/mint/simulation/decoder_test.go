@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/kv"
+	sdk "github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/types/kv"
 
 	"github.com/irisnet/irishub/modules/mint/simulation"
 	"github.com/irisnet/irishub/modules/mint/types"

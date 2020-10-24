@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/orientwalt/htdf/client"
+	"github.com/orientwalt/htdf/client/flags"
+	"github.com/orientwalt/htdf/version"
 
 	"github.com/irisnet/irishub/modules/guardian/types"
 )

@@ -7,7 +7,7 @@ import (
 	"github.com/irisnet/irishub/modules/mint/keeper"
 	"github.com/irisnet/irishub/modules/mint/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/orientwalt/htdf/types"
 )
 
 // InitGenesis new mint genesis

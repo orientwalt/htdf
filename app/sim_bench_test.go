@@ -7,9 +7,9 @@ import (
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	"github.com/cosmos/cosmos-sdk/x/simulation"
+	"github.com/orientwalt/htdf/simapp"
+	simtypes "github.com/orientwalt/htdf/types/simulation"
+	"github.com/orientwalt/htdf/x/simulation"
 )
 
 // Profile with:

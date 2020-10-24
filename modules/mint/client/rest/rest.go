@@ -3,7 +3,7 @@ package rest
 import (
 	"github.com/gorilla/mux"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/orientwalt/htdf/client"
 )
 
 // RegisterHandlers registers minting module REST handlers on the provided router.

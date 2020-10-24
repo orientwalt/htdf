@@ -5,7 +5,7 @@ package types
 
 import (
 	fmt "fmt"
-	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
+	github_com_cosmos_cosmos_sdk_types "github.com/orientwalt/htdf/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
@@ -235,8 +235,8 @@ func (m *MsgDeleteTrustee) GetDeleteGuardian() DeleteGuardian {
 // AddGuardian defines the properties of add guardian message
 type AddGuardian struct {
 	Description string                                        `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
-	Address     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,2,opt,name=address,proto3,casttype=github.com/cosmos/cosmos-sdk/types.AccAddress" json:"address,omitempty"`
-	AddedBy     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,3,opt,name=added_by,json=addedBy,proto3,casttype=github.com/cosmos/cosmos-sdk/types.AccAddress" json:"added_by,omitempty" yaml:"added_by"`
+	Address     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,2,opt,name=address,proto3,casttype=github.com/orientwalt/htdf/types.AccAddress" json:"address,omitempty"`
+	AddedBy     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,3,opt,name=added_by,json=addedBy,proto3,casttype=github.com/orientwalt/htdf/types.AccAddress" json:"added_by,omitempty" yaml:"added_by"`
 }
 
 func (m *AddGuardian) Reset()         { *m = AddGuardian{} }
@@ -295,8 +295,8 @@ func (m *AddGuardian) GetAddedBy() github_com_cosmos_cosmos_sdk_types.AccAddress
 
 // DeleteGuardian defines the properties of delete guardian message
 type DeleteGuardian struct {
-	Address   github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,2,opt,name=address,proto3,casttype=github.com/cosmos/cosmos-sdk/types.AccAddress" json:"address,omitempty"`
-	DeletedBy github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,3,opt,name=deleted_by,json=deletedBy,proto3,casttype=github.com/cosmos/cosmos-sdk/types.AccAddress" json:"deleted_by,omitempty" yaml:"deleted_by"`
+	Address   github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,2,opt,name=address,proto3,casttype=github.com/orientwalt/htdf/types.AccAddress" json:"address,omitempty"`
+	DeletedBy github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,3,opt,name=deleted_by,json=deletedBy,proto3,casttype=github.com/orientwalt/htdf/types.AccAddress" json:"deleted_by,omitempty" yaml:"deleted_by"`
 }
 
 func (m *DeleteGuardian) Reset()         { *m = DeleteGuardian{} }
@@ -350,8 +350,8 @@ func (m *DeleteGuardian) GetDeletedBy() github_com_cosmos_cosmos_sdk_types.AccAd
 type Guardian struct {
 	Description string                                        `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
 	AccountType AccountType                                   `protobuf:"varint,2,opt,name=account_type,json=accountType,proto3,enum=irishub.guardian.AccountType" json:"account_type,omitempty" yaml:"account_type"`
-	Address     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,3,opt,name=address,proto3,casttype=github.com/cosmos/cosmos-sdk/types.AccAddress" json:"address,omitempty"`
-	AddedBy     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,4,opt,name=added_by,json=addedBy,proto3,casttype=github.com/cosmos/cosmos-sdk/types.AccAddress" json:"added_by,omitempty" yaml:"added_by"`
+	Address     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,3,opt,name=address,proto3,casttype=github.com/orientwalt/htdf/types.AccAddress" json:"address,omitempty"`
+	AddedBy     github_com_cosmos_cosmos_sdk_types.AccAddress `protobuf:"bytes,4,opt,name=added_by,json=addedBy,proto3,casttype=github.com/orientwalt/htdf/types.AccAddress" json:"added_by,omitempty" yaml:"added_by"`
 }
 
 func (m *Guardian) Reset()         { *m = Guardian{} }

@@ -5,7 +5,7 @@ package types
 
 import (
 	fmt "fmt"
-	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
+	github_com_cosmos_cosmos_sdk_types "github.com/orientwalt/htdf/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
@@ -33,7 +33,7 @@ type Minter struct {
 	// time which the last update was made to the minter
 	LastUpdate time.Time `protobuf:"bytes,1,opt,name=last_update,json=lastUpdate,proto3,stdtime" json:"last_update" yaml:"last_update"`
 	// base inflation
-	InflationBase github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,2,opt,name=inflation_base,json=inflationBase,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"inflation_base" yaml:"inflation_base"`
+	InflationBase github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,2,opt,name=inflation_base,json=inflationBase,proto3,customtype=github.com/orientwalt/htdf/types.Int" json:"inflation_base" yaml:"inflation_base"`
 }
 
 func (m *Minter) Reset()         { *m = Minter{} }
@@ -81,7 +81,7 @@ type Params struct {
 	// type of coin to mint
 	MintDenom string `protobuf:"bytes,1,opt,name=mint_denom,json=mintDenom,proto3" json:"mint_denom,omitempty"`
 	// inflation rate
-	Inflation github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=inflation,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"inflation"`
+	Inflation github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=inflation,proto3,customtype=github.com/orientwalt/htdf/types.Dec" json:"inflation"`
 }
 
 func (m *Params) Reset()      { *m = Params{} }

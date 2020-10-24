@@ -7,8 +7,8 @@ import (
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/orientwalt/htdf/codec"
+	sdk "github.com/orientwalt/htdf/types"
 
 	"github.com/irisnet/irishub/modules/guardian"
 	"github.com/irisnet/irishub/modules/guardian/keeper"

@@ -11,8 +11,8 @@ import (
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/orientwalt/htdf/codec"
+	sdk "github.com/orientwalt/htdf/types"
 
 	"github.com/irisnet/irishub/modules/guardian/keeper"
 	"github.com/irisnet/irishub/modules/guardian/types"

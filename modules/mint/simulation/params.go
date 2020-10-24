@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math/rand"
 
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	"github.com/cosmos/cosmos-sdk/x/simulation"
+	simtypes "github.com/orientwalt/htdf/types/simulation"
+	"github.com/orientwalt/htdf/x/simulation"
 
 	"github.com/irisnet/irishub/modules/mint/types"
 )

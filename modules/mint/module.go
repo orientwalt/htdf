@@ -13,12 +13,12 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/orientwalt/htdf/client"
+	"github.com/orientwalt/htdf/codec"
+	codectypes "github.com/orientwalt/htdf/codec/types"
+	sdk "github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/types/module"
+	simtypes "github.com/orientwalt/htdf/types/simulation"
 
 	"github.com/irisnet/irishub/modules/mint/client/cli"
 	"github.com/irisnet/irishub/modules/mint/client/rest"

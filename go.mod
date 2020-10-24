@@ -3,12 +3,12 @@ module github.com/irisnet/irishub
 go 1.14
 
 require (
-	github.com/cosmos/cosmos-sdk v0.40.0-rc0
+	// github.com/cosmos/cosmos-sdk v0.40.0-rc0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.15.0
-	github.com/irisnet/irismod v1.1.1-0.20201015064111-9d21ec6ad6fc
+	// github.com/irisnet/irismod v1.1.1-0.20201015064111-9d21ec6ad6fc
 	github.com/olebedev/config v0.0.0-20190528211619-364964f3a8e4
 	github.com/pkg/errors v0.9.1
 	github.com/rakyll/statik v0.1.7
@@ -27,7 +27,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/irisnet/cosmos-sdk v0.34.4-0.20201014023301-f172e47973d0
+	// github.com/cosmos/cosmos-sdk => github.com/irisnet/cosmos-sdk v0.34.4-0.20201014023301-f172e47973d0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 )

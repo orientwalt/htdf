@@ -7,9 +7,9 @@ import (
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	sdk "github.com/orientwalt/htdf/types"
+	banktypes "github.com/orientwalt/htdf/x/bank/types"
+	distributiontypes "github.com/orientwalt/htdf/x/distribution/types"
 
 	"github.com/irisnet/irishub/modules/mint"
 	"github.com/irisnet/irishub/modules/mint/types"

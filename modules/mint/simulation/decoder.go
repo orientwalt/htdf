@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/types/kv"
+	"github.com/orientwalt/htdf/codec"
+	"github.com/orientwalt/htdf/types/kv"
 
 	"github.com/irisnet/irishub/modules/mint/types"
 )

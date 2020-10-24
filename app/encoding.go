@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/cosmos/cosmos-sdk/simapp/params"
-	"github.com/cosmos/cosmos-sdk/std"
+	"github.com/orientwalt/htdf/simapp/params"
+	"github.com/orientwalt/htdf/std"
 )
 
 // MakeEncodingConfig creates an EncodingConfig for testing

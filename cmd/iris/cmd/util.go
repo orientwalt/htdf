@@ -15,12 +15,12 @@ import (
 
 	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/orientwalt/htdf/client"
+	"github.com/orientwalt/htdf/client/flags"
+	"github.com/orientwalt/htdf/codec"
+	sdk "github.com/orientwalt/htdf/types"
 
-	tokentypes "github.com/irisnet/irismod/modules/token/types"
+	tokentypes "github.com/orientwalt/htdf/modules/token/types"
 )
 
 const (
