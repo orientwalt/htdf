@@ -13,8 +13,8 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	banktypes "github.com/orientwalt/htdf/x/bank/types"
 
-	"github.com/irisnet/irishub/modules/mint/types"
-	"github.com/irisnet/irishub/simapp"
+	"github.com/orientwalt/htdf/modules/mint/types"
+	"github.com/orientwalt/htdf/simapp"
 )
 
 type KeeperTestSuite struct {

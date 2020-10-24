@@ -10,7 +10,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/types/module"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 // Simulation parameter constants

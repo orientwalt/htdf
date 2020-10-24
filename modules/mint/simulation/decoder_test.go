@@ -10,9 +10,9 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/types/kv"
 
-	"github.com/irisnet/irishub/modules/mint/simulation"
-	"github.com/irisnet/irishub/modules/mint/types"
-	"github.com/irisnet/irishub/simapp"
+	"github.com/orientwalt/htdf/modules/mint/simulation"
+	"github.com/orientwalt/htdf/modules/mint/types"
+	"github.com/orientwalt/htdf/simapp"
 )
 
 func TestDecodeStore(t *testing.T) {

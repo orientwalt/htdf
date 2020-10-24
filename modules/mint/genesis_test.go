@@ -10,9 +10,9 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 
-	"github.com/irisnet/irishub/modules/mint"
-	"github.com/irisnet/irishub/modules/mint/types"
-	"github.com/irisnet/irishub/simapp"
+	"github.com/orientwalt/htdf/modules/mint"
+	"github.com/orientwalt/htdf/modules/mint/types"
+	"github.com/orientwalt/htdf/simapp"
 )
 
 type TestSuite struct {

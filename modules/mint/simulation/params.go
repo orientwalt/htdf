@@ -9,7 +9,7 @@ import (
 	simtypes "github.com/orientwalt/htdf/types/simulation"
 	"github.com/orientwalt/htdf/x/simulation"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 // ParamChanges defines the parameters that can be modified by param change proposals

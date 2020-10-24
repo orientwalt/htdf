@@ -8,7 +8,7 @@ import (
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/flags"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 // GetQueryCmd returns the cli query commands for the mint module.

@@ -6,7 +6,7 @@ import (
 	"github.com/orientwalt/htdf/baseapp"
 	"github.com/orientwalt/htdf/testutil/testdata"
 
-	"github.com/irisnet/irishub/modules/guardian/types"
+	"github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 func (suite *KeeperTestSuite) TestGRPCQueryProfilers() {

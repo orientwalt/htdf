@@ -34,7 +34,7 @@ import (
 	genutiltypes "github.com/orientwalt/htdf/x/genutil/types"
 	stakingtypes "github.com/orientwalt/htdf/x/staking/types"
 
-	guardiantypes "github.com/irisnet/irishub/modules/guardian/types"
+	guardiantypes "github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 var (

@@ -5,7 +5,7 @@ import (
 
 	"github.com/orientwalt/htdf/baseapp"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 func (suite *KeeperTestSuite) TestGRPCQueryPoolParameters() {

@@ -4,8 +4,8 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
 
-	"github.com/irisnet/irishub/modules/guardian/keeper"
-	"github.com/irisnet/irishub/modules/guardian/types"
+	"github.com/orientwalt/htdf/modules/guardian/keeper"
+	"github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 // NewHandler returns a handler for all "guardian" type messages.

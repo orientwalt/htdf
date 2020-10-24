@@ -10,7 +10,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 
-	"github.com/irisnet/irishub/address"
+	"github.com/orientwalt/htdf/address"
 )
 
 // nolint: deadcode unused

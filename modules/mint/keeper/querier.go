@@ -7,7 +7,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 // NewQuerier returns a minting Querier handler.

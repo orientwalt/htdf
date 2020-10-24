@@ -7,7 +7,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
 
-	"github.com/irisnet/irishub/modules/guardian/types"
+	"github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 // NewQuerier creates a querier for guardian REST endpoints

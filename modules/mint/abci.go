@@ -3,8 +3,8 @@ package mint
 import (
 	sdk "github.com/orientwalt/htdf/types"
 
-	"github.com/irisnet/irishub/modules/mint/keeper"
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/keeper"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 // BeginBlocker handles block beginning logic for mint

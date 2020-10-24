@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 var _ types.QueryServer = Keeper{}

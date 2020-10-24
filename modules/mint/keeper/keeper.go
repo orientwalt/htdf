@@ -9,7 +9,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	paramtypes "github.com/orientwalt/htdf/x/params/types"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 // keeper of the mint store

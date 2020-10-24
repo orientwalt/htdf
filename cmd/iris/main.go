@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/irisnet/irishub/cmd/iris/cmd"
-	_ "github.com/irisnet/irishub/lite/statik"
+	"github.com/orientwalt/htdf/cmd/iris/cmd"
+	_ "github.com/orientwalt/htdf/lite/statik"
 )
 
 func main() {

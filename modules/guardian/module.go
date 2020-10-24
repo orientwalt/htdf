@@ -20,9 +20,9 @@ import (
 	"github.com/orientwalt/htdf/types/module"
 	simtypes "github.com/orientwalt/htdf/types/simulation"
 
-	"github.com/irisnet/irishub/modules/guardian/client/cli"
-	"github.com/irisnet/irishub/modules/guardian/keeper"
-	"github.com/irisnet/irishub/modules/guardian/types"
+	"github.com/orientwalt/htdf/modules/guardian/client/cli"
+	"github.com/orientwalt/htdf/modules/guardian/keeper"
+	"github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 var (

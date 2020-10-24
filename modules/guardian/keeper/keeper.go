@@ -8,7 +8,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 
-	"github.com/irisnet/irishub/modules/guardian/types"
+	"github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 // Keeper of the guardian store

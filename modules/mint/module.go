@@ -20,11 +20,11 @@ import (
 	"github.com/orientwalt/htdf/types/module"
 	simtypes "github.com/orientwalt/htdf/types/simulation"
 
-	"github.com/irisnet/irishub/modules/mint/client/cli"
-	"github.com/irisnet/irishub/modules/mint/client/rest"
-	"github.com/irisnet/irishub/modules/mint/keeper"
-	"github.com/irisnet/irishub/modules/mint/simulation"
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/client/cli"
+	"github.com/orientwalt/htdf/modules/mint/client/rest"
+	"github.com/orientwalt/htdf/modules/mint/keeper"
+	"github.com/orientwalt/htdf/modules/mint/simulation"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 var (

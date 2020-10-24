@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/irisnet/irishub/modules/mint/keeper"
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/keeper"
+	"github.com/orientwalt/htdf/modules/mint/types"
 
 	sdk "github.com/orientwalt/htdf/types"
 )

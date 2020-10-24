@@ -9,7 +9,7 @@ import (
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/types/rest"
 
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 func registerQueryRoutes(cliCtx client.Context, r *mux.Router) {

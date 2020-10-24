@@ -10,7 +10,7 @@ import (
 	"github.com/orientwalt/htdf/client/flags"
 	"github.com/orientwalt/htdf/version"
 
-	"github.com/irisnet/irishub/modules/guardian/types"
+	"github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 // GetQueryCmd returns the cli query commands for the guardian module.

@@ -7,8 +7,8 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/irisnet/irishub/modules/mint/keeper"
-	"github.com/irisnet/irishub/modules/mint/types"
+	"github.com/orientwalt/htdf/modules/mint/keeper"
+	"github.com/orientwalt/htdf/modules/mint/types"
 )
 
 func TestQuerierSuite(t *testing.T) {

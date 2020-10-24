@@ -12,7 +12,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/version"
 
-	"github.com/irisnet/irishub/modules/guardian/types"
+	"github.com/orientwalt/htdf/modules/guardian/types"
 )
 
 // NewTxCmd returns the transaction commands for the guardian module.
