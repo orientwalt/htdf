@@ -6,7 +6,7 @@ import (
 	"github.com/orientwalt/htdf/codec/types"
 
 	amino "github.com/tendermint/go-amino"
-	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
+	// cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 )
 
 type (
@@ -76,10 +76,10 @@ func New() *Codec {
 	return cdc
 }
 
-// Register the go-crypto to the codec
-func RegisterCrypto(cdc *Codec) {
-	cryptoAmino.RegisterAmino(cdc)
-}
+// // Register the go-crypto to the codec
+// func RegisterCrypto(cdc *Codec) {
+// 	cryptoAmino.RegisterAmino(cdc)
+// }
 
 // // attempt to make some pretty json
 // func MarshalJSONIndent(cdc *Codec, obj interface{}) ([]byte, error) {

@@ -11,51 +11,42 @@ import (
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
-// Result is the union of ResponseFormat and ResponseCheckTx.
-// type Result struct {
-// 	// Code is the response code, is stored back on the chain.
-// 	Code CodeType
+var cdc = codec.NewLegacyAmino()
 
-// 	// Codespace is the string referring to the domain of an error
-// 	Codespace CodespaceType
+func (gi GasInfo) String() string {
+	bz, _ := yaml.Marshal(gi)
+	return string(bz)
+}
 
-// 	// Data is any data returned from the app.
-// 	// Data has to be length prefixed in order to separate
-// 	// results from multiple msgs executions
-// 	Data []byte
+func (r Result) String() string {
+	bz, _ := yaml.Marshal(r)
+	return string(bz)
+}
 
-// 	// Log contains the txs log information. NOTE: nondeterministic.
-// 	Log string
+func (r Result) GetEvents() Events {
+	events := make(Events, len(r.Events))
+	for i, e := range r.Events {
+		events[i] = Event(e)
+	}
 
-// 	// GasWanted is the maximum units of work we allow this tx to perform.
-// 	GasWanted uint64
-
-// 	// GasUsed is the amount of gas actually consumed. NOTE: unimplemented
-// 	GasUsed uint64
-
-// 	// Tags are used for transaction indexing and pubsub.
-// 	Tags Tags
-// }
-
-// TODO: In the future, more codes may be OK.
-func (res Result) IsOK() bool {
-	return res.Code.IsOK()
+	return events
 }
 
 // ABCIMessageLogs represents a slice of ABCIMessageLog.
 type ABCIMessageLogs []ABCIMessageLog
 
-// ABCIMessageLog defines a structure containing an indexed tx ABCI message log.
-// type ABCIMessageLog struct {
-// 	MsgIndex int    `json:"msg_index"`
-// 	Success  bool   `json:"success"`
-// 	Log      string `json:"log"`
-// }
+func NewABCIMessageLog(i uint32, log string, events Events) ABCIMessageLog {
+	return ABCIMessageLog{
+		MsgIndex: i,
+		Log:      log,
+		Events:   StringifyEvents(events.ToABCIEvents()),
+	}
+}
 
 // String implements the fmt.Stringer interface for the ABCIMessageLogs type.
 func (logs ABCIMessageLogs) String() (str string) {
 	if logs != nil {
-		raw, err := json.Marshal(logs)
+		raw, err := cdc.MarshalJSON(logs)
 		if err == nil {
 			str = string(raw)
 		}
@@ -65,7 +56,7 @@ func (logs ABCIMessageLogs) String() (str string) {
 }
 
 // NewResponseResultTx returns a TxResponse given a ResultTx from tendermint
-func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxResponse {
+func NewResponseResultTx(res *ctypes.ResultTx, anyTx *codectypes.Any, timestamp string) *TxResponse {
 	if res == nil {
 		return nil
 	}
@@ -83,7 +74,7 @@ func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxRespon
 		GasWanted: res.TxResult.GasWanted,
 		GasUsed:   res.TxResult.GasUsed,
 		// Tags:      TagsToStringTags(res.TxResult.Tags),
-		Tx:        tx,
+		Tx:        anyTx,
 		Timestamp: timestamp,
 	}
 }
@@ -205,9 +196,9 @@ func (r TxResponse) String() string {
 	if r.GasUsed != 0 {
 		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
 	}
-	if len(r.Tags) > 0 {
-		sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Tags.String()))
-	}
+	// if len(r.Tags) > 0 {
+	// 	sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Tags.String()))
+	// }
 
 	if r.Codespace != "" {
 		sb.WriteString(fmt.Sprintf("  Codespace: %s\n", r.Codespace))

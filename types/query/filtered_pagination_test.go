@@ -3,12 +3,12 @@ package query_test
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/query"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/orientwalt/htdf/codec"
+	"github.com/orientwalt/htdf/store/prefix"
+	sdk "github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/types/query"
+	authtypes "github.com/orientwalt/htdf/x/auth/types"
+	"github.com/orientwalt/htdf/x/bank/types"
 )
 
 var addr1 = sdk.AccAddress([]byte("addr1"))

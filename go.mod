@@ -7,6 +7,7 @@ require (
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/btcsuite/btcd v0.20.1-beta
+	github.com/btcsuite/btcutil v1.0.2
 	github.com/confio/ics23-iavl v0.6.0
 	github.com/confio/ics23-tendermint v0.6.1
 	github.com/confio/ics23/go v0.0.0-20200604202538-6e2c36a74465
@@ -52,6 +53,7 @@ require (
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	google.golang.org/protobuf v1.23.0
 	gopkg.in/fatih/set.v0 v0.1.0 // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
@@ -60,5 +62,9 @@ require (
 
 // github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
 // replace github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.34.0-rc4.0.20201005135527-d7d0ffea13c6
+replace (
+	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+	github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.34.0-rc4.0.20201005135527-d7d0ffea13c6
+)
 
 go 1.13

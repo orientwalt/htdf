@@ -270,6 +270,8 @@ type GasInfo struct {
 
 func (m *GasInfo) Reset()      { *m = GasInfo{} }
 func (*GasInfo) ProtoMessage() {}
+
+// func (*GasInfo) String() string { return "not ready" } //junying-todo
 func (*GasInfo) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e37629bc7eb0df8, []int{4}
 }
@@ -328,6 +330,8 @@ type Result struct {
 
 func (m *Result) Reset()      { *m = Result{} }
 func (*Result) ProtoMessage() {}
+
+// func (*Result) String() string { return "not ready" }
 func (*Result) Descriptor() ([]byte, []int) {
 	return fileDescriptor_4e37629bc7eb0df8, []int{5}
 }

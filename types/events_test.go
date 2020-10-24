@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/orientwalt/htdf/types"
 )
 
 type eventsTestSuite struct {

@@ -11,8 +11,9 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
 
-	// rpcclient "github.com/tendermint/tendermint/rpc/client"
-	rpcclient "github.com/tendermint/tendermint/lite/client"
+	// rpcclient "github.com/tendermint/tendermint/rpc/client"//0.31.5
+	// rpcclient "github.com/tendermint/tendermint/lite/client"//0.33.8
+	rpcclient "github.com/tendermint/tendermint/light"
 	"github.com/tendermint/tmlibs/cli"
 )
 

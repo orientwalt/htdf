@@ -1,6 +1,6 @@
 // +build ledger,test_ledger_mock
 
-package crypto
+package ledger
 
 import (
 	"fmt"
@@ -8,21 +8,22 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/pkg/errors"
 
-	"github.com/cosmos/go-bip39"
-	"github.com/orientwalt/htdf/crypto/keys/hd"
-	"github.com/orientwalt/htdf/tests"
-	"github.com/orientwalt/htdf/types"
-
 	secp256k1 "github.com/tendermint/btcd/btcec"
 	"github.com/tendermint/tendermint/crypto"
-	tmsecp256k1 "github.com/tendermint/tendermint/crypto/secp256k1"
+
+	"github.com/cosmos/go-bip39"
+
+	"github.com/orientwalt/htdf/crypto/hd"
+	csecp256k1 "github.com/orientwalt/htdf/crypto/keys/secp256k1"
+	"github.com/orientwalt/htdf/testutil"
+	sdk "github.com/orientwalt/htdf/types"
 )
 
 // If ledger support (build tag) has been enabled, which implies a CGO dependency,
 // set the discoverLedger function which is responsible for loading the Ledger
 // device at runtime or returning an error.
 func init() {
-	discoverLedger = func() (LedgerSECP256K1, error) {
+	discoverLedger = func() (SECP256K1, error) {
 		return LedgerSECP256K1Mock{}, nil
 	}
 }
@@ -40,11 +41,12 @@ func (mock LedgerSECP256K1Mock) GetPublicKeySECP256K1(derivationPath []uint32) (
 	if derivationPath[0] != 44 {
 		return nil, errors.New("Invalid derivation path")
 	}
-	if derivationPath[1] != 118 {
+
+	if derivationPath[1] != sdk.GetConfig().GetCoinType() {
 		return nil, errors.New("Invalid derivation path")
 	}
 
-	seed, err := bip39.NewSeedWithErrorChecking(tests.TestMnemonic, "")
+	seed, err := bip39.NewSeedWithErrorChecking(testutil.TestMnemonic, "")
 	if err != nil {
 		return nil, err
 	}
@@ -75,17 +77,18 @@ func (mock LedgerSECP256K1Mock) GetAddressPubKeySECP256K1(derivationPath []uint3
 		return nil, "", fmt.Errorf("error parsing public key: %v", err)
 	}
 
-	var compressedPublicKey tmsecp256k1.PubKeySecp256k1
-	copy(compressedPublicKey[:], cmp.SerializeCompressed())
+	compressedPublicKey := make([]byte, csecp256k1.PubKeySize)
+	copy(compressedPublicKey, cmp.SerializeCompressed())
 
 	// Generate the bech32 addr using existing tmcrypto/etc.
-	addr := types.AccAddress(compressedPublicKey.Address()).String()
+	pub := &csecp256k1.PubKey{Key: compressedPublicKey}
+	addr := sdk.AccAddress(pub.Address()).String()
 	return pk, addr, err
 }
 
 func (mock LedgerSECP256K1Mock) SignSECP256K1(derivationPath []uint32, message []byte) ([]byte, error) {
 	path := hd.NewParams(derivationPath[0], derivationPath[1], derivationPath[2], derivationPath[3] != 0, derivationPath[4])
-	seed, err := bip39.NewSeedWithErrorChecking(tests.TestMnemonic, "")
+	seed, err := bip39.NewSeedWithErrorChecking(testutil.TestMnemonic, "")
 	if err != nil {
 		return nil, err
 	}
