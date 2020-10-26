@@ -17,7 +17,6 @@ import (
 	"github.com/orientwalt/htdf/codec/types"
 	"github.com/orientwalt/htdf/server/api"
 	"github.com/orientwalt/htdf/server/config"
-	"github.com/orientwalt/htdf/simapp"
 	simappparams "github.com/orientwalt/htdf/simapp/params"
 	"github.com/orientwalt/htdf/testutil/testdata"
 	sdk "github.com/orientwalt/htdf/types"
@@ -170,7 +169,7 @@ var (
 	}
 )
 
-var _ simapp.App = (*SimApp)(nil)
+var _ App = (*SimApp)(nil)
 
 // SimApp extends an ABCI application, but with most of its parameters exported.
 // They are exported for convenience in creating helper functions, as object
