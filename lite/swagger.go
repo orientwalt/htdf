@@ -6,9 +6,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/orientwalt/htdf/client"
 
-	_ "github.com/irisnet/irishub/lite/statik"
+	_ "github.com/orientwalt/htdf/lite/statik"
 )
 
 // RegisterSwaggerAPI registers swagger route with API Server
