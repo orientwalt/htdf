@@ -4,24 +4,21 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/orientwalt/htdf/client/tx"
-
 	"github.com/gorilla/mux"
 
-	govrest "github.com/orientwalt/htdf/x/gov/client/rest"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	govrest "github.com/cosmos/cosmos-sdk/x/gov/client/rest"
 
-	"github.com/orientwalt/htdf/client"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/rest"
-	govtypes "github.com/orientwalt/htdf/x/gov/types"
-	"github.com/orientwalt/htdf/x/upgrade/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
 
-func registerTxHandlers(
-	clientCtx client.Context,
-	r *mux.Router) {
-	r.HandleFunc("/upgrade/plan", newPostPlanHandler(clientCtx)).Methods("POST")
-	r.HandleFunc("/upgrade/cancel", newCancelPlanHandler(clientCtx)).Methods("POST")
+func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router) {
+	r.HandleFunc("/upgrade/plan", postPlanHandler(cliCtx)).Methods("POST")
+	r.HandleFunc("/upgrade/cancel", cancelPlanHandler(cliCtx)).Methods("POST")
 }
 
 // PlanRequest defines a proposal for a new upgrade plan.
@@ -44,25 +41,18 @@ type CancelRequest struct {
 	Deposit     sdk.Coins    `json:"deposit" yaml:"deposit"`
 }
 
-func ProposalRESTHandler(clientCtx client.Context) govrest.ProposalRESTHandler {
+func ProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "upgrade",
-		Handler:  newPostPlanHandler(clientCtx),
+		Handler:  postPlanHandler(cliCtx),
 	}
 }
 
-func ProposalCancelRESTHandler(clientCtx client.Context) govrest.ProposalRESTHandler {
-	return govrest.ProposalRESTHandler{
-		SubRoute: "upgrade",
-		Handler:  newCancelPlanHandler(clientCtx),
-	}
-}
-
-func newPostPlanHandler(clientCtx client.Context) http.HandlerFunc {
+func postPlanHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req PlanRequest
 
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -86,23 +76,20 @@ func newPostPlanHandler(clientCtx client.Context) http.HandlerFunc {
 
 		plan := types.Plan{Name: req.UpgradeName, Time: t, Height: req.UpgradeHeight, Info: req.UpgradeInfo}
 		content := types.NewSoftwareUpgradeProposal(req.Title, req.Description, plan)
-		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit, fromAddr)
-		if rest.CheckBadRequestError(w, err) {
-			return
-		}
+		msg := gov.NewMsgSubmitProposal(content, req.Deposit, fromAddr)
 		if rest.CheckBadRequestError(w, msg.ValidateBasic()) {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
 
-func newCancelPlanHandler(clientCtx client.Context) http.HandlerFunc {
+func cancelPlanHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CancelRequest
 
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -117,15 +104,11 @@ func newCancelPlanHandler(clientCtx client.Context) http.HandlerFunc {
 		}
 
 		content := types.NewCancelSoftwareUpgradeProposal(req.Title, req.Description)
-
-		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit, fromAddr)
-		if rest.CheckBadRequestError(w, err) {
-			return
-		}
+		msg := gov.NewMsgSubmitProposal(content, req.Deposit, fromAddr)
 		if rest.CheckBadRequestError(w, msg.ValidateBasic()) {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }

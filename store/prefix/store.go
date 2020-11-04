@@ -5,9 +5,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/orientwalt/htdf/store/cachekv"
-	"github.com/orientwalt/htdf/store/tracekv"
-	"github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store/cachekv"
+	"github.com/cosmos/cosmos-sdk/store/tracekv"
+	"github.com/cosmos/cosmos-sdk/store/types"
 )
 
 var _ types.KVStore = Store{}
@@ -149,8 +149,8 @@ func (pi *prefixIterator) Next() {
 	if !pi.valid {
 		panic("prefixIterator invalid, cannot call Next()")
 	}
-
-	if pi.iter.Next(); !pi.iter.Valid() || !bytes.HasPrefix(pi.iter.Key(), pi.prefix) {
+	pi.iter.Next()
+	if !pi.iter.Valid() || !bytes.HasPrefix(pi.iter.Key(), pi.prefix) {
 		// TODO: shouldn't pi be set to nil instead?
 		pi.valid = false
 	}
@@ -161,10 +161,8 @@ func (pi *prefixIterator) Key() (key []byte) {
 	if !pi.valid {
 		panic("prefixIterator invalid, cannot call Key()")
 	}
-
 	key = pi.iter.Key()
 	key = stripPrefix(key, pi.prefix)
-
 	return
 }
 
@@ -173,13 +171,12 @@ func (pi *prefixIterator) Value() []byte {
 	if !pi.valid {
 		panic("prefixIterator invalid, cannot call Value()")
 	}
-
 	return pi.iter.Value()
 }
 
 // Implements Iterator
-func (pi *prefixIterator) Close() error {
-	return pi.iter.Close()
+func (pi *prefixIterator) Close() {
+	pi.iter.Close()
 }
 
 // Error returns an error if the prefixIterator is invalid defined by the Valid
@@ -197,7 +194,6 @@ func stripPrefix(key []byte, prefix []byte) []byte {
 	if len(key) < len(prefix) || !bytes.Equal(key[:len(prefix)], prefix) {
 		panic("should not happen")
 	}
-
 	return key[len(prefix):]
 }
 

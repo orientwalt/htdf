@@ -8,13 +8,13 @@ import (
 )
 
 func TestProposalStatus_Format(t *testing.T) {
-	statusDepositPeriod, _ := ProposalStatusFromString("PROPOSAL_STATUS_DEPOSIT_PERIOD")
+	statusDepositPeriod, _ := ProposalStatusFromString("DepositPeriod")
 	tests := []struct {
 		pt                   ProposalStatus
 		sprintFArgs          string
 		expectedStringOutput string
 	}{
-		{statusDepositPeriod, "%s", "PROPOSAL_STATUS_DEPOSIT_PERIOD"},
+		{statusDepositPeriod, "%s", "DepositPeriod"},
 		{statusDepositPeriod, "%v", "1"},
 	}
 	for _, tt := range tests {

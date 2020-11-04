@@ -8,9 +8,9 @@ import (
 	tmrand "github.com/tendermint/tendermint/libs/rand"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/store/cachekv"
-	"github.com/orientwalt/htdf/store/dbadapter"
-	"github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store/cachekv"
+	"github.com/cosmos/cosmos-sdk/store/dbadapter"
+	"github.com/cosmos/cosmos-sdk/store/types"
 )
 
 func newCacheKVStore() types.CacheKVStore {
@@ -68,8 +68,6 @@ func TestCacheKVStoreNoNilSet(t *testing.T) {
 	mem := dbadapter.Store{DB: dbm.NewMemDB()}
 	st := cachekv.NewStore(mem)
 	require.Panics(t, func() { st.Set([]byte("key"), nil) }, "setting a nil value should panic")
-	require.Panics(t, func() { st.Set(nil, []byte("value")) }, "setting a nil key should panic")
-	require.Panics(t, func() { st.Set([]byte(""), []byte("value")) }, "setting an empty key should panic")
 }
 
 func TestCacheKVStoreNested(t *testing.T) {

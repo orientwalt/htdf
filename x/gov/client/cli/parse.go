@@ -5,27 +5,25 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
-	govutils "github.com/orientwalt/htdf/x/gov/client/utils"
+	govutils "github.com/cosmos/cosmos-sdk/x/gov/client/utils"
 )
 
-func parseSubmitProposalFlags(fs *pflag.FlagSet) (*proposal, error) {
+func parseSubmitProposalFlags() (*proposal, error) {
 	proposal := &proposal{}
-	proposalFile, _ := fs.GetString(FlagProposal)
+	proposalFile := viper.GetString(FlagProposal)
 
 	if proposalFile == "" {
-		proposalType, _ := fs.GetString(FlagProposalType)
-
-		proposal.Title, _ = fs.GetString(FlagTitle)
-		proposal.Description, _ = fs.GetString(FlagDescription)
-		proposal.Type = govutils.NormalizeProposalType(proposalType)
-		proposal.Deposit, _ = fs.GetString(FlagDeposit)
+		proposal.Title = viper.GetString(FlagTitle)
+		proposal.Description = viper.GetString(FlagDescription)
+		proposal.Type = govutils.NormalizeProposalType(viper.GetString(flagProposalType))
+		proposal.Deposit = viper.GetString(FlagDeposit)
 		return proposal, nil
 	}
 
 	for _, flag := range ProposalFlags {
-		if v, _ := fs.GetString(flag); v != "" {
+		if viper.GetString(flag) != "" {
 			return nil, fmt.Errorf("--%s flag provided alongside --proposal, which is a noop", flag)
 		}
 	}

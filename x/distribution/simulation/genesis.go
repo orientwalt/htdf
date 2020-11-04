@@ -3,13 +3,14 @@ package simulation
 // DONTCOVER
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/module"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
 // Simulation parameter constants
@@ -76,10 +77,6 @@ func RandomizedGenState(simState *module.SimulationState) {
 		},
 	}
 
-	bz, err := json.MarshalIndent(&distrGenesis, "", " ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Selected randomly generated distribution parameters:\n%s\n", bz)
-	simState.GenState[types.ModuleName] = simState.Cdc.MustMarshalJSON(&distrGenesis)
+	fmt.Printf("Selected randomly generated distribution parameters:\n%s\n", codec.MustMarshalJSONIndent(simState.Cdc, distrGenesis))
+	simState.GenState[types.ModuleName] = simState.Cdc.MustMarshalJSON(distrGenesis)
 }

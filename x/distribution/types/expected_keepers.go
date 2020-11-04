@@ -1,21 +1,16 @@
 package types
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/auth/types"
-	stakingexported "github.com/orientwalt/htdf/x/staking/exported"
-	stakingtypes "github.com/orientwalt/htdf/x/staking/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	stakingexported "github.com/cosmos/cosmos-sdk/x/staking/exported"
+	supplyexported "github.com/cosmos/cosmos-sdk/x/supply/exported"
 )
 
 // AccountKeeper defines the expected account keeper used for simulations (noalias)
 type AccountKeeper interface {
-	GetAccount(ctx sdk.Context, addr sdk.AccAddress) types.AccountI
-
-	GetModuleAddress(name string) sdk.AccAddress
-	GetModuleAccount(ctx sdk.Context, name string) types.ModuleAccountI
-
-	// TODO remove with genesis 2-phases refactor https://github.com/orientwalt/htdf/issues/2862
-	SetModuleAccount(sdk.Context, types.ModuleAccountI)
+	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
 }
 
 // BankKeeper defines the expected interface needed to retrieve account balances.
@@ -25,10 +20,6 @@ type BankKeeper interface {
 	SetBalances(ctx sdk.Context, addr sdk.AccAddress, balances sdk.Coins) error
 	LockedCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
 	SpendableCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
-
-	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule string, recipientModule string, amt sdk.Coins) error
-	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
-	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
 }
 
 // StakingKeeper expected staking keeper (noalias)
@@ -66,7 +57,7 @@ type StakingKeeper interface {
 	GetLastTotalPower(ctx sdk.Context) sdk.Int
 	GetLastValidatorPower(ctx sdk.Context, valAddr sdk.ValAddress) int64
 
-	GetAllSDKDelegations(ctx sdk.Context) []stakingtypes.Delegation
+	GetAllSDKDelegations(ctx sdk.Context) []staking.Delegation
 }
 
 // StakingHooks event hooks for staking validator object (noalias)
@@ -78,4 +69,17 @@ type StakingHooks interface {
 	BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) // Must be called when a delegation's shares are modified
 	AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress)
 	BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec)
+}
+
+// SupplyKeeper defines the expected supply Keeper (noalias)
+type SupplyKeeper interface {
+	GetModuleAddress(name string) sdk.AccAddress
+	GetModuleAccount(ctx sdk.Context, name string) supplyexported.ModuleAccountI
+
+	// TODO remove with genesis 2-phases refactor https://github.com/cosmos/cosmos-sdk/issues/2862
+	SetModuleAccount(sdk.Context, supplyexported.ModuleAccountI)
+
+	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule string, recipientModule string, amt sdk.Coins) error
+	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
 }

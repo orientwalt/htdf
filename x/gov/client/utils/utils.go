@@ -1,6 +1,6 @@
 package utils
 
-import "github.com/orientwalt/htdf/x/gov/types"
+import "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 // NormalizeVoteOption - normalize user specified vote option
 func NormalizeVoteOption(option string) string {
@@ -18,7 +18,7 @@ func NormalizeVoteOption(option string) string {
 		return types.OptionNoWithVeto.String()
 
 	default:
-		return option
+		return ""
 	}
 }
 
@@ -44,7 +44,6 @@ func NormalizeProposalStatus(status string) string {
 		return "Passed"
 	case "Rejected", "rejected":
 		return "Rejected"
-	default:
-		return status
 	}
+	return ""
 }

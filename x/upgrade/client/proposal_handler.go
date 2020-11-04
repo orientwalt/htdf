@@ -1,10 +1,9 @@
 package client
 
 import (
-	govclient "github.com/orientwalt/htdf/x/gov/client"
-	"github.com/orientwalt/htdf/x/upgrade/client/cli"
-	"github.com/orientwalt/htdf/x/upgrade/client/rest"
+	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
+	"github.com/cosmos/cosmos-sdk/x/upgrade/client/cli"
+	"github.com/cosmos/cosmos-sdk/x/upgrade/client/rest"
 )
 
-var ProposalHandler = govclient.NewProposalHandler(cli.NewCmdSubmitUpgradeProposal, rest.ProposalRESTHandler)
-var CancelProposalHandler = govclient.NewProposalHandler(cli.NewCmdSubmitCancelUpgradeProposal, rest.ProposalCancelRESTHandler)
+var ProposalHandler = govclient.NewProposalHandler(cli.GetCmdSubmitUpgradeProposal, rest.ProposalRESTHandler)

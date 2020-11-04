@@ -5,29 +5,27 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/params/types"
-	"github.com/orientwalt/htdf/x/params/types/proposal"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 )
 
 // Keeper of the global paramstore
 type Keeper struct {
-	cdc         codec.BinaryMarshaler
-	legacyAmino *codec.LegacyAmino
-	key         sdk.StoreKey
-	tkey        sdk.StoreKey
-	spaces      map[string]*types.Subspace
+	cdc    codec.Marshaler
+	key    sdk.StoreKey
+	tkey   sdk.StoreKey
+	spaces map[string]*types.Subspace
 }
 
 // NewKeeper constructs a params keeper
-func NewKeeper(cdc codec.BinaryMarshaler, legacyAmino *codec.LegacyAmino, key, tkey sdk.StoreKey) Keeper {
+func NewKeeper(cdc codec.Marshaler, key, tkey sdk.StoreKey) Keeper {
 	return Keeper{
-		cdc:         cdc,
-		legacyAmino: legacyAmino,
-		key:         key,
-		tkey:        tkey,
-		spaces:      make(map[string]*types.Subspace),
+		cdc:    cdc,
+		key:    key,
+		tkey:   tkey,
+		spaces: make(map[string]*types.Subspace),
 	}
 }
 
@@ -47,7 +45,7 @@ func (k Keeper) Subspace(s string) types.Subspace {
 		panic("cannot use empty string for subspace")
 	}
 
-	space := types.NewSubspace(k.cdc, k.legacyAmino, k.key, k.tkey, s)
+	space := types.NewSubspace(k.cdc, k.key, k.tkey, s)
 	k.spaces[s] = &space
 
 	return space

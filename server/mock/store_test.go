@@ -7,7 +7,7 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestStore(t *testing.T) {
@@ -30,6 +30,4 @@ func TestStore(t *testing.T) {
 	require.Equal(t, v, store.Get(k))
 	store.Delete(k)
 	require.False(t, store.Has(k))
-	require.Panics(t, func() { store.Set([]byte(""), v) }, "setting an empty key should panic")
-	require.Panics(t, func() { store.Set(nil, v) }, "setting a nil key should panic")
 }

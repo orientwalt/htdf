@@ -1,18 +1,17 @@
-package simulation_test
+package simulation
 
 import (
 	"fmt"
 	"testing"
 
-	gogotypes "github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/kv"
-	"github.com/orientwalt/htdf/x/auth/simulation"
-	"github.com/orientwalt/htdf/x/auth/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	tmkv "github.com/tendermint/tendermint/libs/kv"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 var (
@@ -20,32 +19,23 @@ var (
 	delAddr1 = sdk.AccAddress(delPk1.Address())
 )
 
+func makeTestCodec() (cdc *codec.Codec) {
+	cdc = codec.New()
+	sdk.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	types.RegisterCodec(cdc)
+	return
+}
+
 func TestDecodeStore(t *testing.T) {
-	app := simapp.Setup(false)
-	cdc, _ := simapp.MakeCodecs()
+	cdc := makeTestCodec()
 	acc := types.NewBaseAccountWithAddress(delAddr1)
-	dec := simulation.NewDecodeStore(app.AccountKeeper)
+	globalAccNumber := uint64(10)
 
-	accBz, err := app.AccountKeeper.MarshalAccount(acc)
-	require.NoError(t, err)
-
-	globalAccNumber := gogotypes.UInt64Value{Value: 10}
-
-	kvPairs := kv.Pairs{
-		Pairs: []kv.Pair{
-			{
-				Key:   types.AddressStoreKey(delAddr1),
-				Value: accBz,
-			},
-			{
-				Key:   types.GlobalAccountNumberKey,
-				Value: cdc.MustMarshalBinaryBare(&globalAccNumber),
-			},
-			{
-				Key:   []byte{0x99},
-				Value: []byte{0x99},
-			},
-		},
+	kvPairs := tmkv.Pairs{
+		tmkv.Pair{Key: types.AddressStoreKey(delAddr1), Value: cdc.MustMarshalBinaryBare(acc)},
+		tmkv.Pair{Key: types.GlobalAccountNumberKey, Value: cdc.MustMarshalBinaryBare(globalAccNumber)},
+		tmkv.Pair{Key: []byte{0x99}, Value: []byte{0x99}},
 	}
 	tests := []struct {
 		name        string
@@ -61,9 +51,9 @@ func TestDecodeStore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			switch i {
 			case len(tests) - 1:
-				require.Panics(t, func() { dec(kvPairs.Pairs[i], kvPairs.Pairs[i]) }, tt.name)
+				require.Panics(t, func() { DecodeStore(cdc, kvPairs[i], kvPairs[i]) }, tt.name)
 			default:
-				require.Equal(t, tt.expectedLog, dec(kvPairs.Pairs[i], kvPairs.Pairs[i]), tt.name)
+				require.Equal(t, tt.expectedLog, DecodeStore(cdc, kvPairs[i], kvPairs[i]), tt.name)
 			}
 		})
 	}

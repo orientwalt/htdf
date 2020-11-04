@@ -1,28 +1,27 @@
 package upgrade
 
 import (
-	"context"
 	"encoding/json"
 
-	"github.com/gogo/protobuf/grpc"
 	"github.com/gorilla/mux"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	codectypes "github.com/orientwalt/htdf/codec/types"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/module"
-	"github.com/orientwalt/htdf/x/upgrade/client/cli"
-	"github.com/orientwalt/htdf/x/upgrade/client/rest"
-	"github.com/orientwalt/htdf/x/upgrade/keeper"
-	"github.com/orientwalt/htdf/x/upgrade/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/x/upgrade/client/cli"
+	"github.com/cosmos/cosmos-sdk/x/upgrade/client/rest"
 )
 
+// module codec
+var moduleCdc = codec.New()
+
 func init() {
-	types.RegisterLegacyAminoCodec(codec.NewLegacyAmino())
+	RegisterCodec(moduleCdc)
 }
 
 var (
@@ -35,46 +34,51 @@ type AppModuleBasic struct{}
 
 // Name returns the ModuleName
 func (AppModuleBasic) Name() string {
-	return types.ModuleName
+	return ModuleName
 }
 
-// RegisterLegacyAminoCodec registers the upgrade types on the LegacyAmino codec
-func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	types.RegisterLegacyAminoCodec(cdc)
+// RegisterCodec registers the upgrade types on the amino codec
+func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
+	RegisterCodec(cdc)
 }
 
 // RegisterRESTRoutes registers all REST query handlers
-func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, r *mux.Router) {
-	rest.RegisterRoutes(clientCtx, r)
-}
-
-// RegisterGRPCRoutes registers the gRPC Gateway routes for the upgrade module.
-func (AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
-	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
+func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, r *mux.Router) {
+	rest.RegisterRoutes(ctx, r)
 }
 
 // GetQueryCmd returns the cli query commands for this module
-func (AppModuleBasic) GetQueryCmd() *cobra.Command {
-	return cli.GetQueryCmd()
+func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	queryCmd := &cobra.Command{
+		Use:   "upgrade",
+		Short: "Querying commands for the upgrade module",
+	}
+	queryCmd.AddCommand(flags.GetCommands(
+		cli.GetPlanCmd(StoreKey, cdc),
+		cli.GetAppliedHeightCmd(StoreKey, cdc),
+	)...)
+
+	return queryCmd
 }
 
 // GetTxCmd returns the transaction commands for this module
-func (AppModuleBasic) GetTxCmd() *cobra.Command {
-	return cli.GetTxCmd()
-}
-
-func (b AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	types.RegisterInterfaces(registry)
+func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
+	txCmd := &cobra.Command{
+		Use:   "upgrade",
+		Short: "Upgrade transaction subcommands",
+	}
+	txCmd.AddCommand(flags.PostCommands()...)
+	return txCmd
 }
 
 // AppModule implements the sdk.AppModule interface
 type AppModule struct {
 	AppModuleBasic
-	keeper keeper.Keeper
+	keeper Keeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(keeper keeper.Keeper) AppModule {
+func NewAppModule(keeper Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         keeper,
@@ -85,20 +89,17 @@ func NewAppModule(keeper keeper.Keeper) AppModule {
 func (AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 
 // Route is empty, as we do not handle Messages (just proposals)
-func (AppModule) Route() sdk.Route { return sdk.Route{} }
+func (AppModule) Route() string { return "" }
+
+// NewHandler is empty, as we do not handle Messages (just proposals)
+func (am AppModule) NewHandler() sdk.Handler { return nil }
 
 // QuerierRoute returns the route we respond to for abci queries
-func (AppModule) QuerierRoute() string { return types.QuerierKey }
+func (AppModule) QuerierRoute() string { return QuerierKey }
 
-// LegacyQuerierHandler registers a query handler to respond to the module-specific queries
-func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
-	return keeper.NewQuerier(am.keeper, legacyQuerierCdc)
-}
-
-// RegisterQueryService registers a GRPC query service to respond to the
-// module-specific GRPC queries.
-func (am AppModule) RegisterQueryService(server grpc.Server) {
-	types.RegisterQueryServer(server, am.keeper)
+// NewQuerierHandler registers a query handler to respond to the module-specific queries
+func (am AppModule) NewQuerierHandler() sdk.Querier {
+	return NewQuerier(am.keeper)
 }
 
 // InitGenesis is ignored, no sense in serializing future upgrades
@@ -112,7 +113,7 @@ func (AppModuleBasic) DefaultGenesis(_ codec.JSONMarshaler) json.RawMessage {
 }
 
 // ValidateGenesis is always successful, as we ignore the value
-func (AppModuleBasic) ValidateGenesis(_ codec.JSONMarshaler, config client.TxEncodingConfig, _ json.RawMessage) error {
+func (AppModuleBasic) ValidateGenesis(_ codec.JSONMarshaler, _ json.RawMessage) error {
 	return nil
 }
 

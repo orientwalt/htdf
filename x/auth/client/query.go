@@ -1,18 +1,17 @@
 package client
 
 import (
-	"context"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
-	"github.com/orientwalt/htdf/client"
-	codectypes "github.com/orientwalt/htdf/codec/types"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 // QueryTxsByEvents performs a search for transactions for a given set of events
@@ -21,7 +20,7 @@ import (
 // concatenated with an 'AND' operand. It returns a slice of Info object
 // containing txs and metadata. An error is returned if the query fails.
 // If an empty string is provided it will order txs by asc
-func QueryTxsByEvents(clientCtx client.Context, events []string, page, limit int, orderBy string) (*sdk.SearchTxsResult, error) {
+func QueryTxsByEvents(cliCtx context.CLIContext, events []string, page, limit int, orderBy string) (*sdk.SearchTxsResult, error) {
 	if len(events) == 0 {
 		return nil, errors.New("must declare at least one event to search")
 	}
@@ -37,59 +36,72 @@ func QueryTxsByEvents(clientCtx client.Context, events []string, page, limit int
 	// XXX: implement ANY
 	query := strings.Join(events, " AND ")
 
-	node, err := clientCtx.GetNode()
+	node, err := cliCtx.GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: this may not always need to be proven
-	// https://github.com/orientwalt/htdf/issues/6807
-	resTxs, err := node.TxSearch(context.Background(), query, true, &page, &limit, orderBy)
+	prove := !cliCtx.TrustNode
+
+	resTxs, err := node.TxSearch(query, prove, page, limit, orderBy)
 	if err != nil {
 		return nil, err
 	}
 
-	resBlocks, err := getBlocksForTxResults(clientCtx, resTxs.Txs)
+	if prove {
+		for _, tx := range resTxs.Txs {
+			err := ValidateTxResult(cliCtx, tx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	resBlocks, err := getBlocksForTxResults(cliCtx, resTxs.Txs)
 	if err != nil {
 		return nil, err
 	}
 
-	txs, err := formatTxResults(clientCtx.TxConfig, resTxs.Txs, resBlocks)
+	txs, err := formatTxResults(cliCtx.Codec, resTxs.Txs, resBlocks)
 	if err != nil {
 		return nil, err
 	}
 
-	result := sdk.NewSearchTxsResult(uint64(resTxs.TotalCount), uint64(len(txs)), uint64(page), uint64(limit), txs)
+	result := sdk.NewSearchTxsResult(resTxs.TotalCount, len(txs), page, limit, txs)
 
-	return result, nil
+	return &result, nil
 }
 
 // QueryTx queries for a single transaction by a hash string in hex format. An
 // error is returned if the transaction does not exist or cannot be queried.
-func QueryTx(clientCtx client.Context, hashHexStr string) (*sdk.TxResponse, error) {
+func QueryTx(cliCtx context.CLIContext, hashHexStr string) (sdk.TxResponse, error) {
 	hash, err := hex.DecodeString(hashHexStr)
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	node, err := clientCtx.GetNode()
+	node, err := cliCtx.GetNode()
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	//TODO: this may not always need to be proven
-	// https://github.com/orientwalt/htdf/issues/6807
-	resTx, err := node.Tx(context.Background(), hash, true)
+	resTx, err := node.Tx(hash, !cliCtx.TrustNode)
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	resBlocks, err := getBlocksForTxResults(clientCtx, []*ctypes.ResultTx{resTx})
+	if !cliCtx.TrustNode {
+		if err = ValidateTxResult(cliCtx, resTx); err != nil {
+			return sdk.TxResponse{}, err
+		}
+	}
+
+	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	out, err := formatTxResult(clientCtx.TxConfig, resTx, resBlocks[resTx.Height])
+	out, err := formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
 	if err != nil {
 		return out, err
 	}
@@ -98,11 +110,11 @@ func QueryTx(clientCtx client.Context, hashHexStr string) (*sdk.TxResponse, erro
 }
 
 // formatTxResults parses the indexed txs into a slice of TxResponse objects.
-func formatTxResults(txConfig client.TxConfig, resTxs []*ctypes.ResultTx, resBlocks map[int64]*ctypes.ResultBlock) ([]*sdk.TxResponse, error) {
+func formatTxResults(cdc *codec.Codec, resTxs []*ctypes.ResultTx, resBlocks map[int64]*ctypes.ResultBlock) ([]sdk.TxResponse, error) {
 	var err error
-	out := make([]*sdk.TxResponse, len(resTxs))
+	out := make([]sdk.TxResponse, len(resTxs))
 	for i := range resTxs {
-		out[i], err = formatTxResult(txConfig, resTxs[i], resBlocks[resTxs[i].Height])
+		out[i], err = formatTxResult(cdc, resTxs[i], resBlocks[resTxs[i].Height])
 		if err != nil {
 			return nil, err
 		}
@@ -111,8 +123,23 @@ func formatTxResults(txConfig client.TxConfig, resTxs []*ctypes.ResultTx, resBlo
 	return out, nil
 }
 
-func getBlocksForTxResults(clientCtx client.Context, resTxs []*ctypes.ResultTx) (map[int64]*ctypes.ResultBlock, error) {
-	node, err := clientCtx.GetNode()
+// ValidateTxResult performs transaction verification.
+func ValidateTxResult(cliCtx context.CLIContext, resTx *ctypes.ResultTx) error {
+	if !cliCtx.TrustNode {
+		check, err := cliCtx.Verify(resTx.Height)
+		if err != nil {
+			return err
+		}
+		err = resTx.Proof.Validate(check.Header.DataHash)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getBlocksForTxResults(cliCtx context.CLIContext, resTxs []*ctypes.ResultTx) (map[int64]*ctypes.ResultBlock, error) {
+	node, err := cliCtx.GetNode()
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +148,7 @@ func getBlocksForTxResults(clientCtx client.Context, resTxs []*ctypes.ResultTx) 
 
 	for _, resTx := range resTxs {
 		if _, ok := resBlocks[resTx.Height]; !ok {
-			resBlock, err := node.Block(context.Background(), &resTx.Height)
+			resBlock, err := node.Block(&resTx.Height)
 			if err != nil {
 				return nil, err
 			}
@@ -133,27 +160,22 @@ func getBlocksForTxResults(clientCtx client.Context, resTxs []*ctypes.ResultTx) 
 	return resBlocks, nil
 }
 
-func formatTxResult(txConfig client.TxConfig, resTx *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (*sdk.TxResponse, error) {
-	anyTx, err := parseTx(txConfig, resTx.Tx)
+func formatTxResult(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (sdk.TxResponse, error) {
+	tx, err := parseTx(cdc, resTx.Tx)
 	if err != nil {
-		return nil, err
+		return sdk.TxResponse{}, err
 	}
 
-	return sdk.NewResponseResultTx(resTx, anyTx.AsAny(), resBlock.Block.Time.Format(time.RFC3339)), nil
+	return sdk.NewResponseResultTx(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
 }
 
-func parseTx(txConfig client.TxConfig, txBytes []byte) (codectypes.IntoAny, error) {
-	var tx sdk.Tx
+func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
+	var tx types.StdTx
 
-	tx, err := txConfig.TxDecoder()(txBytes)
+	err := cdc.UnmarshalBinaryBare(txBytes, &tx)
 	if err != nil {
 		return nil, err
 	}
 
-	anyTx, ok := tx.(codectypes.IntoAny)
-	if !ok {
-		return nil, fmt.Errorf("tx cannot be packed into Any")
-	}
-
-	return anyTx, nil
+	return tx, nil
 }

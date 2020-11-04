@@ -3,14 +3,13 @@ package gov
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/gov/keeper"
-	"github.com/orientwalt/htdf/x/gov/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // InitGenesis - store genesis parameters
-func InitGenesis(ctx sdk.Context, ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper, data *types.GenesisState) {
-	k.SetProposalID(ctx, data.StartingProposalId)
+func InitGenesis(ctx sdk.Context, bk types.BankKeeper, supplyKeeper types.SupplyKeeper, k Keeper, data GenesisState) {
+	k.SetProposalID(ctx, data.StartingProposalID)
 	k.SetDepositParams(ctx, data.DepositParams)
 	k.SetVotingParams(ctx, data.VotingParams)
 	k.SetTallyParams(ctx, data.TallyParams)
@@ -33,10 +32,10 @@ func InitGenesis(ctx sdk.Context, ak types.AccountKeeper, bk types.BankKeeper, k
 
 	for _, proposal := range data.Proposals {
 		switch proposal.Status {
-		case types.StatusDepositPeriod:
-			k.InsertInactiveProposalQueue(ctx, proposal.ProposalId, proposal.DepositEndTime)
-		case types.StatusVotingPeriod:
-			k.InsertActiveProposalQueue(ctx, proposal.ProposalId, proposal.VotingEndTime)
+		case StatusDepositPeriod:
+			k.InsertInactiveProposalQueue(ctx, proposal.ProposalID, proposal.DepositEndTime)
+		case StatusVotingPeriod:
+			k.InsertActiveProposalQueue(ctx, proposal.ProposalID, proposal.VotingEndTime)
 		}
 		k.SetProposal(ctx, proposal)
 	}
@@ -46,31 +45,30 @@ func InitGenesis(ctx sdk.Context, ak types.AccountKeeper, bk types.BankKeeper, k
 		if err := bk.SetBalances(ctx, moduleAcc.GetAddress(), totalDeposits); err != nil {
 			panic(err)
 		}
-
-		ak.SetModuleAccount(ctx, moduleAcc)
+		supplyKeeper.SetModuleAccount(ctx, moduleAcc)
 	}
 }
 
 // ExportGenesis - output genesis parameters
-func ExportGenesis(ctx sdk.Context, k keeper.Keeper) *types.GenesisState {
+func ExportGenesis(ctx sdk.Context, k Keeper) GenesisState {
 	startingProposalID, _ := k.GetProposalID(ctx)
 	depositParams := k.GetDepositParams(ctx)
 	votingParams := k.GetVotingParams(ctx)
 	tallyParams := k.GetTallyParams(ctx)
 	proposals := k.GetProposals(ctx)
 
-	var proposalsDeposits types.Deposits
-	var proposalsVotes types.Votes
+	var proposalsDeposits Deposits
+	var proposalsVotes Votes
 	for _, proposal := range proposals {
-		deposits := k.GetDeposits(ctx, proposal.ProposalId)
+		deposits := k.GetDeposits(ctx, proposal.ProposalID)
 		proposalsDeposits = append(proposalsDeposits, deposits...)
 
-		votes := k.GetVotes(ctx, proposal.ProposalId)
+		votes := k.GetVotes(ctx, proposal.ProposalID)
 		proposalsVotes = append(proposalsVotes, votes...)
 	}
 
-	return &types.GenesisState{
-		StartingProposalId: startingProposalID,
+	return GenesisState{
+		StartingProposalID: startingProposalID,
 		Deposits:           proposalsDeposits,
 		Votes:              proposalsVotes,
 		Proposals:          proposals,

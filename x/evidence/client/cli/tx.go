@@ -1,8 +1,10 @@
 package cli
 
 import (
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
 
 	"github.com/spf13/cobra"
 )
@@ -12,7 +14,7 @@ import (
 // modules, under a sub-command. This allows external modules to implement custom
 // Evidence types and Handlers while having the ability to create and sign txs
 // containing them all from a single root command.
-func GetTxCmd(childCmds []*cobra.Command) *cobra.Command {
+func GetTxCmd(storeKey string, cdc *codec.Codec, childCmds []*cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Evidence transaction subcommands",
@@ -21,9 +23,9 @@ func GetTxCmd(childCmds []*cobra.Command) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	submitEvidenceCmd := SubmitEvidenceCmd()
+	submitEvidenceCmd := SubmitEvidenceCmd(cdc)
 	for _, childCmd := range childCmds {
-		submitEvidenceCmd.AddCommand(childCmd)
+		submitEvidenceCmd.AddCommand(flags.PostCommands(childCmd)[0])
 	}
 
 	// TODO: Add tx commands.
@@ -34,7 +36,7 @@ func GetTxCmd(childCmds []*cobra.Command) *cobra.Command {
 // SubmitEvidenceCmd returns the top-level evidence submission command handler.
 // All concrete evidence submission child command handlers should be registered
 // under this command.
-func SubmitEvidenceCmd() *cobra.Command {
+func SubmitEvidenceCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "submit",
 		Short: "Submit arbitrary evidence of misbehavior",

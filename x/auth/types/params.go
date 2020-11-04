@@ -5,8 +5,11 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	paramtypes "github.com/orientwalt/htdf/x/params/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
+
+// DefaultParamspace defines the default auth module parameter subspace
+const DefaultParamspace = ModuleName
 
 // Default parameter values
 const (
@@ -32,6 +35,7 @@ var _ paramtypes.ParamSet = &Params{}
 func NewParams(
 	maxMemoCharacters, txSigLimit, txSizeCostPerByte, sigVerifyCostED25519, sigVerifyCostSecp256k1 uint64,
 ) Params {
+
 	return Params{
 		MaxMemoCharacters:      maxMemoCharacters,
 		TxSigLimit:             txSigLimit,

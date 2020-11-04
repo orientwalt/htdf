@@ -1,12 +1,11 @@
 package keeper_test
 
 import (
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/gov/types"
-	"github.com/orientwalt/htdf/x/staking"
-	stakingkeeper "github.com/orientwalt/htdf/x/staking/keeper"
-	stakingtypes "github.com/orientwalt/htdf/x/staking/types"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/x/staking"
 )
 
 var (
@@ -18,18 +17,18 @@ func createValidators(ctx sdk.Context, app *simapp.SimApp, powers []int64) ([]sd
 	valAddrs := simapp.ConvertAddrsToValAddrs(addrs)
 	pks := simapp.CreateTestPubKeys(5)
 
-	appCodec, _ := simapp.MakeCodecs()
-	app.StakingKeeper = stakingkeeper.NewKeeper(
+	appCodec := codecstd.NewAppCodec(app.Codec())
+	app.StakingKeeper = staking.NewKeeper(
 		appCodec,
-		app.GetKey(stakingtypes.StoreKey),
-		app.AccountKeeper,
+		app.GetKey(staking.StoreKey),
 		app.BankKeeper,
-		app.GetSubspace(stakingtypes.ModuleName),
+		app.SupplyKeeper,
+		app.GetSubspace(staking.ModuleName),
 	)
 
-	val1 := stakingtypes.NewValidator(valAddrs[0], pks[0], stakingtypes.Description{})
-	val2 := stakingtypes.NewValidator(valAddrs[1], pks[1], stakingtypes.Description{})
-	val3 := stakingtypes.NewValidator(valAddrs[2], pks[2], stakingtypes.Description{})
+	val1 := staking.NewValidator(valAddrs[0], pks[0], staking.Description{})
+	val2 := staking.NewValidator(valAddrs[1], pks[1], staking.Description{})
+	val3 := staking.NewValidator(valAddrs[2], pks[2], staking.Description{})
 
 	app.StakingKeeper.SetValidator(ctx, val1)
 	app.StakingKeeper.SetValidator(ctx, val2)

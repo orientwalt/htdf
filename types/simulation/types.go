@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/orientwalt/htdf/baseapp"
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type WeightedProposalContent interface {
@@ -80,8 +80,8 @@ func NewOperationMsg(msg sdk.Msg, ok bool, comment string) OperationMsg {
 }
 
 // NoOpMsg - create a no-operation message
-func NoOpMsg(route, msgType, comment string) OperationMsg {
-	return NewOperationMsgBasic(route, msgType, comment, false, nil)
+func NoOpMsg(route string) OperationMsg {
+	return NewOperationMsgBasic(route, "no-operation", "", false, nil)
 }
 
 // log entry text for this operation msg
@@ -90,7 +90,6 @@ func (om OperationMsg) String() string {
 	if err != nil {
 		panic(err)
 	}
-
 	return string(out)
 }
 
@@ -100,7 +99,6 @@ func (om OperationMsg) MustMarshal() json.RawMessage {
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
 
@@ -110,7 +108,6 @@ func (om OperationMsg) LogEvent(eventLogger func(route, op, evResult string)) {
 	if !om.OK {
 		pass = "failure"
 	}
-
 	eventLogger(om.Route, om.Name, pass)
 }
 
@@ -135,12 +132,9 @@ type AppParams map[string]json.RawMessage
 // object. If it exists, it'll be decoded and returned. Otherwise, the provided
 // ParamSimulator is used to generate a random value or default value (eg: in the
 // case of operation weights where Rand is not used).
-func (sp AppParams) GetOrGenerate(_ codec.JSONMarshaler, key string, ptr interface{}, r *rand.Rand, ps ParamSimulator) {
+func (sp AppParams) GetOrGenerate(cdc *codec.Codec, key string, ptr interface{}, r *rand.Rand, ps ParamSimulator) {
 	if v, ok := sp[key]; ok && v != nil {
-		err := json.Unmarshal(v, ptr)
-		if err != nil {
-			panic(err)
-		}
+		cdc.MustUnmarshalJSON(v, ptr)
 		return
 	}
 
@@ -155,9 +149,6 @@ type SelectOpFn func(r *rand.Rand) Operation
 type AppStateFn func(r *rand.Rand, accs []Account, config Config) (
 	appState json.RawMessage, accounts []Account, chainId string, genesisTimestamp time.Time,
 )
-
-// RandomAccountFn returns a slice of n random simulation accounts
-type RandomAccountFn func(r *rand.Rand, n int) []Account
 
 type Params interface {
 	PastEvidenceFraction() float64

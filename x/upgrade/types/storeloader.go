@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/orientwalt/htdf/baseapp"
-	store "github.com/orientwalt/htdf/store/types"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	store "github.com/cosmos/cosmos-sdk/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // UpgradeStoreLoader is used to prepare baseapp with a fixed StoreLoader

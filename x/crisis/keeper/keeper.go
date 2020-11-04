@@ -6,9 +6,9 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/crisis/types"
-	paramtypes "github.com/orientwalt/htdf/x/params/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/crisis/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // Keeper - crisis keeper
@@ -28,14 +28,9 @@ func NewKeeper(
 	feeCollectorName string,
 ) Keeper {
 
-	// set KeyTable if it has not already been set
-	if !paramSpace.HasKeyTable() {
-		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
-	}
-
 	return Keeper{
 		routes:           make([]types.InvarRoute, 0),
-		paramSpace:       paramSpace,
+		paramSpace:       paramSpace.WithKeyTable(types.ParamKeyTable()),
 		invCheckPeriod:   invCheckPeriod,
 		supplyKeeper:     supplyKeeper,
 		feeCollectorName: feeCollectorName,

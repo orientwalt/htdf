@@ -59,4 +59,4 @@ type BaseAccount struct {
 
 ### Vesting Account
 
-See [Vesting](05_vesting.md).
+See [Vesting](vesting.md).

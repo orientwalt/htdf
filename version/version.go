@@ -1,19 +1,3 @@
-// Package version is a convenience utility that provides SDK
-// consumers with a ready-to-use version command that
-// produces apps versioning information based on flags
-// passed at compile time.
-//
-// Configure the version command
-//
-// The version command can be just added to your cobra root command.
-// At build time, the variables Name, Version, Commit, and BuildTags
-// can be passed as build flags as shown in the following example:
-//
-//  go build -X github.com/orientwalt/htdf/version.Name=gaia \
-//   -X github.com/orientwalt/htdf/version.AppName=gaiad \
-//   -X github.com/orientwalt/htdf/version.Version=1.0 \
-//   -X github.com/orientwalt/htdf/version.Commit=f0f7b7dab7e36c20b757cebce0e8f4fc5b95de60 \
-//   -X "github.com/orientwalt/htdf/version.BuildTags=linux darwin amd64"
 package version
 
 import (
@@ -21,45 +5,22 @@ import (
 	"runtime"
 )
 
-var (
-	// application's name
-	Name = ""
-	// application binary name
-	AppName = "<appd>"
-	// application's version string
-	Version = ""
-	// commit
-	Commit = ""
-	// build tags
-	BuildTags = ""
-)
+// AppName represents the application name as the 'user agent' on the larger Ethereum network.
+const AppName = "Ethermint"
 
-// Info defines the application version information.
-type Info struct {
-	Name      string `json:"name" yaml:"name"`
-	AppName   string `json:"server_name" yaml:"server_name"`
-	Version   string `json:"version" yaml:"version"`
-	GitCommit string `json:"commit" yaml:"commit"`
-	BuildTags string `json:"build_tags" yaml:"build_tags"`
-	GoVersion string `json:"go" yaml:"go"`
-}
+// Version contains the application semantic version.
+//
+// TODO: How do we want to version this being that an initial Ethermint has
+// been developed?
+const Version = "0.0.0"
 
-func NewInfo() Info {
-	return Info{
-		Name:      Name,
-		AppName:   AppName,
-		Version:   Version,
-		GitCommit: Commit,
-		BuildTags: BuildTags,
-		GoVersion: fmt.Sprintf("go version %s %s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH),
-	}
-}
+// ProtocolVersion is the supported Ethereum protocol version (e.g., Homestead, Olympic, etc.)
+const ProtocolVersion = 63
 
-func (vi Info) String() string {
-	return fmt.Sprintf(`%s: %s
-git commit: %s
-build tags: %s
-%s`,
-		vi.Name, vi.Version, vi.GitCommit, vi.BuildTags, vi.GoVersion,
-	)
+// GitCommit contains the git SHA1 short hash set by build flags.
+var GitCommit = ""
+
+// ClientVersion returns the full version string for identification on the larger Ethereum network.
+func ClientVersion() string {
+	return fmt.Sprintf("%s/%s+%s/%s/%s", AppName, Version, GitCommit, runtime.GOOS, runtime.Version())
 }

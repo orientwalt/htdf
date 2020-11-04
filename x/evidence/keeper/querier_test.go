@@ -3,10 +3,9 @@ package keeper_test
 import (
 	"strings"
 
-	"github.com/orientwalt/htdf/simapp"
-
-	"github.com/orientwalt/htdf/x/evidence/exported"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -15,15 +14,15 @@ const (
 	custom = "custom"
 )
 
-func (suite *KeeperTestSuite) TestQuerier_QueryEvidence_Existing() {
+func (suite *KeeperTestSuite) TestQueryEvidence_Existing() {
 	ctx := suite.ctx.WithIsCheckTx(false)
 	numEvidence := 100
-	_, cdc := simapp.MakeCodecs()
+	cdc := codecstd.NewAppCodec(suite.app.Codec())
 
 	evidence := suite.populateEvidence(ctx, numEvidence)
 	query := abci.RequestQuery{
 		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryEvidence}, "/"),
-		Data: cdc.MustMarshalJSON(types.NewQueryEvidenceRequest(evidence[0].Hash())),
+		Data: cdc.MustMarshalJSON(types.NewQueryEvidenceParams(evidence[0].Hash().String())),
 	}
 
 	bz, err := suite.querier(ctx, []string{types.QueryEvidence}, query)
@@ -35,15 +34,15 @@ func (suite *KeeperTestSuite) TestQuerier_QueryEvidence_Existing() {
 	suite.Equal(evidence[0], e)
 }
 
-func (suite *KeeperTestSuite) TestQuerier_QueryEvidence_NonExisting() {
+func (suite *KeeperTestSuite) TestQueryEvidence_NonExisting() {
 	ctx := suite.ctx.WithIsCheckTx(false)
-	cdc, _ := simapp.MakeCodecs()
+	cdc := codecstd.NewAppCodec(suite.app.Codec())
 	numEvidence := 100
 
 	suite.populateEvidence(ctx, numEvidence)
 	query := abci.RequestQuery{
 		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryEvidence}, "/"),
-		Data: cdc.MustMarshalJSON(types.NewQueryEvidenceRequest([]byte("0000000000000000000000000000000000000000000000000000000000000000"))),
+		Data: cdc.MustMarshalJSON(types.NewQueryEvidenceParams("0000000000000000000000000000000000000000000000000000000000000000")),
 	}
 
 	bz, err := suite.querier(ctx, []string{types.QueryEvidence}, query)
@@ -51,9 +50,9 @@ func (suite *KeeperTestSuite) TestQuerier_QueryEvidence_NonExisting() {
 	suite.Nil(bz)
 }
 
-func (suite *KeeperTestSuite) TestQuerier_QueryAllEvidence() {
+func (suite *KeeperTestSuite) TestQueryAllEvidence() {
 	ctx := suite.ctx.WithIsCheckTx(false)
-	_, cdc := simapp.MakeCodecs()
+	cdc := codecstd.NewAppCodec(suite.app.Codec())
 	numEvidence := 100
 
 	suite.populateEvidence(ctx, numEvidence)
@@ -71,9 +70,9 @@ func (suite *KeeperTestSuite) TestQuerier_QueryAllEvidence() {
 	suite.Len(e, numEvidence)
 }
 
-func (suite *KeeperTestSuite) TestQuerier_QueryAllEvidence_InvalidPagination() {
+func (suite *KeeperTestSuite) TestQueryAllEvidence_InvalidPagination() {
 	ctx := suite.ctx.WithIsCheckTx(false)
-	_, cdc := simapp.MakeCodecs()
+	cdc := codecstd.NewAppCodec(suite.app.Codec())
 	numEvidence := 100
 
 	suite.populateEvidence(ctx, numEvidence)
@@ -89,4 +88,13 @@ func (suite *KeeperTestSuite) TestQuerier_QueryAllEvidence_InvalidPagination() {
 	var e []exported.Evidence
 	suite.Nil(cdc.UnmarshalJSON(bz, &e))
 	suite.Len(e, 0)
+}
+
+func (suite *KeeperTestSuite) TestQueryParams() {
+	ctx := suite.ctx.WithIsCheckTx(false)
+
+	bz, err := suite.querier(ctx, []string{types.QueryParameters}, abci.RequestQuery{})
+	suite.Nil(err)
+	suite.NotNil(bz)
+	suite.Equal("{\n  \"max_evidence_age\": \"120000000000\"\n}", string(bz))
 }

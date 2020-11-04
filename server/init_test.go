@@ -5,59 +5,62 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/crypto/hd"
-	"github.com/orientwalt/htdf/crypto/keyring"
-	"github.com/orientwalt/htdf/server"
-	"github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/cosmos/cosmos-sdk/tests"
 )
 
 func TestGenerateCoinKey(t *testing.T) {
 	t.Parallel()
-	addr, mnemonic, err := server.GenerateCoinKey(hd.Secp256k1)
+	addr, mnemonic, err := server.GenerateCoinKey()
 	require.NoError(t, err)
 
 	// Test creation
-	info, err := keyring.NewInMemory().NewAccount("xxx", mnemonic, "", hd.NewFundraiserParams(0, types.GetConfig().GetCoinType(), 0).String(), hd.Secp256k1)
+	info, err := keyring.NewInMemory().CreateAccount("xxx", mnemonic, "", "012345678", keyring.CreateHDPath(0, 0).String(), keyring.Secp256k1)
 	require.NoError(t, err)
 	require.Equal(t, addr, info.GetAddress())
 }
 
 func TestGenerateSaveCoinKey(t *testing.T) {
 	t.Parallel()
+	dir, cleanup := tests.NewTestCaseDir(t)
+	t.Cleanup(cleanup)
 
-	kb, err := keyring.New(t.Name(), "test", t.TempDir(), nil)
+	kb, err := keyring.NewKeyring(t.Name(), "test", dir, nil)
 	require.NoError(t, err)
 
-	addr, mnemonic, err := server.GenerateSaveCoinKey(kb, "keyname", false, hd.Secp256k1)
+	addr, mnemonic, err := server.GenerateSaveCoinKey(kb, "keyname", "012345678", false)
 	require.NoError(t, err)
 
 	// Test key was actually saved
-	info, err := kb.Key("keyname")
+	info, err := kb.Get("keyname")
 	require.NoError(t, err)
 	require.Equal(t, addr, info.GetAddress())
 
 	// Test in-memory recovery
-	info, err = keyring.NewInMemory().NewAccount("xxx", mnemonic, "", hd.NewFundraiserParams(0, types.GetConfig().GetCoinType(), 0).String(), hd.Secp256k1)
+	info, err = keyring.NewInMemory().CreateAccount("xxx", mnemonic, "", "012345678", keyring.CreateHDPath(0, 0).String(), keyring.Secp256k1)
 	require.NoError(t, err)
 	require.Equal(t, addr, info.GetAddress())
 }
 
 func TestGenerateSaveCoinKeyOverwriteFlag(t *testing.T) {
 	t.Parallel()
+	dir, cleanup := tests.NewTestCaseDir(t)
+	t.Cleanup(cleanup)
 
-	kb, err := keyring.New(t.Name(), "test", t.TempDir(), nil)
+	kb, err := keyring.NewKeyring(t.Name(), "test", dir, nil)
 	require.NoError(t, err)
 
 	keyname := "justakey"
-	addr1, _, err := server.GenerateSaveCoinKey(kb, keyname, false, hd.Secp256k1)
+	addr1, _, err := server.GenerateSaveCoinKey(kb, keyname, "012345678", false)
 	require.NoError(t, err)
 
 	// Test overwrite with overwrite=false
-	_, _, err = server.GenerateSaveCoinKey(kb, keyname, false, hd.Secp256k1)
+	_, _, err = server.GenerateSaveCoinKey(kb, keyname, "012345678", false)
 	require.Error(t, err)
 
 	// Test overwrite with overwrite=true
-	addr2, _, err := server.GenerateSaveCoinKey(kb, keyname, true, hd.Secp256k1)
+	addr2, _, err := server.GenerateSaveCoinKey(kb, keyname, "012345678", true)
 	require.NoError(t, err)
 
 	require.NotEqual(t, addr1, addr2)

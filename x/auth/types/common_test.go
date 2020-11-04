@@ -1,10 +1,11 @@
 package types_test
 
 import (
-	"github.com/orientwalt/htdf/simapp"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/simapp"
 )
 
 var (
-	app                   = simapp.Setup(false)
-	appCodec, legacyAmino = simapp.MakeCodecs()
+	app      = simapp.Setup(false)
+	appCodec = codecstd.NewAppCodec(app.Codec())
 )

@@ -5,24 +5,19 @@ import (
 
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestLogger(t *testing.T) {
-	app := simapp.Setup(false)
+	app := createTestApp()
 
-	ctx := app.NewContext(true, tmproto.Header{})
+	ctx := app.NewContext(true, abci.Header{})
 	require.Equal(t, ctx.Logger(), app.CrisisKeeper.Logger(ctx))
 }
 
 func TestInvariants(t *testing.T) {
-	app := simapp.Setup(false)
-	app.Commit()
-	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: app.LastBlockHeight() + 1}})
-
+	app := createTestApp()
 	require.Equal(t, app.CrisisKeeper.InvCheckPeriod(), uint(5))
 
 	// SimApp has 11 registered invariants
@@ -32,11 +27,8 @@ func TestInvariants(t *testing.T) {
 }
 
 func TestAssertInvariants(t *testing.T) {
-	app := simapp.Setup(false)
-	app.Commit()
-	app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{Height: app.LastBlockHeight() + 1}})
-
-	ctx := app.NewContext(true, tmproto.Header{})
+	app := createTestApp()
+	ctx := app.NewContext(true, abci.Header{})
 
 	app.CrisisKeeper.RegisterRoute("testModule", "testRoute1", func(sdk.Context) (string, bool) { return "", false })
 	require.NotPanics(t, func() { app.CrisisKeeper.AssertInvariants(ctx) })

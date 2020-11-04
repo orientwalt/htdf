@@ -3,24 +3,24 @@ package keeper
 import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/mint/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
 // NewQuerier returns a minting Querier handler.
-func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
+func NewQuerier(k Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, _ abci.RequestQuery) ([]byte, error) {
 		switch path[0] {
 		case types.QueryParameters:
-			return queryParams(ctx, k, legacyQuerierCdc)
+			return queryParams(ctx, k)
 
 		case types.QueryInflation:
-			return queryInflation(ctx, k, legacyQuerierCdc)
+			return queryInflation(ctx, k)
 
 		case types.QueryAnnualProvisions:
-			return queryAnnualProvisions(ctx, k, legacyQuerierCdc)
+			return queryAnnualProvisions(ctx, k)
 
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown query path: %s", path[0])
@@ -28,10 +28,10 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 	}
 }
 
-func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
 	params := k.GetParams(ctx)
 
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
+	res, err := codec.MarshalJSONIndent(k.cdc, params)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
@@ -39,10 +39,10 @@ func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino)
 	return res, nil
 }
 
-func queryInflation(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func queryInflation(ctx sdk.Context, k Keeper) ([]byte, error) {
 	minter := k.GetMinter(ctx)
 
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, minter.Inflation)
+	res, err := codec.MarshalJSONIndent(k.cdc, minter.Inflation)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
@@ -50,10 +50,10 @@ func queryInflation(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmi
 	return res, nil
 }
 
-func queryAnnualProvisions(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func queryAnnualProvisions(ctx sdk.Context, k Keeper) ([]byte, error) {
 	minter := k.GetMinter(ctx)
 
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, minter.AnnualProvisions)
+	res, err := codec.MarshalJSONIndent(k.cdc, minter.AnnualProvisions)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

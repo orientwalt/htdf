@@ -3,27 +3,26 @@ package params_test
 import (
 	"testing"
 
-	"github.com/orientwalt/htdf/simapp"
-
 	"github.com/stretchr/testify/require"
+
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/store"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/params"
-	"github.com/orientwalt/htdf/x/params/keeper"
-	"github.com/orientwalt/htdf/x/params/types"
-	"github.com/orientwalt/htdf/x/params/types/proposal"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/params"
+	"github.com/cosmos/cosmos-sdk/x/params/keeper"
+	"github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 )
 
 func validateNoOp(_ interface{}) error { return nil }
 
 type testInput struct {
 	ctx    sdk.Context
-	cdc    *codec.LegacyAmino
+	cdc    *codec.Codec
 	keeper keeper.Keeper
 }
 
@@ -52,7 +51,7 @@ func (tp *testParams) ParamSetPairs() types.ParamSetPairs {
 	}
 }
 
-func testProposal(changes ...proposal.ParamChange) *proposal.ParameterChangeProposal {
+func testProposal(changes ...proposal.ParamChange) proposal.ParameterChangeProposal {
 	return proposal.NewParameterChangeProposal(
 		"Test",
 		"description",
@@ -61,8 +60,8 @@ func testProposal(changes ...proposal.ParamChange) *proposal.ParameterChangeProp
 }
 
 func newTestInput(t *testing.T) testInput {
-	cdc := codec.NewLegacyAmino()
-	proposal.RegisterLegacyAminoCodec(cdc)
+	cdc := codec.New()
+	proposal.RegisterCodec(cdc)
 
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
@@ -76,9 +75,8 @@ func newTestInput(t *testing.T) testInput {
 	err := cms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	encCfg := simapp.MakeEncodingConfig()
-	keeper := keeper.NewKeeper(encCfg.Marshaler, encCfg.Amino, keyParams, tKeyParams)
-	ctx := sdk.NewContext(cms, tmproto.Header{}, false, log.NewNopLogger())
+	keeper := keeper.NewKeeper(proposal.ModuleCdc, keyParams, tKeyParams)
+	ctx := sdk.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
 
 	return testInput{ctx, cdc, keeper}
 }

@@ -1,62 +1,35 @@
-module github.com/orientwalt/htdf
+module github.com/cosmos/ethermint
 
 go 1.14
 
 require (
-	github.com/99designs/keyring v1.1.6
-	github.com/armon/go-metrics v0.3.4
-	github.com/bgentry/speakeasy v0.1.0
-	github.com/btcsuite/btcd v0.21.0-beta
-	github.com/btcsuite/btcutil v1.0.2
-	github.com/confio/ics23/go v0.0.0-20200817220745-f173e6211efb
-	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
-	github.com/cosmos/iavl v0.15.0-rc3
-	github.com/cosmos/ledger-cosmos-go v0.11.1
-	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
-	github.com/gogo/gateway v1.1.0
-	// github.com/cosmos/cosmos-sdk v0.40.0-rc0
+	github.com/allegro/bigcache v1.2.1 // indirect
+	github.com/aristanetworks/goarista v0.0.0-20200331225509-2cc472e8fbd6 // indirect
+	github.com/cespare/cp v1.1.1 // indirect
+	github.com/cosmos/cosmos-sdk v0.34.4-0.20200403200637-7f78e61b93a5
+	github.com/deckarep/golang-set v1.7.1 // indirect
+	github.com/ethereum/go-ethereum v1.9.18
+	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/mock v1.4.4
-	github.com/golang/protobuf v1.4.2
-	github.com/gorilla/handlers v1.5.1
-	github.com/gorilla/mux v1.8.0
-	github.com/grpc-ecosystem/grpc-gateway v1.15.0
-	github.com/hashicorp/golang-lru v0.5.4
-	github.com/magiconair/properties v1.8.4
-	github.com/mattn/go-isatty v0.0.12
-	// github.com/irisnet/irismod v1.1.1-0.20201015064111-9d21ec6ad6fc
-	github.com/olebedev/config v0.0.0-20190528211619-364964f3a8e4
-	github.com/otiai10/copy v1.2.0
-	github.com/pelletier/go-toml v1.8.0 // indirect
+	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/websocket v1.4.2
+	github.com/mattn/go-colorable v0.1.4 // indirect
+	github.com/onsi/ginkgo v1.11.0 // indirect
+	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.7.1
-	github.com/prometheus/common v0.14.0
-	github.com/rakyll/statik v0.1.7
-	github.com/regen-network/cosmos-proto v0.3.0
-	github.com/snikch/goodman v0.0.0-20171125024755-10e37e294daa
+	github.com/prometheus/tsdb v0.9.1 // indirect
+	github.com/regen-network/cosmos-proto v0.1.1-0.20200213154359-02baa11ea7c2
+	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.0.0
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect; indirects
-	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.1
+	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
 	github.com/stretchr/testify v1.6.1
-	github.com/tendermint/btcd v0.1.1
-	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
-	github.com/tendermint/go-amino v0.16.0
-	github.com/tendermint/tendermint v0.34.0-rc4.0.20201005135527-d7d0ffea13c6
-	github.com/tendermint/tm-db v0.6.2
-	github.com/tidwall/gjson v1.6.1
-	github.com/xeipuuv/gojsonschema v1.2.0
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-	google.golang.org/genproto v0.0.0-20200929141702-51c3e5b607fe
-	google.golang.org/grpc v1.32.0
-	google.golang.org/protobuf v1.25.0
+	github.com/tendermint/tendermint v0.33.4
+	github.com/tendermint/tm-db v0.5.1
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/yaml.v2 v2.3.0
 )
 
-replace (
-	// github.com/cosmos/cosmos-sdk => github.com/irisnet/cosmos-sdk v0.34.4-0.20201014023301-f172e47973d0
-	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
-	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
-)
+// forked SDK to avoid breaking changes
+replace github.com/cosmos/cosmos-sdk => github.com/Chainsafe/cosmos-sdk v0.34.4-0.20200622114457-35ea97f29c5f

@@ -1,27 +1,25 @@
 package cli
 
 import (
-	"context"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/client/flags"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/version"
-	"github.com/orientwalt/htdf/x/bank/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 const (
-	FlagDenom = "denom"
+	flagDenom = "denom"
 )
 
-// GetQueryCmd returns the parent command for all x/bank CLi query commands. The
-// provided clientCtx should have, at a minimum, a verifier, Tendermint RPC client,
-// and marshaler set.
-func GetQueryCmd() *cobra.Command {
+// NewQueryCmd returns a root CLI command handler for all x/bank query commands.
+func NewQueryCmd(m codec.Marshaler) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the bank module",
@@ -30,130 +28,163 @@ func GetQueryCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	cmd.AddCommand(
-		GetBalancesCmd(),
-		GetCmdQueryTotalSupply(),
-	)
+	cmd.AddCommand(NewBalancesCmd(m))
 
 	return cmd
 }
 
-func GetBalancesCmd() *cobra.Command {
+// NewBalancesCmd returns a CLI command handler for querying account balance(s).
+func NewBalancesCmd(m codec.Marshaler) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "balances [address]",
-		Short: "Query for account balances by address",
-		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query the total balance of an account or of a specific denomination.
-
-Example:
-  $ %s query %s balances [address]
-  $ %s query %s balances [address] --denom=[denom]
-`,
-				version.AppName, types.ModuleName, version.AppName, types.ModuleName,
-			),
-		),
-		Args: cobra.ExactArgs(1),
+		Short: "Query for account balance(s) by address",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
-			if err != nil {
-				return err
-			}
-
-			denom, err := cmd.Flags().GetString(FlagDenom)
-			if err != nil {
-				return err
-			}
-
-			queryClient := types.NewQueryClient(clientCtx)
+			cliCtx := context.NewCLIContext().WithMarshaler(m)
 
 			addr, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
 
-			pageReq, err := client.ReadPageRequest(cmd.Flags())
+			var (
+				params interface{}
+				result interface{}
+				route  string
+			)
+
+			denom := viper.GetString(flagDenom)
+			if denom == "" {
+				params = types.NewQueryAllBalancesParams(addr)
+				route = fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAllBalances)
+			} else {
+				params = types.NewQueryBalanceParams(addr, denom)
+				route = fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryBalance)
+			}
+
+			bz, err := m.MarshalJSON(params)
+			if err != nil {
+				return fmt.Errorf("failed to marshal params: %w", err)
+			}
+
+			res, _, err := cliCtx.QueryWithData(route, bz)
 			if err != nil {
 				return err
 			}
 
 			if denom == "" {
-				params := types.NewQueryAllBalancesRequest(addr, pageReq)
-
-				res, err := queryClient.AllBalances(context.Background(), params)
-				if err != nil {
+				var balances sdk.Coins
+				if err := m.UnmarshalJSON(res, &balances); err != nil {
 					return err
 				}
-				return clientCtx.PrintOutput(res)
+
+				result = balances
+			} else {
+				var balance sdk.Coin
+				if err := m.UnmarshalJSON(res, &balance); err != nil {
+					return err
+				}
+
+				result = balance
 			}
 
-			params := types.NewQueryBalanceRequest(addr, denom)
-			res, err := queryClient.Balance(context.Background(), params)
-			if err != nil {
-				return err
-			}
-
-			return clientCtx.PrintOutput(res.Balance)
+			return cliCtx.Println(result)
 		},
 	}
 
-	cmd.Flags().String(FlagDenom, "", "The specific balance denomination to query for")
-	flags.AddQueryFlagsToCmd(cmd)
-	flags.AddPaginationFlagsToCmd(cmd, "all balances")
+	cmd.Flags().String(flagDenom, "", "The specific balance denomination to query for")
+
+	return flags.GetCommands(cmd)[0]
+}
+
+// ---------------------------------------------------------------------------
+// Deprecated
+//
+// TODO: Remove once client-side Protobuf migration has been completed.
+// ---------------------------------------------------------------------------
+
+// GetQueryCmd returns the parent querying command for the bank module.
+//
+// TODO: Remove once client-side Protobuf migration has been completed.
+// ref: https://github.com/cosmos/cosmos-sdk/issues/5864
+func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:                        types.ModuleName,
+		Short:                      "Querying commands for the bank module",
+		DisableFlagParsing:         true,
+		SuggestionsMinimumDistance: 2,
+		RunE:                       client.ValidateCmd,
+	}
+
+	cmd.AddCommand(GetBalancesCmd(cdc))
 
 	return cmd
 }
 
-func GetCmdQueryTotalSupply() *cobra.Command {
+// GetAccountCmd returns a CLI command handler that facilitates querying for a
+// single or all account balances by address.
+//
+// TODO: Remove once client-side Protobuf migration has been completed.
+// ref: https://github.com/cosmos/cosmos-sdk/issues/5864
+func GetBalancesCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "total",
-		Short: "Query the total supply of coins of the chain",
-		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query total supply of coins that are held by accounts in the chain.
-
-Example:
-  $ %s query %s total
-
-To query for the total supply of a specific coin denomination use:
-  $ %s query %s total --denom=[denom]
-`,
-				version.AppName, types.ModuleName, version.AppName, types.ModuleName,
-			),
-		),
+		Use:   "balances [address]",
+		Short: "Query for account balances by address",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			addr, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
 
-			denom, err := cmd.Flags().GetString(FlagDenom)
+			var (
+				params interface{}
+				result interface{}
+				route  string
+			)
+
+			denom := viper.GetString(flagDenom)
+			if denom == "" {
+				params = types.NewQueryAllBalancesParams(addr)
+				route = fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAllBalances)
+			} else {
+				params = types.NewQueryBalanceParams(addr, denom)
+				route = fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryBalance)
+			}
+
+			bz, err := cdc.MarshalJSON(params)
+			if err != nil {
+				return fmt.Errorf("failed to marshal params: %w", err)
+			}
+
+			res, _, err := cliCtx.QueryWithData(route, bz)
 			if err != nil {
 				return err
 			}
-
-			queryClient := types.NewQueryClient(clientCtx)
 
 			if denom == "" {
-				res, err := queryClient.TotalSupply(context.Background(), &types.QueryTotalSupplyRequest{})
-				if err != nil {
+				var balances sdk.Coins
+				if err := cdc.UnmarshalJSON(res, &balances); err != nil {
 					return err
 				}
 
-				return clientCtx.PrintOutput(res)
+				result = balances
+			} else {
+				var balance sdk.Coin
+				if err := cdc.UnmarshalJSON(res, &balance); err != nil {
+					return err
+				}
+
+				result = balance
 			}
 
-			res, err := queryClient.SupplyOf(context.Background(), &types.QuerySupplyOfRequest{Denom: denom})
-			if err != nil {
-				return err
-			}
-
-			return clientCtx.PrintOutput(&res.Amount)
+			return cliCtx.PrintOutput(result)
 		},
 	}
 
-	cmd.Flags().String(FlagDenom, "", "The specific balance denomination to query for")
-	flags.AddQueryFlagsToCmd(cmd)
+	cmd.Flags().String(flagDenom, "", "The specific balance denomination to query for")
 
-	return cmd
+	return flags.GetCommands(cmd)[0]
 }

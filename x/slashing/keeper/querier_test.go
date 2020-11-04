@@ -6,20 +6,19 @@ import (
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/simapp"
-	"github.com/orientwalt/htdf/x/slashing/keeper"
-	"github.com/orientwalt/htdf/x/slashing/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/x/slashing/keeper"
+	"github.com/cosmos/cosmos-sdk/x/slashing/types"
 )
 
 func TestNewQuerier(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	app.SlashingKeeper.SetParams(ctx, keeper.TestParams())
-	legacyQuerierCdc := codec.NewAminoCodec(app.LegacyAmino())
-	querier := keeper.NewQuerier(app.SlashingKeeper, legacyQuerierCdc.LegacyAmino)
+
+	querier := keeper.NewQuerier(app.SlashingKeeper)
 
 	query := abci.RequestQuery{
 		Path: "",
@@ -31,13 +30,12 @@ func TestNewQuerier(t *testing.T) {
 }
 
 func TestQueryParams(t *testing.T) {
-	cdc := codec.NewLegacyAmino()
-	legacyQuerierCdc := codec.NewAminoCodec(cdc)
+	cdc := codec.New()
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	app.SlashingKeeper.SetParams(ctx, keeper.TestParams())
 
-	querier := keeper.NewQuerier(app.SlashingKeeper, legacyQuerierCdc.LegacyAmino)
+	querier := keeper.NewQuerier(app.SlashingKeeper)
 
 	query := abci.RequestQuery{
 		Path: "",

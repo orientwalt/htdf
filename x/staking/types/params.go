@@ -8,9 +8,9 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	paramtypes "github.com/orientwalt/htdf/x/params/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // Staking params default values
@@ -26,29 +26,27 @@ const (
 	// Default maximum entries in a UBD/RED pair
 	DefaultMaxEntries uint32 = 7
 
-	// DefaultHistorical entries is 100. Apps that don't use IBC can ignore this
-	// value by not adding the staking module to the application module manager's
-	// SetOrderBeginBlockers.
-	DefaultHistoricalEntries uint32 = 100
+	// DefaultHistorical entries is 0 since it must only be non-zero for
+	// IBC connected chains
+	DefaultHistoricalEntries uint32 = 0
 )
 
+// nolint - Keys for parameter access
 var (
 	KeyUnbondingTime     = []byte("UnbondingTime")
 	KeyMaxValidators     = []byte("MaxValidators")
-	KeyMaxEntries        = []byte("MaxEntries")
+	KeyMaxEntries        = []byte("KeyMaxEntries")
 	KeyBondDenom         = []byte("BondDenom")
 	KeyHistoricalEntries = []byte("HistoricalEntries")
 )
 
 var _ paramtypes.ParamSet = (*Params)(nil)
 
-// ParamTable for staking module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
-
 // NewParams creates a new Params instance
-func NewParams(unbondingTime time.Duration, maxValidators, maxEntries, historicalEntries uint32, bondDenom string) Params {
+func NewParams(
+	unbondingTime time.Duration, maxValidators, maxEntries, historicalEntries uint32, bondDenom string,
+) Params {
+
 	return Params{
 		UnbondingTime:     unbondingTime,
 		MaxValidators:     maxValidators,
@@ -87,22 +85,20 @@ func (p Params) String() string {
 }
 
 // unmarshal the current staking params value from store key or panic
-func MustUnmarshalParams(cdc *codec.LegacyAmino, value []byte) Params {
+func MustUnmarshalParams(cdc *codec.Codec, value []byte) Params {
 	params, err := UnmarshalParams(cdc, value)
 	if err != nil {
 		panic(err)
 	}
-
 	return params
 }
 
 // unmarshal the current staking params value from store key
-func UnmarshalParams(cdc *codec.LegacyAmino, value []byte) (params Params, err error) {
+func UnmarshalParams(cdc *codec.Codec, value []byte) (params Params, err error) {
 	err = cdc.UnmarshalBinaryBare(value, &params)
 	if err != nil {
 		return
 	}
-
 	return
 }
 
@@ -111,15 +107,12 @@ func (p Params) Validate() error {
 	if err := validateUnbondingTime(p.UnbondingTime); err != nil {
 		return err
 	}
-
 	if err := validateMaxValidators(p.MaxValidators); err != nil {
 		return err
 	}
-
 	if err := validateMaxEntries(p.MaxEntries); err != nil {
 		return err
 	}
-
 	if err := validateBondDenom(p.BondDenom); err != nil {
 		return err
 	}
@@ -184,7 +177,6 @@ func validateBondDenom(i interface{}) error {
 	if strings.TrimSpace(v) == "" {
 		return errors.New("bond denom cannot be blank")
 	}
-
 	if err := sdk.ValidateDenom(v); err != nil {
 		return err
 	}

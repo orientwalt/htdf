@@ -1,102 +1,98 @@
 package ante_test
 
 import (
-	"github.com/orientwalt/htdf/testutil/testdata"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/auth/ante"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/ante"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
-func (suite *AnteTestSuite) TestEnsureMempoolFees() {
-	suite.SetupTest(true) // setup
-	suite.txBuilder = suite.clientCtx.TxConfig.NewTxBuilder()
+func TestEnsureMempoolFees(t *testing.T) {
+	// setup
+	_, ctx := createTestApp(true)
 
 	mfd := ante.NewMempoolFeeDecorator()
 	antehandler := sdk.ChainAnteDecorators(mfd)
 
 	// keys and addresses
-	priv1, _, addr1 := testdata.KeyTestPubAddr()
+	priv1, _, addr1 := types.KeyTestPubAddr()
 
 	// msg and signatures
-	msg := testdata.NewTestMsg(addr1)
-	feeAmount := testdata.NewTestFeeAmount()
-	gasLimit := testdata.NewTestGasLimit()
-	suite.Require().NoError(suite.txBuilder.SetMsgs(msg))
-	suite.txBuilder.SetFeeAmount(feeAmount)
-	suite.txBuilder.SetGasLimit(gasLimit)
+	msg1 := types.NewTestMsg(addr1)
+	fee := types.NewTestStdFee()
 
-	privs, accNums, accSeqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
-	tx, err := suite.CreateTestTx(privs, accNums, accSeqs, suite.ctx.ChainID())
-	suite.Require().NoError(err)
+	msgs := []sdk.Msg{msg1}
+
+	privs, accNums, seqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
+	tx := types.NewTestTx(ctx, msgs, privs, accNums, seqs, fee)
 
 	// Set high gas price so standard test fee fails
 	atomPrice := sdk.NewDecCoinFromDec("atom", sdk.NewDec(200).Quo(sdk.NewDec(100000)))
 	highGasPrice := []sdk.DecCoin{atomPrice}
-	suite.ctx = suite.ctx.WithMinGasPrices(highGasPrice)
+	ctx = ctx.WithMinGasPrices(highGasPrice)
 
 	// Set IsCheckTx to true
-	suite.ctx = suite.ctx.WithIsCheckTx(true)
+	ctx = ctx.WithIsCheckTx(true)
 
 	// antehandler errors with insufficient fees
-	_, err = antehandler(suite.ctx, tx, false)
-	suite.Require().NotNil(err, "Decorator should have errored on too low fee for local gasPrice")
+	_, err := antehandler(ctx, tx, false)
+	require.NotNil(t, err, "Decorator should have errored on too low fee for local gasPrice")
 
 	// Set IsCheckTx to false
-	suite.ctx = suite.ctx.WithIsCheckTx(false)
+	ctx = ctx.WithIsCheckTx(false)
 
 	// antehandler should not error since we do not check minGasPrice in DeliverTx
-	_, err = antehandler(suite.ctx, tx, false)
-	suite.Require().Nil(err, "MempoolFeeDecorator returned error in DeliverTx")
+	_, err = antehandler(ctx, tx, false)
+	require.Nil(t, err, "MempoolFeeDecorator returned error in DeliverTx")
 
 	// Set IsCheckTx back to true for testing sufficient mempool fee
-	suite.ctx = suite.ctx.WithIsCheckTx(true)
+	ctx = ctx.WithIsCheckTx(true)
 
 	atomPrice = sdk.NewDecCoinFromDec("atom", sdk.NewDec(0).Quo(sdk.NewDec(100000)))
 	lowGasPrice := []sdk.DecCoin{atomPrice}
-	suite.ctx = suite.ctx.WithMinGasPrices(lowGasPrice)
+	ctx = ctx.WithMinGasPrices(lowGasPrice)
 
-	_, err = antehandler(suite.ctx, tx, false)
-	suite.Require().Nil(err, "Decorator should not have errored on fee higher than local gasPrice")
+	_, err = antehandler(ctx, tx, false)
+	require.Nil(t, err, "Decorator should not have errored on fee higher than local gasPrice")
 }
 
-func (suite *AnteTestSuite) TestDeductFees() {
-	suite.SetupTest(true) // setup
-	suite.txBuilder = suite.clientCtx.TxConfig.NewTxBuilder()
+func TestDeductFees(t *testing.T) {
+	// setup
+	app, ctx := createTestApp(true)
 
 	// keys and addresses
-	priv1, _, addr1 := testdata.KeyTestPubAddr()
+	priv1, _, addr1 := types.KeyTestPubAddr()
 
 	// msg and signatures
-	msg := testdata.NewTestMsg(addr1)
-	feeAmount := testdata.NewTestFeeAmount()
-	gasLimit := testdata.NewTestGasLimit()
-	suite.Require().NoError(suite.txBuilder.SetMsgs(msg))
-	suite.txBuilder.SetFeeAmount(feeAmount)
-	suite.txBuilder.SetGasLimit(gasLimit)
+	msg1 := types.NewTestMsg(addr1)
+	fee := types.NewTestStdFee()
 
-	privs, accNums, accSeqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
-	tx, err := suite.CreateTestTx(privs, accNums, accSeqs, suite.ctx.ChainID())
-	suite.Require().NoError(err)
+	msgs := []sdk.Msg{msg1}
+
+	privs, accNums, seqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
+	tx := types.NewTestTx(ctx, msgs, privs, accNums, seqs, fee)
 
 	// Set account with insufficient funds
-	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
-	suite.app.BankKeeper.SetBalances(suite.ctx, addr1, sdk.NewCoins(sdk.NewCoin("atom", sdk.NewInt(10))))
+	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
+	app.AccountKeeper.SetAccount(ctx, acc)
+	app.BankKeeper.SetBalances(ctx, addr1, sdk.NewCoins(sdk.NewCoin("atom", sdk.NewInt(10))))
 
-	dfd := ante.NewDeductFeeDecorator(suite.app.AccountKeeper, suite.app.BankKeeper)
+	dfd := ante.NewDeductFeeDecorator(app.AccountKeeper, app.SupplyKeeper)
 	antehandler := sdk.ChainAnteDecorators(dfd)
 
-	_, err = antehandler(suite.ctx, tx, false)
+	_, err := antehandler(ctx, tx, false)
 
-	suite.Require().NotNil(err, "Tx did not error when fee payer had insufficient funds")
+	require.NotNil(t, err, "Tx did not error when fee payer had insufficient funds")
 
 	// Set account with sufficient funds
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
-	suite.app.BankKeeper.SetBalances(suite.ctx, addr1, sdk.NewCoins(sdk.NewCoin("atom", sdk.NewInt(200))))
+	app.AccountKeeper.SetAccount(ctx, acc)
+	app.BankKeeper.SetBalances(ctx, addr1, sdk.NewCoins(sdk.NewCoin("atom", sdk.NewInt(200))))
 
-	_, err = antehandler(suite.ctx, tx, false)
+	_, err = antehandler(ctx, tx, false)
 
-	suite.Require().Nil(err, "Tx errored after account has been set with sufficient funds")
+	require.Nil(t, err, "Tx errored after account has been set with sufficient funds")
 }

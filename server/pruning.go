@@ -1,40 +1,25 @@
 package server
 
 import (
-	"fmt"
-	"strings"
+	"github.com/spf13/viper"
 
-	"github.com/spf13/cast"
-
-	"github.com/orientwalt/htdf/server/types"
-	"github.com/orientwalt/htdf/store"
-	storetypes "github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store"
 )
 
-// GetPruningOptionsFromFlags parses command flags and returns the correct
-// PruningOptions. If a pruning strategy is provided, that will be parsed and
-// returned, otherwise, it is assumed custom pruning options are provided.
-func GetPruningOptionsFromFlags(appOpts types.AppOptions) (storetypes.PruningOptions, error) {
-	strategy := strings.ToLower(cast.ToString(appOpts.Get(FlagPruning)))
-
-	switch strategy {
-	case storetypes.PruningOptionDefault, storetypes.PruningOptionNothing, storetypes.PruningOptionEverything:
-		return storetypes.NewPruningOptionsFromString(strategy), nil
-
-	case storetypes.PruningOptionCustom:
-		opts := storetypes.NewPruningOptions(
-			cast.ToUint64(appOpts.Get(FlagPruningKeepRecent)),
-			cast.ToUint64(appOpts.Get(FlagPruningKeepEvery)),
-			cast.ToUint64(appOpts.Get(FlagPruningInterval)),
-		)
-
-		if err := opts.Validate(); err != nil {
-			return opts, fmt.Errorf("invalid custom pruning options: %w", err)
-		}
-
-		return opts, nil
-
-	default:
-		return store.PruningOptions{}, fmt.Errorf("unknown pruning strategy %s", strategy)
+// GetPruningOptionsFromFlags parses start command flags and returns the correct PruningOptions.
+// flagPruning prevails over flagPruningKeepEvery and flagPruningSnapshotEvery.
+// Default option is PruneSyncable.
+func GetPruningOptionsFromFlags() store.PruningOptions {
+	if viper.IsSet(flagPruning) {
+		return store.NewPruningOptionsFromString(viper.GetString(flagPruning))
 	}
+
+	if viper.IsSet(flagPruningKeepEvery) && viper.IsSet(flagPruningSnapshotEvery) {
+		return store.PruningOptions{
+			KeepEvery:     viper.GetInt64(flagPruningKeepEvery),
+			SnapshotEvery: viper.GetInt64(flagPruningSnapshotEvery),
+		}
+	}
+
+	return store.PruneSyncable
 }

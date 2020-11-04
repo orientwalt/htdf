@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestCommissionValidate(t *testing.T) {

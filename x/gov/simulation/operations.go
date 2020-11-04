@@ -5,15 +5,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/orientwalt/htdf/baseapp"
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/simapp/helpers"
-	simappparams "github.com/orientwalt/htdf/simapp/params"
-	sdk "github.com/orientwalt/htdf/types"
-	simtypes "github.com/orientwalt/htdf/types/simulation"
-	"github.com/orientwalt/htdf/x/gov/keeper"
-	"github.com/orientwalt/htdf/x/gov/types"
-	"github.com/orientwalt/htdf/x/simulation"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp/helpers"
+	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/gov/keeper"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/x/simulation"
 )
 
 var initialProposalID = uint64(100000000000000)
@@ -26,7 +26,7 @@ const (
 
 // WeightedOperations returns all the operations from the module with their respective weights
 func WeightedOperations(
-	appParams simtypes.AppParams, cdc codec.JSONMarshaler, ak types.AccountKeeper,
+	appParams simtypes.AppParams, cdc *codec.Codec, ak types.AccountKeeper,
 	bk types.BankKeeper, k keeper.Keeper, wContents []simtypes.WeightedProposalContent,
 ) simulation.WeightedOperations {
 
@@ -60,7 +60,7 @@ func WeightedOperations(
 			wProposalOps,
 			simulation.NewWeightedOperation(
 				weight,
-				SimulateMsgSubmitProposal(ak, bk, k, wContent.ContentSimulatorFn()),
+				SimulateSubmitProposal(ak, bk, k, wContent.ContentSimulatorFn()),
 			),
 		)
 	}
@@ -82,7 +82,7 @@ func WeightedOperations(
 // SimulateSubmitProposal simulates creating a msg Submit Proposal
 // voting on the proposal, and subsequently slashing the proposal. It is implemented using
 // future operations.
-func SimulateMsgSubmitProposal(
+func SimulateSubmitProposal(
 	ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper, contentSim simtypes.ContentSimulatorFn,
 ) simtypes.Operation {
 	// The states are:
@@ -113,22 +113,19 @@ func SimulateMsgSubmitProposal(
 		// 1) submit proposal now
 		content := contentSim(r, ctx, accs)
 		if content == nil {
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSubmitProposal, "content is nil"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName), nil, nil
 		}
 
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 		deposit, skip, err := randomDeposit(r, ctx, ak, bk, k, simAccount.Address)
 		switch {
 		case skip:
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSubmitProposal, "skip deposit"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName), nil, nil
 		case err != nil:
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSubmitProposal, "unable to generate deposit"), nil, err
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
 		}
 
-		msg, err := types.NewMsgSubmitProposal(content, deposit, simAccount.Address)
-		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate a submit proposal msg"), nil, err
-		}
+		msg := types.NewMsgSubmitProposal(content, deposit, simAccount.Address)
 
 		account := ak.GetAccount(ctx, simAccount.Address)
 		spendable := bk.SpendableCoins(ctx, account.GetAddress())
@@ -138,13 +135,11 @@ func SimulateMsgSubmitProposal(
 		if !hasNeg {
 			fees, err = simtypes.RandomFees(r, ctx, coins)
 			if err != nil {
-				return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate fees"), nil, err
+				return simtypes.NoOpMsg(types.ModuleName), nil, err
 			}
 		}
 
-		txGen := simappparams.MakeEncodingConfig().TxConfig
-		tx, err := helpers.GenTx(
-			txGen,
+		tx := helpers.GenTx(
 			[]sdk.Msg{msg},
 			fees,
 			helpers.DefaultGenTxGas,
@@ -153,13 +148,10 @@ func SimulateMsgSubmitProposal(
 			[]uint64{account.GetSequence()},
 			simAccount.PrivKey,
 		)
-		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate mock tx"), nil, err
-		}
 
 		_, _, err = app.Deliver(tx)
 		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to deliver tx"), nil, err
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
 		}
 
 		opMsg := simtypes.NewOperationMsg(msg, true, "")
@@ -167,7 +159,7 @@ func SimulateMsgSubmitProposal(
 		// get the submitted proposal ID
 		proposalID, err := k.GetProposalID(ctx)
 		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate proposalID"), nil, err
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
 		}
 
 		// 2) Schedule operations for votes
@@ -204,15 +196,15 @@ func SimulateMsgDeposit(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Ke
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 		proposalID, ok := randomProposalID(r, k, ctx, types.StatusDepositPeriod)
 		if !ok {
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgDeposit, "unable to generate proposalID"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName), nil, nil
 		}
 
 		deposit, skip, err := randomDeposit(r, ctx, ak, bk, k, simAccount.Address)
 		switch {
 		case skip:
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgDeposit, "skip deposit"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName), nil, nil
 		case err != nil:
-			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgDeposit, "unable to generate deposit"), nil, err
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
 		}
 
 		msg := types.NewMsgDeposit(simAccount.Address, proposalID, deposit)
@@ -225,13 +217,11 @@ func SimulateMsgDeposit(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Ke
 		if !hasNeg {
 			fees, err = simtypes.RandomFees(r, ctx, coins)
 			if err != nil {
-				return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate fees"), nil, err
+				return simtypes.NoOpMsg(types.ModuleName), nil, err
 			}
 		}
 
-		txGen := simappparams.MakeEncodingConfig().TxConfig
-		tx, err := helpers.GenTx(
-			txGen,
+		tx := helpers.GenTx(
 			[]sdk.Msg{msg},
 			fees,
 			helpers.DefaultGenTxGas,
@@ -240,12 +230,10 @@ func SimulateMsgDeposit(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Ke
 			[]uint64{account.GetSequence()},
 			simAccount.PrivKey,
 		)
-		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate mock tx"), nil, err
-		}
+
 		_, _, err = app.Deliver(tx)
 		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to deliver tx"), nil, err
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
 		}
 
 		return simtypes.NewOperationMsg(msg, true, ""), nil, nil
@@ -274,7 +262,7 @@ func operationSimulateMsgVote(ak types.AccountKeeper, bk types.BankKeeper, k kee
 			var ok bool
 			proposalID, ok = randomProposalID(r, k, ctx, types.StatusVotingPeriod)
 			if !ok {
-				return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgVote, "unable to generate proposalID"), nil, nil
+				return simtypes.NoOpMsg(types.ModuleName), nil, nil
 			}
 		default:
 			proposalID = uint64(proposalIDInt)
@@ -288,12 +276,10 @@ func operationSimulateMsgVote(ak types.AccountKeeper, bk types.BankKeeper, k kee
 
 		fees, err := simtypes.RandomFees(r, ctx, spendable)
 		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate fees"), nil, err
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
 		}
 
-		txGen := simappparams.MakeEncodingConfig().TxConfig
-		tx, err := helpers.GenTx(
-			txGen,
+		tx := helpers.GenTx(
 			[]sdk.Msg{msg},
 			fees,
 			helpers.DefaultGenTxGas,
@@ -302,13 +288,10 @@ func operationSimulateMsgVote(ak types.AccountKeeper, bk types.BankKeeper, k kee
 			[]uint64{account.GetSequence()},
 			simAccount.PrivKey,
 		)
-		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to generate mock tx"), nil, err
-		}
 
 		_, _, err = app.Deliver(tx)
 		if err != nil {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "unable to deliver tx"), nil, err
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
 		}
 
 		return simtypes.NewOperationMsg(msg, true, ""), nil, nil

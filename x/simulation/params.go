@@ -1,17 +1,10 @@
 package simulation
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	"github.com/tendermint/tendermint/types"
-
-	"github.com/orientwalt/htdf/simapp/params"
-	"github.com/orientwalt/htdf/types/simulation"
-	stakingtypes "github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
 )
 
 const (
@@ -148,43 +141,4 @@ func (w WeightedProposalContent) DefaultWeight() int {
 
 func (w WeightedProposalContent) ContentSimulatorFn() simulation.ContentSimulatorFn {
 	return w.contentSimulatorFn
-}
-
-//-----------------------------------------------------------------------------
-// Param change proposals
-
-// RandomParams returns random simulation consensus parameters, it extracts the Evidence from the Staking genesis state.
-func RandomConsensusParams(r *rand.Rand, appState json.RawMessage) *abci.ConsensusParams {
-	cdc := params.MakeEncodingConfig().Marshaler
-
-	var genesisState map[string]json.RawMessage
-
-	err := json.Unmarshal(appState, &genesisState)
-	if err != nil {
-		panic(err)
-	}
-
-	stakingGenesisState := stakingtypes.GetGenesisStateFromAppState(cdc, genesisState)
-
-	consensusParams := &abci.ConsensusParams{
-		Block: &abci.BlockParams{
-			MaxBytes: int64(simulation.RandIntBetween(r, 20000000, 30000000)),
-			MaxGas:   -1,
-		},
-		Validator: &tmproto.ValidatorParams{
-			PubKeyTypes: []string{types.ABCIPubKeyTypeEd25519},
-		},
-		Evidence: &tmproto.EvidenceParams{
-			MaxAgeNumBlocks: int64(stakingGenesisState.Params.UnbondingTime / AverageBlockTime),
-			MaxAgeDuration:  stakingGenesisState.Params.UnbondingTime,
-		},
-	}
-
-	bz, err := json.MarshalIndent(&consensusParams, "", " ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Selected randomly generated consensus parameters:\n%s\n", bz)
-
-	return consensusParams
 }

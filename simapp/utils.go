@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	tmkv "github.com/tendermint/tendermint/libs/kv"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/simapp/helpers"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/kv"
-	"github.com/orientwalt/htdf/types/module"
-	simtypes "github.com/orientwalt/htdf/types/simulation"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp/helpers"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 )
 
 // SetupSimulation creates the config, db (levelDB), temporary directory and logger for
@@ -49,7 +49,7 @@ func SetupSimulation(dirPrefix, dbName string) (simtypes.Config, dbm.DB, string,
 
 // SimulationOperations retrieves the simulation params from the provided file path
 // and returns all the modules weighted operations
-func SimulationOperations(app App, cdc codec.JSONMarshaler, config simtypes.Config) []simtypes.WeightedOperation {
+func SimulationOperations(app App, cdc *codec.Codec, config simtypes.Config) []simtypes.WeightedOperation {
 	simState := module.SimulationState{
 		AppParams: make(simtypes.AppParams),
 		Cdc:       cdc,
@@ -61,10 +61,7 @@ func SimulationOperations(app App, cdc codec.JSONMarshaler, config simtypes.Conf
 			panic(err)
 		}
 
-		err = json.Unmarshal(bz, &simState.AppParams)
-		if err != nil {
-			panic(err)
-		}
+		app.Codec().MustUnmarshalJSON(bz, &simState.AppParams)
 	}
 
 	simState.ParamChanges = app.SimulationManager().GenerateParamChanges(config.Seed)
@@ -79,12 +76,12 @@ func CheckExportSimulation(
 ) error {
 	if config.ExportStatePath != "" {
 		fmt.Println("exporting app state...")
-		exported, err := app.ExportAppStateAndValidators(false, nil)
+		appState, _, err := app.ExportAppStateAndValidators(false, nil)
 		if err != nil {
 			return err
 		}
 
-		if err := ioutil.WriteFile(config.ExportStatePath, []byte(exported.AppState), 0600); err != nil {
+		if err := ioutil.WriteFile(config.ExportStatePath, []byte(appState), 0644); err != nil {
 			return err
 		}
 	}
@@ -96,7 +93,7 @@ func CheckExportSimulation(
 			return err
 		}
 
-		if err := ioutil.WriteFile(config.ExportParamsPath, paramsBz, 0600); err != nil {
+		if err := ioutil.WriteFile(config.ExportParamsPath, paramsBz, 0644); err != nil {
 			return err
 		}
 	}
@@ -112,8 +109,9 @@ func PrintStats(db dbm.DB) {
 
 // GetSimulationLog unmarshals the KVPair's Value to the corresponding type based on the
 // each's module store key and the prefix bytes of the KVPair's key.
-func GetSimulationLog(storeName string, sdr sdk.StoreDecoderRegistry, kvAs, kvBs []kv.Pair) (log string) {
+func GetSimulationLog(storeName string, sdr sdk.StoreDecoderRegistry, cdc *codec.Codec, kvAs, kvBs []tmkv.Pair) (log string) {
 	for i := 0; i < len(kvAs); i++ {
+
 		if len(kvAs[i].Value) == 0 && len(kvBs[i].Value) == 0 {
 			// skip if the value doesn't have any bytes
 			continue
@@ -121,11 +119,11 @@ func GetSimulationLog(storeName string, sdr sdk.StoreDecoderRegistry, kvAs, kvBs
 
 		decoder, ok := sdr[storeName]
 		if ok {
-			log += decoder(kvAs[i], kvBs[i])
+			log += decoder(cdc, kvAs[i], kvBs[i])
 		} else {
 			log += fmt.Sprintf("store A %X => %X\nstore B %X => %X\n", kvAs[i].Key, kvAs[i].Value, kvBs[i].Key, kvBs[i].Value)
 		}
 	}
 
-	return log
+	return
 }

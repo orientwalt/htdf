@@ -3,12 +3,13 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 // GetTxCmd returns the transaction commands for this module
-func GetTxCmd() *cobra.Command {
+func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Auth transaction subcommands",
@@ -17,10 +18,8 @@ func GetTxCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 	txCmd.AddCommand(
-		GetMultiSignCommand(),
-		GetSignCommand(),
-		GetValidateSignaturesCommand(),
-		GetSignBatchCommand(),
+		GetMultiSignCommand(cdc),
+		GetSignCommand(cdc),
 	)
 	return txCmd
 }

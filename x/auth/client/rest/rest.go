@@ -3,7 +3,7 @@ package rest
 import (
 	"github.com/gorilla/mux"
 
-	"github.com/orientwalt/htdf/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // REST query and parameter values
@@ -12,22 +12,22 @@ const (
 )
 
 // RegisterRoutes registers the auth module REST routes.
-func RegisterRoutes(clientCtx client.Context, r *mux.Router, storeName string) {
+func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, storeName string) {
 	r.HandleFunc(
-		"/auth/accounts/{address}", QueryAccountRequestHandlerFn(storeName, clientCtx),
+		"/auth/accounts/{address}", QueryAccountRequestHandlerFn(storeName, cliCtx),
 	).Methods(MethodGet)
 
 	r.HandleFunc(
 		"/auth/params",
-		queryParamsHandler(clientCtx),
+		queryParamsHandler(cliCtx),
 	).Methods(MethodGet)
 }
 
 // RegisterTxRoutes registers all transaction routes on the provided router.
-func RegisterTxRoutes(clientCtx client.Context, r *mux.Router) {
-	r.HandleFunc("/txs/{hash}", QueryTxRequestHandlerFn(clientCtx)).Methods("GET")
-	r.HandleFunc("/txs", QueryTxsRequestHandlerFn(clientCtx)).Methods("GET")
-	r.HandleFunc("/txs", BroadcastTxRequest(clientCtx)).Methods("POST")
-	r.HandleFunc("/txs/encode", EncodeTxRequestHandlerFn(clientCtx)).Methods("POST")
-	r.HandleFunc("/txs/decode", DecodeTxRequestHandlerFn(clientCtx)).Methods("POST")
+func RegisterTxRoutes(cliCtx context.CLIContext, r *mux.Router) {
+	r.HandleFunc("/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/txs", QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/txs", BroadcastTxRequest(cliCtx)).Methods("POST")
+	r.HandleFunc("/txs/encode", EncodeTxRequestHandlerFn(cliCtx)).Methods("POST")
+	r.HandleFunc("/txs/decode", DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
 }

@@ -3,9 +3,9 @@ package simulation
 import (
 	"math/rand"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/simulation"
-	"github.com/orientwalt/htdf/x/params/types/proposal"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 )
 
 // SimulateParamChangeProposalContent returns random parameter change content.

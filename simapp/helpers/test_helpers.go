@@ -6,11 +6,9 @@ import (
 
 	"github.com/tendermint/tendermint/crypto"
 
-	"github.com/orientwalt/htdf/client"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/simulation"
-	"github.com/orientwalt/htdf/types/tx/signing"
-	authsign "github.com/orientwalt/htdf/x/auth/signing"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 // SimAppChainID hardcoded chainID for simulation
@@ -20,62 +18,31 @@ const (
 )
 
 // GenTx generates a signed mock transaction.
-func GenTx(gen client.TxConfig, msgs []sdk.Msg, feeAmt sdk.Coins, gas uint64, chainID string, accNums, accSeqs []uint64, priv ...crypto.PrivKey) (sdk.Tx, error) {
-	sigs := make([]signing.SignatureV2, len(priv))
+func GenTx(msgs []sdk.Msg, feeAmt sdk.Coins, gas uint64, chainID string, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) auth.StdTx {
+	fee := auth.StdFee{
+		Amount: feeAmt,
+		Gas:    gas,
+	}
+
+	sigs := make([]auth.StdSignature, len(priv))
 
 	// create a random length memo
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	memo := simulation.RandStringOfLength(r, simulation.RandIntBetween(r, 0, 100))
 
-	signMode := gen.SignModeHandler().DefaultMode()
-
-	// 1st round: set SignatureV2 with empty signatures, to set correct
-	// signer infos.
 	for i, p := range priv {
-		sigs[i] = signing.SignatureV2{
-			PubKey: p.PubKey(),
-			Data: &signing.SingleSignatureData{
-				SignMode: signMode,
-			},
-			Sequence: accSeqs[i],
-		}
-	}
-
-	tx := gen.NewTxBuilder()
-	err := tx.SetMsgs(msgs...)
-	if err != nil {
-		return nil, err
-	}
-	err = tx.SetSignatures(sigs...)
-	if err != nil {
-		return nil, err
-	}
-	tx.SetMemo(memo)
-	tx.SetFeeAmount(feeAmt)
-	tx.SetGasLimit(gas)
-
-	// 2nd round: once all signer infos are set, every signer can sign.
-	for i, p := range priv {
-		signerData := authsign.SignerData{
-			ChainID:       chainID,
-			AccountNumber: accNums[i],
-			Sequence:      accSeqs[i],
-		}
-		signBytes, err := gen.SignModeHandler().GetSignBytes(signMode, signerData, tx.GetTx())
+		// use a empty chainID for ease of testing
+		sig, err := p.Sign(auth.StdSignBytes(chainID, accnums[i], seq[i], fee, msgs, memo))
 		if err != nil {
 			panic(err)
 		}
-		sig, err := p.Sign(signBytes)
-		if err != nil {
-			panic(err)
-		}
-		sigs[i].Data.(*signing.SingleSignatureData).Signature = sig
-		err = tx.SetSignatures(sigs...)
-		if err != nil {
-			panic(err)
+
+		sigs[i] = auth.StdSignature{
+			PubKey:    p.PubKey().Bytes(),
+			Signature: sig,
 		}
 	}
 
-	return tx.GetTx(), nil
+	return auth.NewStdTx(msgs, fee, sigs, memo)
 }

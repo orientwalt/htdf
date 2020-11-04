@@ -3,10 +3,10 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/orientwalt/htdf/x/distribution/types"
-	"github.com/orientwalt/htdf/x/staking/exported"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/exported"
 )
 
 // initialize starting info for a new delegation
@@ -100,7 +100,7 @@ func (k Keeper) CalculateDelegationRewards(ctx sdk.Context, val exported.Validat
 	currentStake := val.TokensFromShares(del.GetShares())
 
 	if stake.GT(currentStake) {
-		// AccountI for rounding inconsistencies between:
+		// Account for rounding inconsistencies between:
 		//
 		//     currentStake: calculated as in staking with a single computation
 		//     stake:        calculated as an accumulation of stake
@@ -163,7 +163,7 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val exported.Validato
 	// add coins to user account
 	if !coins.IsZero() {
 		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, del.GetDelegatorAddr())
-		err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
+		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
 		if err != nil {
 			return nil, err
 		}

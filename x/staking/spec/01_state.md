@@ -290,7 +290,7 @@ the `n` most recent historical info defined by staking module parameter: `Histor
 
 ```go
 type HistoricalInfo struct {
-    Header tmproto.Header
+    Header abci.Header
     ValSet []types.Validator
 }
 ```

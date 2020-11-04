@@ -58,13 +58,12 @@ will only be executable once on a particular blockchain.
 `json.RawMessage` is preferred over using the SDK types for future compatibility.
 
 ```go
-type StdSignMsg struct {
-  ChainID       string
+type StdSignDoc struct {
   AccountNumber uint64
-  Sequence      uint64
-  TimeoutHeight uint64
-  Fee           StdFee
-  Msgs          []sdk.Msg
+  ChainID       string
+  Fee           json.RawMessage
   Memo          string
+  Msgs          []json.RawMessage
+  Sequence      uint64
 }
 ```

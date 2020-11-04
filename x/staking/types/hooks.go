@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // combine multiple staking hooks, all hook functions are run in array sequence
@@ -11,6 +11,7 @@ func NewMultiStakingHooks(hooks ...StakingHooks) MultiStakingHooks {
 	return hooks
 }
 
+// nolint
 func (h MultiStakingHooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 	for i := range h {
 		h[i].AfterValidatorCreated(ctx, valAddr)

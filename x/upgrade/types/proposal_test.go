@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/codec"
-	gov "github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 )
 
 type ProposalWrapper struct {
@@ -42,9 +42,9 @@ func TestContentAccessors(t *testing.T) {
 		},
 	}
 
-	cdc := codec.NewLegacyAmino()
-	gov.RegisterLegacyAminoCodec(cdc)
-	RegisterLegacyAminoCodec(cdc)
+	cdc := codec.New()
+	gov.RegisterCodec(cdc)
+	RegisterCodec(cdc)
 
 	for name, tc := range cases {
 		tc := tc // copy to local variable for scopelint

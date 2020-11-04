@@ -1,9 +1,9 @@
 package exported
 
 import (
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	sdk "github.com/orientwalt/htdf/types"
+	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 )
 
 // Evidence defines the contract which concrete evidence types of misbehavior
@@ -15,17 +15,11 @@ type Evidence interface {
 	Hash() tmbytes.HexBytes
 	ValidateBasic() error
 
-	// Height at which the infraction occurred
-	GetHeight() int64
-}
-
-// ValidatorEvidence extends Evidence interface to define contract
-// for evidence against malicious validators
-type ValidatorEvidence interface {
-	Evidence
-
 	// The consensus address of the malicious validator at time of infraction
 	GetConsensusAddress() sdk.ConsAddress
+
+	// Height at which the infraction occurred
+	GetHeight() int64
 
 	// The total power of the malicious validator at time of infraction
 	GetValidatorPower() int64

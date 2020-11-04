@@ -4,23 +4,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/evidence/exported"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
-func testMsgSubmitEvidence(t *testing.T, e exported.Evidence, s sdk.AccAddress) exported.MsgSubmitEvidence {
-	msg, err := types.NewMsgSubmitEvidence(s, e)
+func testMsgSubmitEvidence(t *testing.T, e exported.Evidence, s sdk.AccAddress) codecstd.MsgSubmitEvidence {
+	msg, err := codecstd.NewMsgSubmitEvidence(e, s)
 	require.NoError(t, err)
 	return msg
 }
 
 func TestMsgSubmitEvidence(t *testing.T) {
 	pk := ed25519.GenPrivKey()
-	submitter := sdk.AccAddress("test________________")
+	submitter := sdk.AccAddress("test")
 
 	testCases := []struct {
 		msg       sdk.Msg
@@ -28,11 +29,16 @@ func TestMsgSubmitEvidence(t *testing.T) {
 		expectErr bool
 	}{
 		{
+			types.NewMsgSubmitEvidenceBase(submitter),
+			submitter,
+			false,
+		},
+		{
 			testMsgSubmitEvidence(t, &types.Equivocation{
 				Height:           0,
 				Power:            100,
 				Time:             time.Now().UTC(),
-				ConsensusAddress: pk.PubKey().Address().String(),
+				ConsensusAddress: pk.PubKey().Address().Bytes(),
 			}, submitter),
 			submitter,
 			true,
@@ -42,7 +48,7 @@ func TestMsgSubmitEvidence(t *testing.T) {
 				Height:           10,
 				Power:            100,
 				Time:             time.Now().UTC(),
-				ConsensusAddress: pk.PubKey().Address().String(),
+				ConsensusAddress: pk.PubKey().Address().Bytes(),
 			}, submitter),
 			submitter,
 			false,

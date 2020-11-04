@@ -1,25 +1,16 @@
 package types
 
 import (
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/codec/types"
-	cryptocodec "github.com/orientwalt/htdf/crypto/codec"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-// RegisterLegacyAminoCodec registers concrete types on LegacyAmino codec
-func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	cdc.RegisterConcrete(&MsgUnjail{}, "cosmos-sdk/MsgUnjail", nil)
-}
-
-func RegisterInterfaces(registry types.InterfaceRegistry) {
-	registry.RegisterImplementations((*sdk.Msg)(nil),
-		&MsgUnjail{},
-	)
+// RegisterCodec registers concrete types on codec
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(MsgUnjail{}, "cosmos-sdk/MsgUnjail", nil)
 }
 
 var (
-	amino = codec.NewLegacyAmino()
+	amino = codec.New()
 
 	// ModuleCdc references the global x/slashing module codec. Note, the codec
 	// should ONLY be used in certain instances of tests and for JSON encoding as Amino
@@ -27,11 +18,11 @@ var (
 	//
 	// The actual codec used for serialization should be provided to x/slashing and
 	// defined at the application level.
-	ModuleCdc = codec.NewAminoCodec(amino)
+	ModuleCdc = codec.NewHybridCodec(amino)
 )
 
 func init() {
-	RegisterLegacyAminoCodec(amino)
-	cryptocodec.RegisterCrypto(amino)
+	RegisterCodec(amino)
+	codec.RegisterCrypto(amino)
 	amino.Seal()
 }

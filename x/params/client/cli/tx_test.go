@@ -1,18 +1,20 @@
 package cli
 
 import (
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/testutil"
-	"github.com/orientwalt/htdf/x/params/client/utils"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/params/client/utils"
 )
 
 func TestParseProposal(t *testing.T) {
-	cdc := codec.NewLegacyAmino()
-	okJSON, cleanup := testutil.WriteToNewTempFile(t, `
+	cdc := codec.New()
+	okJSON, err := ioutil.TempFile("", "proposal")
+	require.Nil(t, err, "unexpected error")
+	_, err = okJSON.WriteString(`
 {
   "title": "Staking Param Change",
   "description": "Update max validators",
@@ -26,7 +28,7 @@ func TestParseProposal(t *testing.T) {
   "deposit": "1000stake"
 }
 `)
-	t.Cleanup(cleanup)
+	require.NoError(t, err)
 
 	proposal, err := utils.ParseParamChangeProposalJSON(cdc, okJSON.Name())
 	require.NoError(t, err)

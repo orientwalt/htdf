@@ -4,22 +4,18 @@ import (
 	"strings"
 	"testing"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-
-	"github.com/orientwalt/htdf/testutil/testdata"
-
 	"github.com/stretchr/testify/require"
+	abci "github.com/tendermint/tendermint/abci/types"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/gov"
-	"github.com/orientwalt/htdf/x/gov/keeper"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 )
 
 func TestInvalidMsg(t *testing.T) {
-	k := keeper.Keeper{}
+	k := gov.Keeper{}
 	h := gov.NewHandler(k)
 
-	res, err := h(sdk.NewContext(nil, tmproto.Header{}, false, nil), testdata.NewTestMsg())
+	res, err := h(sdk.NewContext(nil, abci.Header{}, false, nil), sdk.NewTestMsg())
 	require.Error(t, err)
 	require.Nil(t, res)
 	require.True(t, strings.Contains(err.Error(), "unrecognized gov message type"))

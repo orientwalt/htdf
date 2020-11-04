@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/simulation"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
 )
 
 // AppModuleSimulation defines the standard functions that every module should expose
@@ -99,7 +99,7 @@ func (sm *SimulationManager) WeightedOperations(simState SimulationState) []simu
 // GenesisState generator function
 type SimulationState struct {
 	AppParams    simulation.AppParams
-	Cdc          codec.JSONMarshaler                  // application codec
+	Cdc          *codec.Codec                         // application codec
 	Rand         *rand.Rand                           // random number
 	GenState     map[string]json.RawMessage           // genesis state
 	Accounts     []simulation.Account                 // simulation accounts

@@ -7,48 +7,35 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/auth/types"
-	paramtypes "github.com/orientwalt/htdf/x/params/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // AccountKeeper encodes/decodes accounts using the go-amino (binary)
 // encoding/decoding library.
 type AccountKeeper struct {
 	key           sdk.StoreKey
-	cdc           codec.BinaryMarshaler
+	cdc           types.Codec
 	paramSubspace paramtypes.Subspace
-	permAddrs     map[string]types.PermissionsForAddress
 
-	// The prototypical AccountI constructor.
-	proto func() types.AccountI
+	// The prototypical Account constructor.
+	proto func() exported.Account
 }
 
 // NewAccountKeeper returns a new sdk.AccountKeeper that uses go-amino to
 // (binary) encode and decode concrete sdk.Accounts.
 func NewAccountKeeper(
-	cdc codec.BinaryMarshaler, key sdk.StoreKey, paramstore paramtypes.Subspace, proto func() types.AccountI,
-	maccPerms map[string][]string,
+	cdc types.Codec, key sdk.StoreKey, paramstore paramtypes.Subspace, proto func() exported.Account,
 ) AccountKeeper {
-
-	// set KeyTable if it has not already been set
-	if !paramstore.HasKeyTable() {
-		paramstore = paramstore.WithKeyTable(types.ParamKeyTable())
-	}
-
-	permAddrs := make(map[string]types.PermissionsForAddress)
-	for name, perms := range maccPerms {
-		permAddrs[name] = types.NewPermissionsForAddress(name, perms)
-	}
 
 	return AccountKeeper{
 		key:           key,
 		proto:         proto,
 		cdc:           cdc,
-		paramSubspace: paramstore,
-		permAddrs:     permAddrs,
+		paramSubspace: paramstore.WithKeyTable(types.ParamKeyTable()),
 	}
 }
 
@@ -104,102 +91,11 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	return accNumber
 }
 
-// ValidatePermissions validates that the module account has been granted
-// permissions within its set of allowed permissions.
-func (ak AccountKeeper) ValidatePermissions(macc types.ModuleAccountI) error {
-	permAddr := ak.permAddrs[macc.GetName()]
-	for _, perm := range macc.GetPermissions() {
-		if !permAddr.HasPermission(perm) {
-			return fmt.Errorf("invalid module permission %s", perm)
-		}
-	}
-
-	return nil
-}
-
-// GetModuleAddress returns an address based on the module name
-func (ak AccountKeeper) GetModuleAddress(moduleName string) sdk.AccAddress {
-	permAddr, ok := ak.permAddrs[moduleName]
-	if !ok {
-		return nil
-	}
-
-	return permAddr.GetAddress()
-}
-
-// GetModuleAddressAndPermissions returns an address and permissions based on the module name
-func (ak AccountKeeper) GetModuleAddressAndPermissions(moduleName string) (addr sdk.AccAddress, permissions []string) {
-	permAddr, ok := ak.permAddrs[moduleName]
-	if !ok {
-		return addr, permissions
-	}
-
-	return permAddr.GetAddress(), permAddr.GetPermissions()
-}
-
-// GetModuleAccountAndPermissions gets the module account from the auth account store and its
-// registered permissions
-func (ak AccountKeeper) GetModuleAccountAndPermissions(ctx sdk.Context, moduleName string) (types.ModuleAccountI, []string) {
-	addr, perms := ak.GetModuleAddressAndPermissions(moduleName)
-	if addr == nil {
-		return nil, []string{}
-	}
-
-	acc := ak.GetAccount(ctx, addr)
-	if acc != nil {
-		macc, ok := acc.(types.ModuleAccountI)
-		if !ok {
-			panic("account is not a module account")
-		}
-		return macc, perms
-	}
-
-	// create a new module account
-	macc := types.NewEmptyModuleAccount(moduleName, perms...)
-	maccI := (ak.NewAccount(ctx, macc)).(types.ModuleAccountI) // set the account number
-	ak.SetModuleAccount(ctx, maccI)
-
-	return maccI, perms
-}
-
-// GetModuleAccount gets the module account from the auth account store, if the account does not
-// exist in the AccountKeeper, then it is created.
-func (ak AccountKeeper) GetModuleAccount(ctx sdk.Context, moduleName string) types.ModuleAccountI {
-	acc, _ := ak.GetModuleAccountAndPermissions(ctx, moduleName)
-	return acc
-}
-
-// SetModuleAccount sets the module account to the auth account store
-func (ak AccountKeeper) SetModuleAccount(ctx sdk.Context, macc types.ModuleAccountI) { //nolint:interfacer
-	ak.SetAccount(ctx, macc)
-}
-
-func (ak AccountKeeper) decodeAccount(bz []byte) types.AccountI {
-	acc, err := ak.UnmarshalAccount(bz)
+func (ak AccountKeeper) decodeAccount(bz []byte) exported.Account {
+	acc, err := ak.cdc.UnmarshalAccount(bz)
 	if err != nil {
 		panic(err)
 	}
 
 	return acc
 }
-
-// MarshalAccount marshals an Account interface. If the given type implements
-// the Marshaler interface, it is treated as a Proto-defined message and
-// serialized that way. Otherwise, it falls back on the internal Amino codec.
-func (ak AccountKeeper) MarshalAccount(accountI types.AccountI) ([]byte, error) {
-	return codec.MarshalAny(ak.cdc, accountI)
-}
-
-// UnmarshalAccount returns an Account interface from raw encoded account
-// bytes of a Proto-based Account type. An error is returned upon decoding
-// failure.
-func (ak AccountKeeper) UnmarshalAccount(bz []byte) (types.AccountI, error) {
-	var acc types.AccountI
-	if err := codec.UnmarshalAny(ak.cdc, &acc, bz); err != nil {
-		return nil, err
-	}
-
-	return acc, nil
-}
-
-func (ak AccountKeeper) GetCodec() codec.BinaryMarshaler { return ak.cdc }

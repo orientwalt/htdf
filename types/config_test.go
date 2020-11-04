@@ -4,55 +4,44 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type configTestSuite struct {
-	suite.Suite
-}
-
-func TestConfigTestSuite(t *testing.T) {
-	suite.Run(t, new(configTestSuite))
-}
-
-func (s *configTestSuite) TestConfig_SetCoinType() {
-	config := sdk.NewConfig()
-	config.SetCoinType(1)
-	s.Require().Equal(uint32(1), config.GetCoinType())
+func TestConfig_SetCoinType(t *testing.T) {
+	config := &sdk.Config{}
+	require.Equal(t, uint32(0), config.GetCoinType())
 	config.SetCoinType(99)
-	s.Require().Equal(uint32(99), config.GetCoinType())
+	require.Equal(t, uint32(99), config.GetCoinType())
 
 	config.Seal()
-	s.Require().Panics(func() { config.SetCoinType(99) })
+	require.Panics(t, func() { config.SetCoinType(99) })
 }
 
-func (s *configTestSuite) TestConfig_SetTxEncoder() {
+func TestConfig_SetTxEncoder(t *testing.T) {
 	mockErr := errors.New("test")
-	config := sdk.NewConfig()
-	s.Require().Nil(config.GetTxEncoder())
+	config := &sdk.Config{}
+	require.Nil(t, config.GetTxEncoder())
 	encFunc := sdk.TxEncoder(func(tx sdk.Tx) ([]byte, error) { return nil, nil })
 	config.SetTxEncoder(encFunc)
 	_, err := config.GetTxEncoder()(sdk.Tx(nil))
-	s.Require().Error(mockErr, err)
+	require.Error(t, mockErr, err)
 
 	config.Seal()
-	s.Require().Panics(func() { config.SetTxEncoder(encFunc) })
+	require.Panics(t, func() { config.SetTxEncoder(encFunc) })
 }
 
-func (s *configTestSuite) TestConfig_SetFullFundraiserPath() {
-	config := sdk.NewConfig()
+func TestConfig_SetFullFundraiserPath(t *testing.T) {
+	config := &sdk.Config{}
+	require.Equal(t, "", config.GetFullFundraiserPath())
 	config.SetFullFundraiserPath("test/path")
-	s.Require().Equal("test/path", config.GetFullFundraiserPath())
-
-	config.SetFullFundraiserPath("test/poth")
-	s.Require().Equal("test/poth", config.GetFullFundraiserPath())
+	require.Equal(t, "test/path", config.GetFullFundraiserPath())
 
 	config.Seal()
-	s.Require().Panics(func() { config.SetFullFundraiserPath("x/test/path") })
+	require.Panics(t, func() { config.SetFullFundraiserPath("x/test/path") })
 }
 
-func (s *configTestSuite) TestKeyringServiceName() {
-	s.Require().Equal(sdk.DefaultKeyringServiceName, sdk.KeyringServiceName())
+func TestKeyringServiceName(t *testing.T) {
+	require.Equal(t, sdk.DefaultKeyringServiceName, sdk.KeyringServiceName())
 }

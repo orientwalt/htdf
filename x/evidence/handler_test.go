@@ -7,15 +7,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/evidence"
-	"github.com/orientwalt/htdf/x/evidence/exported"
-	"github.com/orientwalt/htdf/x/evidence/keeper"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/evidence"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
 )
 
 type HandlerTestSuite struct {
@@ -25,8 +25,8 @@ type HandlerTestSuite struct {
 	app     *simapp.SimApp
 }
 
-func testMsgSubmitEvidence(r *require.Assertions, e exported.Evidence, s sdk.AccAddress) exported.MsgSubmitEvidence {
-	msg, err := types.NewMsgSubmitEvidence(s, e)
+func testMsgSubmitEvidence(r *require.Assertions, e exported.Evidence, s sdk.AccAddress) codecstd.MsgSubmitEvidence {
+	msg, err := codecstd.NewMsgSubmitEvidence(e, s)
 	r.NoError(err)
 	return msg
 }
@@ -54,10 +54,11 @@ func (suite *HandlerTestSuite) SetupTest() {
 	app := simapp.Setup(checkTx)
 
 	// recreate keeper in order to use custom testing types
-	evidenceKeeper := keeper.NewKeeper(
-		app.AppCodec(), app.GetKey(types.StoreKey), app.StakingKeeper, app.SlashingKeeper,
+	evidenceKeeper := evidence.NewKeeper(
+		codecstd.NewAppCodec(app.Codec()), app.GetKey(evidence.StoreKey),
+		app.GetSubspace(evidence.ModuleName), app.StakingKeeper, app.SlashingKeeper,
 	)
-	router := types.NewRouter()
+	router := evidence.NewRouter()
 	router = router.AddRoute(types.RouteEquivocation, testEquivocationHandler(*evidenceKeeper))
 	evidenceKeeper.SetRouter(router)
 
@@ -69,7 +70,7 @@ func (suite *HandlerTestSuite) SetupTest() {
 
 func (suite *HandlerTestSuite) TestMsgSubmitEvidence() {
 	pk := ed25519.GenPrivKey()
-	s := sdk.AccAddress("test________________")
+	s := sdk.AccAddress("test")
 
 	testCases := []struct {
 		msg       sdk.Msg
@@ -82,7 +83,7 @@ func (suite *HandlerTestSuite) TestMsgSubmitEvidence() {
 					Height:           11,
 					Time:             time.Now().UTC(),
 					Power:            100,
-					ConsensusAddress: pk.PubKey().Address().String(),
+					ConsensusAddress: pk.PubKey().Address().Bytes(),
 				},
 				s,
 			),
@@ -95,16 +96,20 @@ func (suite *HandlerTestSuite) TestMsgSubmitEvidence() {
 					Height:           10,
 					Time:             time.Now().UTC(),
 					Power:            100,
-					ConsensusAddress: pk.PubKey().Address().String(),
+					ConsensusAddress: pk.PubKey().Address().Bytes(),
 				},
 				s,
 			),
 			true,
 		},
+		{
+			types.NewMsgSubmitEvidenceBase(s),
+			true,
+		},
 	}
 
 	for i, tc := range testCases {
-		ctx := suite.app.BaseApp.NewContext(false, tmproto.Header{Height: suite.app.LastBlockHeight() + 1})
+		ctx := suite.app.BaseApp.NewContext(false, abci.Header{Height: suite.app.LastBlockHeight() + 1})
 
 		res, err := suite.handler(ctx, tc.msg)
 		if tc.expectErr {
@@ -113,7 +118,7 @@ func (suite *HandlerTestSuite) TestMsgSubmitEvidence() {
 			suite.Require().NoError(err, "unexpected error; tc #%d", i)
 			suite.Require().NotNil(res, "expected non-nil result; tc #%d", i)
 
-			msg := tc.msg.(exported.MsgSubmitEvidence)
+			msg := tc.msg.(codecstd.MsgSubmitEvidence)
 			suite.Require().Equal(msg.GetEvidence().Hash().Bytes(), res.Data, "invalid hash; tc #%d", i)
 		}
 	}

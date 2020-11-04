@@ -1,8 +1,8 @@
 package keeper
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
 // DistributeFromFeePool distributes funds from the distribution module account to
@@ -20,7 +20,7 @@ func (k Keeper) DistributeFromFeePool(ctx sdk.Context, amount sdk.Coins, receive
 
 	feePool.CommunityPool = newPool
 
-	err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, receiveAddr, amount)
+	err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, receiveAddr, amount)
 	if err != nil {
 		return err
 	}

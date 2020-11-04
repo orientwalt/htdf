@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // query endpoints supported by the staking Querier
@@ -26,6 +26,7 @@ const (
 // defines the params for the following queries:
 // - 'custom/staking/delegatorDelegations'
 // - 'custom/staking/delegatorUnbondingDelegations'
+// - 'custom/staking/delegatorRedelegations'
 // - 'custom/staking/delegatorValidators'
 type QueryDelegatorParams struct {
 	DelegatorAddr sdk.AccAddress
@@ -41,16 +42,30 @@ func NewQueryDelegatorParams(delegatorAddr sdk.AccAddress) QueryDelegatorParams 
 // - 'custom/staking/validator'
 // - 'custom/staking/validatorDelegations'
 // - 'custom/staking/validatorUnbondingDelegations'
+// - 'custom/staking/validatorRedelegations'
 type QueryValidatorParams struct {
 	ValidatorAddr sdk.ValAddress
-	Page, Limit   int
 }
 
-func NewQueryValidatorParams(validatorAddr sdk.ValAddress, page, limit int) QueryValidatorParams {
+func NewQueryValidatorParams(validatorAddr sdk.ValAddress) QueryValidatorParams {
 	return QueryValidatorParams{
 		ValidatorAddr: validatorAddr,
-		Page:          page,
-		Limit:         limit,
+	}
+}
+
+// defines the params for the following queries:
+// - 'custom/staking/delegation'
+// - 'custom/staking/unbondingDelegation'
+// - 'custom/staking/delegatorValidator'
+type QueryBondsParams struct {
+	DelegatorAddr sdk.AccAddress
+	ValidatorAddr sdk.ValAddress
+}
+
+func NewQueryBondsParams(delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress) QueryBondsParams {
+	return QueryBondsParams{
+		DelegatorAddr: delegatorAddr,
+		ValidatorAddr: validatorAddr,
 	}
 }
 
@@ -62,7 +77,9 @@ type QueryRedelegationParams struct {
 	DstValidatorAddr sdk.ValAddress
 }
 
-func NewQueryRedelegationParams(delegatorAddr sdk.AccAddress, srcValidatorAddr, dstValidatorAddr sdk.ValAddress) QueryRedelegationParams {
+func NewQueryRedelegationParams(delegatorAddr sdk.AccAddress,
+	srcValidatorAddr, dstValidatorAddr sdk.ValAddress) QueryRedelegationParams {
+
 	return QueryRedelegationParams{
 		DelegatorAddr:    delegatorAddr,
 		SrcValidatorAddr: srcValidatorAddr,
@@ -79,4 +96,15 @@ type QueryValidatorsParams struct {
 
 func NewQueryValidatorsParams(page, limit int, status string) QueryValidatorsParams {
 	return QueryValidatorsParams{page, limit, status}
+}
+
+// QueryHistoricalInfoParams defines the params for the following queries:
+// - 'custom/staking/historicalInfo'
+type QueryHistoricalInfoParams struct {
+	Height int64
+}
+
+// NewQueryHistoricalInfoParams creates a new QueryHistoricalInfoParams instance
+func NewQueryHistoricalInfoParams(height int64) QueryHistoricalInfoParams {
+	return QueryHistoricalInfoParams{height}
 }

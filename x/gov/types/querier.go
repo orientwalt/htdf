@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // DONTCOVER

@@ -1,19 +1,32 @@
 package proposal
 
 import (
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/codec/types"
-	govtypes "github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-// RegisterLegacyAminoCodec registers all necessary param module types with a given LegacyAmino codec.
-func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	cdc.RegisterConcrete(&ParameterChangeProposal{}, "cosmos-sdk/ParameterChangeProposal", nil)
+type Codec struct {
+	codec.Marshaler
+
+	// Keep reference to the amino codec to allow backwards compatibility along
+	// with type, and interface registration.
+	amino *codec.Codec
 }
 
-func RegisterInterfaces(registry types.InterfaceRegistry) {
-	registry.RegisterImplementations(
-		(*govtypes.Content)(nil),
-		&ParameterChangeProposal{},
-	)
+func NewCodec(amino *codec.Codec) *Codec {
+	return &Codec{Marshaler: codec.NewHybridCodec(amino), amino: amino}
+}
+
+// module codec
+var ModuleCdc *Codec
+
+func init() {
+	ModuleCdc = NewCodec(codec.New())
+
+	RegisterCodec(ModuleCdc.amino)
+	ModuleCdc.amino.Seal()
+}
+
+// RegisterCodec registers all necessary param module types with a given codec.
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(ParameterChangeProposal{}, "cosmos-sdk/ParameterChangeProposal", nil)
 }

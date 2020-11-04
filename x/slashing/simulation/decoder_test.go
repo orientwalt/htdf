@@ -1,4 +1,4 @@
-package simulation_test
+package simulation
 
 import (
 	"fmt"
@@ -6,14 +6,15 @@ import (
 	"time"
 
 	gogotypes "github.com/gogo/protobuf/types"
+
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/kv"
-	"github.com/orientwalt/htdf/x/slashing/simulation"
-	"github.com/orientwalt/htdf/x/slashing/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	tmkv "github.com/tendermint/tendermint/libs/kv"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/slashing/types"
 )
 
 // nolint:deadcode,unused,varcheck
@@ -24,21 +25,26 @@ var (
 	consAddr1 = sdk.ConsAddress(delPk1.Address().Bytes())
 )
 
+func makeTestCodec() (cdc *codec.Codec) {
+	cdc = codec.New()
+	sdk.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	types.RegisterCodec(cdc)
+	return
+}
+
 func TestDecodeStore(t *testing.T) {
-	cdc, _ := simapp.MakeCodecs()
-	dec := simulation.NewDecodeStore(cdc)
+	cdc := makeTestCodec()
 
 	info := types.NewValidatorSigningInfo(consAddr1, 0, 1, time.Now().UTC(), false, 0)
-	bechPK := sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, delPk1)
+	bechPK := sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, delPk1)
 	missed := gogotypes.BoolValue{Value: true}
 
-	kvPairs := kv.Pairs{
-		Pairs: []kv.Pair{
-			{Key: types.ValidatorSigningInfoKey(consAddr1), Value: cdc.MustMarshalBinaryBare(&info)},
-			{Key: types.ValidatorMissedBlockBitArrayKey(consAddr1, 6), Value: cdc.MustMarshalBinaryBare(&missed)},
-			{Key: types.AddrPubkeyRelationKey(delAddr1), Value: cdc.MustMarshalBinaryBare(&gogotypes.StringValue{Value: bechPK})},
-			{Key: []byte{0x99}, Value: []byte{0x99}},
-		},
+	kvPairs := tmkv.Pairs{
+		tmkv.Pair{Key: types.GetValidatorSigningInfoKey(consAddr1), Value: cdc.MustMarshalBinaryBare(info)},
+		tmkv.Pair{Key: types.GetValidatorMissedBlockBitArrayKey(consAddr1, 6), Value: cdc.MustMarshalBinaryBare(&missed)},
+		tmkv.Pair{Key: types.GetAddrPubkeyRelationKey(delAddr1), Value: cdc.MustMarshalBinaryBare(delPk1)},
+		tmkv.Pair{Key: []byte{0x99}, Value: []byte{0x99}},
 	}
 
 	tests := []struct {
@@ -55,9 +61,9 @@ func TestDecodeStore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			switch i {
 			case len(tests) - 1:
-				require.Panics(t, func() { dec(kvPairs.Pairs[i], kvPairs.Pairs[i]) }, tt.name)
+				require.Panics(t, func() { DecodeStore(cdc, kvPairs[i], kvPairs[i]) }, tt.name)
 			default:
-				require.Equal(t, tt.expectedLog, dec(kvPairs.Pairs[i], kvPairs.Pairs[i]), tt.name)
+				require.Equal(t, tt.expectedLog, DecodeStore(cdc, kvPairs[i], kvPairs[i]), tt.name)
 			}
 		})
 	}

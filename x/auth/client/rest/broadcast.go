@@ -4,23 +4,21 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/orientwalt/htdf/client/tx"
-
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/x/auth/legacy/legacytx"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 // BroadcastReq defines a tx broadcasting request.
 type BroadcastReq struct {
-	Tx   legacytx.StdTx `json:"tx" yaml:"tx"`
-	Mode string         `json:"mode" yaml:"mode"`
+	Tx   types.StdTx `json:"tx" yaml:"tx"`
+	Mode string      `json:"mode" yaml:"mode"`
 }
 
 // BroadcastTxRequest implements a tx broadcasting handler that is responsible
 // for broadcasting a valid and signed tx to a full node. The tx can be
 // broadcasted via a sync|async|block mechanism.
-func BroadcastTxRequest(clientCtx client.Context) http.HandlerFunc {
+func BroadcastTxRequest(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req BroadcastReq
 
@@ -29,23 +27,22 @@ func BroadcastTxRequest(clientCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		// NOTE: amino is used intentionally here, don't migrate it!
-		if err := clientCtx.LegacyAmino.UnmarshalJSON(body, &req); rest.CheckBadRequestError(w, err) {
+		if err := cliCtx.Codec.UnmarshalJSON(body, &req); rest.CheckBadRequestError(w, err) {
 			return
 		}
 
-		txBytes, err := tx.ConvertAndEncodeStdTx(clientCtx.TxConfig, req.Tx)
+		txBytes, err := cliCtx.Codec.MarshalBinaryBare(req.Tx)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithBroadcastMode(req.Mode)
+		cliCtx = cliCtx.WithBroadcastMode(req.Mode)
 
-		res, err := clientCtx.BroadcastTx(txBytes)
+		res, err := cliCtx.BroadcastTx(txBytes)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		rest.PostProcessResponseBare(w, clientCtx, res)
+		rest.PostProcessResponseBare(w, cliCtx, res)
 	}
 }

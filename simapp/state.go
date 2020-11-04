@@ -8,21 +8,20 @@ import (
 	"math/rand"
 	"time"
 
-	tmjson "github.com/tendermint/tendermint/libs/json"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/crypto/keys/secp256k1"
-	simapparams "github.com/orientwalt/htdf/simapp/params"
-	"github.com/orientwalt/htdf/types/module"
-	simtypes "github.com/orientwalt/htdf/types/simulation"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	simapparams "github.com/cosmos/cosmos-sdk/simapp/params"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 // AppStateFn returns the initial application state using a genesis or the simulation parameters.
 // It panics if the user provides files for both of them.
 // If a file is not given for the genesis or the sim params, it creates a randomized one.
-func AppStateFn(cdc codec.JSONMarshaler, simManager *module.SimulationManager) simtypes.AppStateFn {
+func AppStateFn(cdc *codec.Codec, simManager *module.SimulationManager) simtypes.AppStateFn {
 	return func(r *rand.Rand, accs []simtypes.Account, config simtypes.Config,
 	) (appState json.RawMessage, simAccs []simtypes.Account, chainID string, genesisTimestamp time.Time) {
 
@@ -57,10 +56,7 @@ func AppStateFn(cdc codec.JSONMarshaler, simManager *module.SimulationManager) s
 				panic(err)
 			}
 
-			err = json.Unmarshal(bz, &appParams)
-			if err != nil {
-				panic(err)
-			}
+			cdc.MustUnmarshalJSON(bz, &appParams)
 			appState, simAccs = AppStateRandomizedFn(simManager, r, cdc, accs, genesisTimestamp, appParams)
 
 		default:
@@ -75,7 +71,7 @@ func AppStateFn(cdc codec.JSONMarshaler, simManager *module.SimulationManager) s
 // AppStateRandomizedFn creates calls each module's GenesisState generator function
 // and creates the simulation params
 func AppStateRandomizedFn(
-	simManager *module.SimulationManager, r *rand.Rand, cdc codec.JSONMarshaler,
+	simManager *module.SimulationManager, r *rand.Rand, cdc *codec.Codec,
 	accs []simtypes.Account, genesisTimestamp time.Time, appParams simtypes.AppParams,
 ) (json.RawMessage, []simtypes.Account) {
 	numAccs := int64(len(accs))
@@ -119,7 +115,7 @@ func AppStateRandomizedFn(
 
 	simManager.GenerateGenesisStates(simState)
 
-	appState, err := json.Marshal(genesisState)
+	appState, err := cdc.MarshalJSON(genesisState)
 	if err != nil {
 		panic(err)
 	}
@@ -129,28 +125,21 @@ func AppStateRandomizedFn(
 
 // AppStateFromGenesisFileFn util function to generate the genesis AppState
 // from a genesis.json file.
-func AppStateFromGenesisFileFn(r io.Reader, cdc codec.JSONMarshaler, genesisFile string) (tmtypes.GenesisDoc, []simtypes.Account) {
+func AppStateFromGenesisFileFn(r io.Reader, cdc *codec.Codec, genesisFile string) (tmtypes.GenesisDoc, []simtypes.Account) {
 	bytes, err := ioutil.ReadFile(genesisFile)
 	if err != nil {
 		panic(err)
 	}
 
 	var genesis tmtypes.GenesisDoc
-	// NOTE: Tendermint uses a custom JSON decoder for GenesisDoc
-	err = tmjson.Unmarshal(bytes, &genesis)
-	if err != nil {
-		panic(err)
-	}
+	cdc.MustUnmarshalJSON(bytes, &genesis)
 
 	var appState GenesisState
-	err = json.Unmarshal(genesis.AppState, &appState)
-	if err != nil {
-		panic(err)
-	}
+	cdc.MustUnmarshalJSON(genesis.AppState, &appState)
 
-	var authGenesis authtypes.GenesisState
-	if appState[authtypes.ModuleName] != nil {
-		cdc.MustUnmarshalJSON(appState[authtypes.ModuleName], &authGenesis)
+	var authGenesis auth.GenesisState
+	if appState[auth.ModuleName] != nil {
+		cdc.MustUnmarshalJSON(appState[auth.ModuleName], &authGenesis)
 	}
 
 	newAccs := make([]simtypes.Account, len(authGenesis.Accounts))
@@ -163,15 +152,10 @@ func AppStateFromGenesisFileFn(r io.Reader, cdc codec.JSONMarshaler, genesisFile
 			panic(err)
 		}
 
-		privKey := secp256k1.GenPrivKeyFromSecret(privkeySeed)
-
-		a, ok := acc.GetCachedValue().(authtypes.AccountI)
-		if !ok {
-			panic("expected account")
-		}
+		privKey := secp256k1.GenPrivKeySecp256k1(privkeySeed)
 
 		// create simulator accounts
-		simAcc := simtypes.Account{PrivKey: privKey, PubKey: privKey.PubKey(), Address: a.GetAddress()}
+		simAcc := simtypes.Account{PrivKey: privKey, PubKey: privKey.PubKey(), Address: acc.GetAddress()}
 		newAccs[i] = simAcc
 	}
 

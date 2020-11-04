@@ -1,34 +1,41 @@
+// nolint
 package cli
 
 import (
-	"context"
+	"bufio"
 	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/client/flags"
-	"github.com/orientwalt/htdf/client/tx"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/version"
-	"github.com/orientwalt/htdf/x/distribution/types"
-	govtypes "github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/version"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	"github.com/cosmos/cosmos-sdk/x/gov"
+
+	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
-// Transaction flags for the x/distribution module
 var (
-	FlagCommission       = "commission"
-	FlagMaxMessagesPerTx = "max-msgs"
+	flagOnlyFromValidator = "only-from-validator"
+	flagIsValidator       = "is-validator"
+	flagCommission        = "commission"
+	flagMaxMessagesPerTx  = "max-msgs"
 )
 
 const (
 	MaxMessagesPerTxDefault = 5
 )
 
-// NewTxCmd returns a root CLI command handler for all x/distribution transaction commands.
-func NewTxCmd() *cobra.Command {
+// GetTxCmd returns the transaction commands for this module
+func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 	distTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Distribution transactions subcommands",
@@ -37,25 +44,28 @@ func NewTxCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	distTxCmd.AddCommand(
-		NewWithdrawRewardsCmd(),
-		NewWithdrawAllRewardsCmd(),
-		NewSetWithdrawAddrCmd(),
-		NewFundCommunityPoolCmd(),
-	)
+	distTxCmd.AddCommand(flags.PostCommands(
+		GetCmdWithdrawRewards(cdc),
+		GetCmdSetWithdrawAddr(cdc),
+		GetCmdWithdrawAllRewards(cdc, storeKey),
+		GetCmdFundCommunityPool(cdc),
+	)...)
 
 	return distTxCmd
 }
 
-type newGenerateOrBroadcastFunc func(client.Context, *pflag.FlagSet, ...sdk.Msg) error
+type generateOrBroadcastFunc func(context.CLIContext, auth.TxBuilder, []sdk.Msg) error
 
-func newSplitAndApply(
-	genOrBroadcastFn newGenerateOrBroadcastFunc, clientCtx client.Context,
-	fs *pflag.FlagSet, msgs []sdk.Msg, chunkSize int,
+func splitAndApply(
+	generateOrBroadcast generateOrBroadcastFunc,
+	cliCtx context.CLIContext,
+	txBldr auth.TxBuilder,
+	msgs []sdk.Msg,
+	chunkSize int,
 ) error {
 
 	if chunkSize == 0 {
-		return genOrBroadcastFn(clientCtx, fs, msgs...)
+		return generateOrBroadcast(cliCtx, txBldr, msgs)
 	}
 
 	// split messages into slices of length chunkSize
@@ -68,7 +78,7 @@ func newSplitAndApply(
 		}
 
 		msgChunk := msgs[i:sliceEnd]
-		if err := genOrBroadcastFn(clientCtx, fs, msgChunk...); err != nil {
+		if err := generateOrBroadcast(cliCtx, txBldr, msgChunk); err != nil {
 			return err
 		}
 	}
@@ -76,9 +86,8 @@ func newSplitAndApply(
 	return nil
 }
 
-func NewWithdrawRewardsCmd() *cobra.Command {
-	bech32PrefixValAddr := sdk.GetConfig().GetBech32ValidatorAddrPrefix()
-
+// command to withdraw rewards
+func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw-rewards [validator-addr]",
 		Short: "Withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator",
@@ -87,49 +96,38 @@ func NewWithdrawRewardsCmd() *cobra.Command {
 and optionally withdraw validator commission if the delegation address given is a validator operator.
 
 Example:
-$ %s tx distribution withdraw-rewards %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj --from mykey
-$ %s tx distribution withdraw-rewards %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj --from mykey --commission
+$ %s tx distribution withdraw-rewards cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj --from mykey
+$ %s tx distribution withdraw-rewards cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj --from mykey --commission
 `,
-				version.AppName, bech32PrefixValAddr, version.AppName, bech32PrefixValAddr,
+				version.ClientName, version.ClientName,
 			),
 		),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
-			if err != nil {
-				return err
-			}
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 
-			delAddr := clientCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 			valAddr, err := sdk.ValAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
 
 			msgs := []sdk.Msg{types.NewMsgWithdrawDelegatorReward(delAddr, valAddr)}
-
-			if commission, _ := cmd.Flags().GetBool(FlagCommission); commission {
+			if viper.GetBool(flagCommission) {
 				msgs = append(msgs, types.NewMsgWithdrawValidatorCommission(valAddr))
 			}
 
-			for _, msg := range msgs {
-				if err := msg.ValidateBasic(); err != nil {
-					return err
-				}
-			}
-
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msgs...)
+			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)
 		},
 	}
-
-	cmd.Flags().Bool(FlagCommission, false, "Withdraw the validator's commission in addition to the rewards")
-	flags.AddTxFlagsToCmd(cmd)
-
+	cmd.Flags().Bool(flagCommission, false, "also withdraw validator's commission")
 	return cmd
 }
 
-func NewWithdrawAllRewardsCmd() *cobra.Command {
+// command to withdraw all rewards
+func GetCmdWithdrawAllRewards(cdc *codec.Codec, queryRoute string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw-all-rewards",
 		Short: "withdraw all delegations rewards for a delegator",
@@ -139,146 +137,72 @@ func NewWithdrawAllRewardsCmd() *cobra.Command {
 Example:
 $ %s tx distribution withdraw-all-rewards --from mykey
 `,
-				version.AppName,
+				version.ClientName,
 			),
 		),
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
-			if err != nil {
-				return err
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 
-			delAddr := clientCtx.GetFromAddress()
+			delAddr := cliCtx.GetFromAddress()
 
 			// The transaction cannot be generated offline since it requires a query
 			// to get all the validators.
-			if clientCtx.Offline {
+			if cliCtx.Offline {
 				return fmt.Errorf("cannot generate tx in offline mode")
 			}
 
-			queryClient := types.NewQueryClient(clientCtx)
-			delValsRes, err := queryClient.DelegatorValidators(context.Background(), &types.QueryDelegatorValidatorsRequest{DelegatorAddress: delAddr.String()})
+			msgs, err := common.WithdrawAllDelegatorRewards(cliCtx, queryRoute, delAddr)
 			if err != nil {
 				return err
 			}
 
-			validators := delValsRes.Validators
-			// build multi-message transaction
-			msgs := make([]sdk.Msg, 0, len(validators))
-			for _, valAddr := range validators {
-				val, err := sdk.ValAddressFromBech32(valAddr)
-				if err != nil {
-					return err
-				}
-
-				msg := types.NewMsgWithdrawDelegatorReward(delAddr, val)
-				if err := msg.ValidateBasic(); err != nil {
-					return err
-				}
-				msgs = append(msgs, msg)
-			}
-
-			chunkSize, _ := cmd.Flags().GetInt(FlagMaxMessagesPerTx)
-			return newSplitAndApply(tx.GenerateOrBroadcastTxCLI, clientCtx, cmd.Flags(), msgs, chunkSize)
+			chunkSize := viper.GetInt(flagMaxMessagesPerTx)
+			return splitAndApply(authclient.GenerateOrBroadcastMsgs, cliCtx, txBldr, msgs, chunkSize)
 		},
 	}
 
-	cmd.Flags().Int(FlagMaxMessagesPerTx, MaxMessagesPerTxDefault, "Limit the number of messages per tx (0 for unlimited)")
-	flags.AddTxFlagsToCmd(cmd)
-
+	cmd.Flags().Int(flagMaxMessagesPerTx, MaxMessagesPerTxDefault, "Limit the number of messages per tx (0 for unlimited)")
 	return cmd
 }
 
-func NewSetWithdrawAddrCmd() *cobra.Command {
-	bech32PrefixAccAddr := sdk.GetConfig().GetBech32AccountAddrPrefix()
-
-	cmd := &cobra.Command{
+// command to replace a delegator's withdrawal address
+func GetCmdSetWithdrawAddr(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
 		Use:   "set-withdraw-addr [withdraw-addr]",
 		Short: "change the default withdraw address for rewards associated with an address",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Set the withdraw address for rewards associated with a delegator address.
 
 Example:
-$ %s tx distribution set-withdraw-addr %s1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p --from mykey
+$ %s tx distribution set-withdraw-addr cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p --from mykey
 `,
-				version.AppName, bech32PrefixAccAddr,
+				version.ClientName,
 			),
 		),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
-			if err != nil {
-				return err
-			}
 
-			delAddr := clientCtx.GetFromAddress()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+
+			delAddr := cliCtx.GetFromAddress()
 			withdrawAddr, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
 
 			msg := types.NewMsgSetWithdrawAddress(delAddr, withdrawAddr)
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
-
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-
-	flags.AddTxFlagsToCmd(cmd)
-
-	return cmd
-}
-
-func NewFundCommunityPoolCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "fund-community-pool [amount]",
-		Args:  cobra.ExactArgs(1),
-		Short: "Funds the community pool with the specified amount",
-		Long: strings.TrimSpace(
-			fmt.Sprintf(`Funds the community pool with the specified amount
-
-Example:
-$ %s tx distribution fund-community-pool 100uatom --from mykey
-`,
-				version.AppName,
-			),
-		),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
-			if err != nil {
-				return err
-			}
-
-			depositorAddr := clientCtx.GetFromAddress()
-			amount, err := sdk.ParseCoins(args[0])
-			if err != nil {
-				return err
-			}
-
-			msg := types.NewMsgFundCommunityPool(amount, depositorAddr)
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
-
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
-		},
-	}
-
-	flags.AddTxFlagsToCmd(cmd)
-
-	return cmd
 }
 
 // GetCmdSubmitProposal implements the command to submit a community-pool-spend proposal
-func GetCmdSubmitProposal() *cobra.Command {
-	bech32PrefixAccAddr := sdk.GetConfig().GetBech32AccountAddrPrefix()
-
+func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "community-pool-spend [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -295,55 +219,81 @@ Where proposal.json contains:
 {
   "title": "Community Pool Spend",
   "description": "Pay me some Atoms!",
-  "recipient": "%s1s5afhd6gxevu37mkqcvvsj8qeylhn0rz46zdlq",
+  "recipient": "cosmos1s5afhd6gxevu37mkqcvvsj8qeylhn0rz46zdlq",
   "amount": "1000stake",
   "deposit": "1000stake"
 }
 `,
-				version.AppName, bech32PrefixAccAddr,
+				version.ClientName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadTxCommandFlags(clientCtx, cmd.Flags())
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+
+			proposal, err := ParseCommunityPoolSpendProposalJSON(cdc, args[0])
 			if err != nil {
 				return err
 			}
 
-			proposal, err := ParseCommunityPoolSpendProposalWithDeposit(clientCtx.JSONMarshaler, args[0])
-			if err != nil {
-				return err
-			}
+			from := cliCtx.GetFromAddress()
 
 			amount, err := sdk.ParseCoins(proposal.Amount)
 			if err != nil {
 				return err
 			}
+			content := types.NewCommunityPoolSpendProposal(proposal.Title, proposal.Description, proposal.Recipient, amount)
 
 			deposit, err := sdk.ParseCoins(proposal.Deposit)
 			if err != nil {
 				return err
 			}
-
-			from := clientCtx.GetFromAddress()
-			recpAddr, err := sdk.AccAddressFromBech32(proposal.Recipient)
-			if err != nil {
-				return err
-			}
-			content := types.NewCommunityPoolSpendProposal(proposal.Title, proposal.Description, recpAddr, amount)
-
-			msg, err := govtypes.NewMsgSubmitProposal(content, deposit, from)
-			if err != nil {
-				return err
-			}
-
+			msg := gov.NewMsgSubmitProposal(content, deposit, from)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 
 	return cmd
+}
+
+// GetCmdFundCommunityPool returns a command implementation that supports directly
+// funding the community pool.
+func GetCmdFundCommunityPool(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "fund-community-pool [amount]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Funds the community pool with the specified amount",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Funds the community pool with the specified amount
+
+Example:
+$ %s tx distribution fund-community-pool 100uatom --from mykey
+`,
+				version.ClientName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+
+			depositorAddr := cliCtx.GetFromAddress()
+			amount, err := sdk.ParseCoins(args[0])
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgFundCommunityPool(amount, depositorAddr)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return authclient.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
 }

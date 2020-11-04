@@ -6,9 +6,9 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/store/dbadapter"
-	"github.com/orientwalt/htdf/store/gaskv"
-	"github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store/dbadapter"
+	"github.com/cosmos/cosmos-sdk/store/gaskv"
+	"github.com/cosmos/cosmos-sdk/store/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -26,9 +26,6 @@ func TestGasKVStoreBasic(t *testing.T) {
 	require.Equal(t, types.StoreTypeDB, st.GetStoreType())
 	require.Panics(t, func() { st.CacheWrap() })
 	require.Panics(t, func() { st.CacheWrapWithTrace(nil, nil) })
-
-	require.Panics(t, func() { st.Set(nil, []byte("value")) }, "setting a nil key should panic")
-	require.Panics(t, func() { st.Set([]byte(""), []byte("value")) }, "setting an empty key should panic")
 
 	require.Empty(t, st.Get(keyFmt(1)), "Expected `key1` to be empty")
 	st.Set(keyFmt(1), valFmt(1))
@@ -55,11 +52,7 @@ func TestGasKVStoreIterator(t *testing.T) {
 	require.Nil(t, end)
 	require.NoError(t, iterator.Error())
 
-	t.Cleanup(func() {
-		if err := iterator.Close(); err != nil {
-			t.Fatal(err)
-		}
-	})
+	t.Cleanup(iterator.Close)
 	ka := iterator.Key()
 	require.Equal(t, ka, keyFmt(1))
 	va := iterator.Value()
@@ -75,11 +68,7 @@ func TestGasKVStoreIterator(t *testing.T) {
 	require.NoError(t, iterator.Error())
 
 	reverseIterator := st.ReverseIterator(nil, nil)
-	t.Cleanup(func() {
-		if err := reverseIterator.Close(); err != nil {
-			t.Fatal(err)
-		}
-	})
+	t.Cleanup(reverseIterator.Close)
 	require.Equal(t, reverseIterator.Key(), keyFmt(2))
 	reverseIterator.Next()
 	require.Equal(t, reverseIterator.Key(), keyFmt(1))

@@ -5,18 +5,18 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	"github.com/orientwalt/htdf/crypto/hd"
-	"github.com/orientwalt/htdf/crypto/keys/secp256k1"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func Test_writeReadLedgerInfo(t *testing.T) {
-	tmpKey := make([]byte, secp256k1.PubKeySize)
+	var tmpKey secp256k1.PubKeySecp256k1
 	bz, _ := hex.DecodeString("035AD6810A47F073553FF30D2FCC7E0D3B1C0B74B61A1AAA2582344037151E143A")
 	copy(tmpKey[:], bz)
 
-	lInfo := newLedgerInfo("some_name", &secp256k1.PubKey{Key: tmpKey}, *hd.NewFundraiserParams(5, sdk.CoinType, 1), hd.Secp256k1Type)
+	lInfo := newLedgerInfo("some_name", tmpKey, *hd.NewFundraiserParams(5, sdk.CoinType, 1), Secp256k1)
 	assert.Equal(t, TypeLedger, lInfo.GetType())
 
 	path, err := lInfo.GetPath()

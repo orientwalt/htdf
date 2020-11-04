@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/orientwalt/htdf/crypto/keys/secp256k1"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 func TestSimGenesisAccountValidate(t *testing.T) {

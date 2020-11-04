@@ -3,27 +3,15 @@ package types_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/store/rootmulti"
-	"github.com/orientwalt/htdf/store/types"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/store/rootmulti"
+	"github.com/cosmos/cosmos-sdk/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type storeTestSuite struct {
-	suite.Suite
-}
-
-func TestStoreTestSuite(t *testing.T) {
-	suite.Run(t, new(storeTestSuite))
-}
-
-func (s *storeTestSuite) SetupSuite() {
-	s.T().Parallel()
-}
-
-func (s *storeTestSuite) TestPrefixEndBytes() {
+func TestPrefixEndBytes(t *testing.T) {
 	var testCases = []struct {
 		prefix   []byte
 		expected []byte
@@ -39,64 +27,69 @@ func (s *storeTestSuite) TestPrefixEndBytes() {
 
 	for _, test := range testCases {
 		end := sdk.PrefixEndBytes(test.prefix)
-		s.Require().Equal(test.expected, end)
+		require.Equal(t, test.expected, end)
 	}
 }
 
-func (s *storeTestSuite) TestCommitID() {
+func TestCommitID(t *testing.T) {
 	var empty sdk.CommitID
-	s.Require().True(empty.IsZero())
+	require.True(t, empty.IsZero())
 
 	var nonempty = sdk.CommitID{
 		Version: 1,
 		Hash:    []byte("testhash"),
 	}
-	s.Require().False(nonempty.IsZero())
+	require.False(t, nonempty.IsZero())
 }
 
-func (s *storeTestSuite) TestNewKVStoreKeys() {
-	s.Require().Equal(map[string]*sdk.KVStoreKey{}, sdk.NewKVStoreKeys())
-	s.Require().Equal(1, len(sdk.NewKVStoreKeys("one")))
+func TestNewKVStoreKeys(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, map[string]*sdk.KVStoreKey{}, sdk.NewKVStoreKeys())
+	require.Equal(t, 1, len(sdk.NewKVStoreKeys("one")))
 }
 
-func (s *storeTestSuite) TestNewTransientStoreKeys() {
-	s.Require().Equal(map[string]*sdk.TransientStoreKey{}, sdk.NewTransientStoreKeys())
-	s.Require().Equal(1, len(sdk.NewTransientStoreKeys("one")))
+func TestNewTransientStoreKeys(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, map[string]*sdk.TransientStoreKey{}, sdk.NewTransientStoreKeys())
+	require.Equal(t, 1, len(sdk.NewTransientStoreKeys("one")))
 }
 
-func (s *storeTestSuite) TestNewInfiniteGasMeter() {
+func TestNewInfiniteGasMeter(t *testing.T) {
+	t.Parallel()
 	gm := sdk.NewInfiniteGasMeter()
-	s.Require().NotNil(gm)
+	require.NotNil(t, gm)
 	_, ok := gm.(types.GasMeter)
-	s.Require().True(ok)
+	require.True(t, ok)
 }
 
-func (s *storeTestSuite) TestStoreTypes() {
-	s.Require().Equal(sdk.InclusiveEndBytes([]byte("endbytes")), types.InclusiveEndBytes([]byte("endbytes")))
+func TestStoreTypes(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, sdk.InclusiveEndBytes([]byte("endbytes")), types.InclusiveEndBytes([]byte("endbytes")))
 }
 
-func (s *storeTestSuite) TestDiffKVStores() {
-	store1, store2 := s.initTestStores()
+func TestDiffKVStores(t *testing.T) {
+	t.Parallel()
+	store1, store2 := initTestStores(t)
 	// Two equal stores
 	k1, v1 := []byte("k1"), []byte("v1")
 	store1.Set(k1, v1)
 	store2.Set(k1, v1)
 
-	s.checkDiffResults(store1, store2)
+	checkDiffResults(t, store1, store2)
 
 	// delete k1 from store2, which is now empty
 	store2.Delete(k1)
-	s.checkDiffResults(store1, store2)
+	checkDiffResults(t, store1, store2)
 
 	// set k1 in store2, different value than what store1 holds for k1
 	v2 := []byte("v2")
 	store2.Set(k1, v2)
-	s.checkDiffResults(store1, store2)
+	checkDiffResults(t, store1, store2)
 
 	// add k2 to store2
 	k2 := []byte("k2")
 	store2.Set(k2, v2)
-	s.checkDiffResults(store1, store2)
+	checkDiffResults(t, store1, store2)
 
 	// Reset stores
 	store1.Delete(k1)
@@ -108,24 +101,24 @@ func (s *storeTestSuite) TestDiffKVStores() {
 	k1Prefixed := append(prefix, k1...)
 	store1.Set(k1Prefixed, v1)
 	store2.Set(k1Prefixed, v2)
-	s.checkDiffResults(store1, store2)
+	checkDiffResults(t, store1, store2)
 }
 
-func (s *storeTestSuite) initTestStores() (types.KVStore, types.KVStore) {
+func initTestStores(t *testing.T) (types.KVStore, types.KVStore) {
 	db := dbm.NewMemDB()
 	ms := rootmulti.NewStore(db)
 
 	key1 := types.NewKVStoreKey("store1")
 	key2 := types.NewKVStoreKey("store2")
-	s.Require().NotPanics(func() { ms.MountStoreWithDB(key1, types.StoreTypeIAVL, db) })
-	s.Require().NotPanics(func() { ms.MountStoreWithDB(key2, types.StoreTypeIAVL, db) })
-	s.Require().NoError(ms.LoadLatestVersion())
+	require.NotPanics(t, func() { ms.MountStoreWithDB(key1, types.StoreTypeIAVL, db) })
+	require.NotPanics(t, func() { ms.MountStoreWithDB(key2, types.StoreTypeIAVL, db) })
+	require.NoError(t, ms.LoadLatestVersion())
 	return ms.GetKVStore(key1), ms.GetKVStore(key2)
 }
 
-func (s *storeTestSuite) checkDiffResults(store1, store2 types.KVStore) {
+func checkDiffResults(t *testing.T, store1, store2 types.KVStore) {
 	kvAs1, kvBs1 := sdk.DiffKVStores(store1, store2, nil)
 	kvAs2, kvBs2 := types.DiffKVStores(store1, store2, nil)
-	s.Require().Equal(kvAs1, kvAs2)
-	s.Require().Equal(kvBs1, kvBs2)
+	require.Equal(t, kvAs1, kvAs2)
+	require.Equal(t, kvBs1, kvBs2)
 }

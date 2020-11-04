@@ -3,15 +3,16 @@ package simulation
 // DONTCOVER
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/module"
-	"github.com/orientwalt/htdf/types/simulation"
-	"github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // Simulation parameter constants
@@ -101,10 +102,6 @@ func RandomizedGenState(simState *module.SimulationState) {
 		types.NewTallyParams(quorum, threshold, veto),
 	)
 
-	bz, err := json.MarshalIndent(&govGenesis, "", " ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Selected randomly generated governance parameters:\n%s\n", bz)
+	fmt.Printf("Selected randomly generated governance parameters:\n%s\n", codec.MustMarshalJSONIndent(simState.Cdc, govGenesis))
 	simState.GenState[types.ModuleName] = simState.Cdc.MustMarshalJSON(govGenesis)
 }

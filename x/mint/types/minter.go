@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // NewMinter returns a new Minter object with the given inflation and annual

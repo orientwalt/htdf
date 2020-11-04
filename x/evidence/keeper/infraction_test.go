@@ -3,19 +3,18 @@ package keeper_test
 import (
 	"time"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/evidence/types"
-	"github.com/orientwalt/htdf/x/staking"
-	stakingtypes "github.com/orientwalt/htdf/x/staking/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	"github.com/tendermint/tendermint/crypto"
 )
 
-func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) *stakingtypes.MsgCreateValidator {
-	commission := stakingtypes.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
-	return stakingtypes.NewMsgCreateValidator(
+func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) staking.MsgCreateValidator {
+	commission := staking.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+	return staking.NewMsgCreateValidator(
 		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt),
-		stakingtypes.Description{}, commission, sdk.OneInt(),
+		staking.Description{}, commission, sdk.OneInt(),
 	)
 }
 
@@ -46,13 +45,13 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 
 	// double sign less than max age
 	oldTokens := suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetTokens()
-	evidence := &types.Equivocation{
+	evidence := types.Equivocation{
 		Height:           0,
 		Time:             time.Unix(0, 0),
 		Power:            power,
-		ConsensusAddress: sdk.ConsAddress(val.Address()).String(),
+		ConsensusAddress: sdk.ConsAddress(val.Address()),
 	}
-	suite.app.EvidenceKeeper.HandleEquivocationEvidence(ctx, evidence)
+	suite.app.EvidenceKeeper.HandleDoubleSign(ctx, evidence)
 
 	// should be jailed and tombstoned
 	suite.True(suite.app.StakingKeeper.Validator(ctx, operatorAddr).IsJailed())
@@ -63,7 +62,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.True(newTokens.LT(oldTokens))
 
 	// submit duplicate evidence
-	suite.app.EvidenceKeeper.HandleEquivocationEvidence(ctx, evidence)
+	suite.app.EvidenceKeeper.HandleDoubleSign(ctx, evidence)
 
 	// tokens should be the same (capped slash)
 	suite.True(suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetTokens().Equal(newTokens))
@@ -79,7 +78,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	del, _ := suite.app.StakingKeeper.GetDelegation(ctx, sdk.AccAddress(operatorAddr), operatorAddr)
 	validator, _ := suite.app.StakingKeeper.GetValidator(ctx, operatorAddr)
 	totalBond := validator.TokensFromShares(del.GetShares()).TruncateInt()
-	msgUnbond := stakingtypes.NewMsgUndelegate(sdk.AccAddress(operatorAddr), operatorAddr, sdk.NewCoin(stakingParams.BondDenom, totalBond))
+	msgUnbond := staking.NewMsgUndelegate(sdk.AccAddress(operatorAddr), operatorAddr, sdk.NewCoin(stakingParams.BondDenom, totalBond))
 	res, err = staking.NewHandler(suite.app.StakingKeeper)(ctx, msgUnbond)
 	suite.NoError(err)
 	suite.NotNil(res)
@@ -107,19 +106,14 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 	)
 	suite.Equal(amt, suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetBondedTokens())
 
-	evidence := &types.Equivocation{
+	evidence := types.Equivocation{
 		Height:           0,
 		Time:             ctx.BlockTime(),
 		Power:            power,
-		ConsensusAddress: sdk.ConsAddress(val.Address()).String(),
+		ConsensusAddress: sdk.ConsAddress(val.Address()),
 	}
-
-	cp := suite.app.BaseApp.GetConsensusParams(ctx)
-
-	ctx = ctx.WithConsensusParams(cp)
-	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(cp.Evidence.MaxAgeDuration + 1))
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + cp.Evidence.MaxAgeNumBlocks + 1)
-	suite.app.EvidenceKeeper.HandleEquivocationEvidence(ctx, evidence)
+	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(suite.app.EvidenceKeeper.MaxEvidenceAge(ctx) + 1))
+	suite.app.EvidenceKeeper.HandleDoubleSign(ctx, evidence)
 
 	suite.False(suite.app.StakingKeeper.Validator(ctx, operatorAddr).IsJailed())
 	suite.False(suite.app.SlashingKeeper.IsTombstoned(ctx, sdk.ConsAddress(val.Address())))

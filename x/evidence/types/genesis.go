@@ -2,38 +2,31 @@ package types
 
 import (
 	"fmt"
+	"time"
 
-	proto "github.com/gogo/protobuf/proto"
-
-	"github.com/orientwalt/htdf/codec/types"
-	"github.com/orientwalt/htdf/x/evidence/exported"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
 )
 
-var _ types.UnpackInterfacesMessage = GenesisState{}
+// DONTCOVER
 
-// NewGenesisState creates a new genesis state for the evidence module.
-func NewGenesisState(e []exported.Evidence) *GenesisState {
-	evidence := make([]*types.Any, len(e))
-	for i, evi := range e {
-		msg, ok := evi.(proto.Message)
-		if !ok {
-			panic(fmt.Errorf("cannot proto marshal %T", evi))
-		}
-		any, err := types.NewAnyWithValue(msg)
-		if err != nil {
-			panic(err)
-		}
-		evidence[i] = any
-	}
-	return &GenesisState{
-		Evidence: evidence,
+// GenesisState defines the evidence module's genesis state.
+type GenesisState struct {
+	Params   Params              `json:"params" yaml:"params"`
+	Evidence []exported.Evidence `json:"evidence" yaml:"evidence"`
+}
+
+func NewGenesisState(p Params, e []exported.Evidence) GenesisState {
+	return GenesisState{
+		Params:   p,
+		Evidence: e,
 	}
 }
 
 // DefaultGenesisState returns the evidence module's default genesis state.
-func DefaultGenesisState() *GenesisState {
-	return &GenesisState{
-		Evidence: []*types.Any{},
+func DefaultGenesisState() GenesisState {
+	return GenesisState{
+		Params:   DefaultParams(),
+		Evidence: []exported.Evidence{},
 	}
 }
 
@@ -41,26 +34,15 @@ func DefaultGenesisState() *GenesisState {
 // failure.
 func (gs GenesisState) Validate() error {
 	for _, e := range gs.Evidence {
-		evi, ok := e.GetCachedValue().(exported.Evidence)
-		if !ok {
-			return fmt.Errorf("expected evidence")
-		}
-		if err := evi.ValidateBasic(); err != nil {
+		if err := e.ValidateBasic(); err != nil {
 			return err
 		}
 	}
 
-	return nil
-}
-
-// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-func (gs GenesisState) UnpackInterfaces(unpacker types.AnyUnpacker) error {
-	for _, any := range gs.Evidence {
-		var evi exported.Evidence
-		err := unpacker.UnpackAny(any, &evi)
-		if err != nil {
-			return err
-		}
+	maxEvidence := gs.Params.MaxEvidenceAge
+	if maxEvidence < 1*time.Minute {
+		return fmt.Errorf("max evidence age must be at least 1 minute, is %s", maxEvidence.String())
 	}
+
 	return nil
 }

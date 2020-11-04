@@ -10,10 +10,10 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/store/dbadapter"
-	"github.com/orientwalt/htdf/store/prefix"
-	"github.com/orientwalt/htdf/store/tracekv"
-	"github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store/dbadapter"
+	"github.com/cosmos/cosmos-sdk/store/prefix"
+	"github.com/cosmos/cosmos-sdk/store/tracekv"
+	"github.com/cosmos/cosmos-sdk/store/types"
 )
 
 func bz(s string) []byte { return []byte(s) }
@@ -51,6 +51,11 @@ func TestTraceKVStoreGet(t *testing.T) {
 		expectedOut   string
 	}{
 		{
+			key:           []byte{},
+			expectedValue: nil,
+			expectedOut:   "{\"operation\":\"read\",\"key\":\"\",\"value\":\"\",\"metadata\":{\"blockHeight\":64}}\n",
+		},
+		{
 			key:           kvPairs[0].Key,
 			expectedValue: kvPairs[0].Value,
 			expectedOut:   "{\"operation\":\"read\",\"key\":\"a2V5MDAwMDAwMDE=\",\"value\":\"dmFsdWUwMDAwMDAwMQ==\",\"metadata\":{\"blockHeight\":64}}\n",
@@ -81,19 +86,14 @@ func TestTraceKVStoreSet(t *testing.T) {
 		expectedOut string
 	}{
 		{
+			key:         []byte{},
+			value:       nil,
+			expectedOut: "{\"operation\":\"write\",\"key\":\"\",\"value\":\"\",\"metadata\":{\"blockHeight\":64}}\n",
+		},
+		{
 			key:         kvPairs[0].Key,
 			value:       kvPairs[0].Value,
 			expectedOut: "{\"operation\":\"write\",\"key\":\"a2V5MDAwMDAwMDE=\",\"value\":\"dmFsdWUwMDAwMDAwMQ==\",\"metadata\":{\"blockHeight\":64}}\n",
-		},
-		{
-			key:         kvPairs[1].Key,
-			value:       kvPairs[1].Value,
-			expectedOut: "{\"operation\":\"write\",\"key\":\"a2V5MDAwMDAwMDI=\",\"value\":\"dmFsdWUwMDAwMDAwMg==\",\"metadata\":{\"blockHeight\":64}}\n",
-		},
-		{
-			key:         kvPairs[2].Key,
-			value:       kvPairs[2].Value,
-			expectedOut: "{\"operation\":\"write\",\"key\":\"a2V5MDAwMDAwMDM=\",\"value\":\"dmFsdWUwMDAwMDAwMw==\",\"metadata\":{\"blockHeight\":64}}\n",
 		},
 	}
 
@@ -106,12 +106,6 @@ func TestTraceKVStoreSet(t *testing.T) {
 
 		require.Equal(t, tc.expectedOut, buf.String())
 	}
-
-	var buf bytes.Buffer
-	store := newEmptyTraceKVStore(&buf)
-	require.Panics(t, func() { store.Set([]byte(""), []byte("value")) }, "setting an empty key should panic")
-	require.Panics(t, func() { store.Set(nil, []byte("value")) }, "setting a nil key should panic")
-
 }
 
 func TestTraceKVStoreDelete(t *testing.T) {
@@ -119,6 +113,10 @@ func TestTraceKVStoreDelete(t *testing.T) {
 		key         []byte
 		expectedOut string
 	}{
+		{
+			key:         []byte{},
+			expectedOut: "{\"operation\":\"delete\",\"key\":\"\",\"value\":\"\",\"metadata\":{\"blockHeight\":64}}\n",
+		},
 		{
 			key:         kvPairs[0].Key,
 			expectedOut: "{\"operation\":\"delete\",\"key\":\"a2V5MDAwMDAwMDE=\",\"value\":\"\",\"metadata\":{\"blockHeight\":64}}\n",
@@ -141,6 +139,10 @@ func TestTraceKVStoreHas(t *testing.T) {
 		key      []byte
 		expected bool
 	}{
+		{
+			key:      []byte{},
+			expected: false,
+		},
 		{
 			key:      kvPairs[0].Key,
 			expected: true,
@@ -211,7 +213,7 @@ func TestTestTraceKVStoreIterator(t *testing.T) {
 
 	require.False(t, iterator.Valid())
 	require.Panics(t, iterator.Next)
-	require.NoError(t, iterator.Close())
+	require.NotPanics(t, iterator.Close)
 }
 
 func TestTestTraceKVStoreReverseIterator(t *testing.T) {
@@ -267,7 +269,7 @@ func TestTestTraceKVStoreReverseIterator(t *testing.T) {
 
 	require.False(t, iterator.Valid())
 	require.Panics(t, iterator.Next)
-	require.NoError(t, iterator.Close())
+	require.NotPanics(t, iterator.Close)
 }
 
 func TestTraceKVStorePrefix(t *testing.T) {

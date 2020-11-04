@@ -6,81 +6,81 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/x/mint/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
-func registerQueryRoutes(clientCtx client.Context, r *mux.Router) {
+func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
 		"/minting/parameters",
-		queryParamsHandlerFn(clientCtx),
+		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/minting/inflation",
-		queryInflationHandlerFn(clientCtx),
+		queryInflationHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/minting/annual-provisions",
-		queryAnnualProvisionsHandlerFn(clientCtx),
+		queryAnnualProvisionsHandlerFn(cliCtx),
 	).Methods("GET")
 }
 
-func queryParamsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
 
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		res, height, err := clientCtx.QueryWithData(route, nil)
+		res, height, err := cliCtx.QueryWithData(route, nil)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
-func queryInflationHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func queryInflationHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryInflation)
 
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		res, height, err := clientCtx.QueryWithData(route, nil)
+		res, height, err := cliCtx.QueryWithData(route, nil)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
-func queryAnnualProvisionsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func queryAnnualProvisionsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAnnualProvisions)
 
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		res, height, err := clientCtx.QueryWithData(route, nil)
+		res, height, err := cliCtx.QueryWithData(route, nil)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }

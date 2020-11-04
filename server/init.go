@@ -3,47 +3,39 @@ package server
 import (
 	"fmt"
 
-	"github.com/orientwalt/htdf/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // GenerateCoinKey returns the address of a public key, along with the secret
 // phrase to recover the private key.
-func GenerateCoinKey(algo keyring.SignatureAlgo) (sdk.AccAddress, string, error) {
+func GenerateCoinKey() (sdk.AccAddress, string, error) {
+
 	// generate a private key, with recovery phrase
-	info, secret, err := keyring.NewInMemory().NewMnemonic("name", keyring.English, sdk.FullFundraiserPath, algo)
+	info, secret, err := keyring.NewInMemory().CreateMnemonic(
+		"name", keyring.English, "pass", keyring.Secp256k1)
 	if err != nil {
 		return sdk.AccAddress([]byte{}), "", err
 	}
-	return sdk.AccAddress(info.GetPubKey().Address()), secret, nil
+	addr := info.GetPubKey().Address()
+	return sdk.AccAddress(addr), secret, nil
 }
 
 // GenerateSaveCoinKey returns the address of a public key, along with the secret
 // phrase to recover the private key.
-func GenerateSaveCoinKey(keybase keyring.Keyring, keyName string, overwrite bool, algo keyring.SignatureAlgo) (sdk.AccAddress, string, error) {
-	exists := false
-	_, err := keybase.Key(keyName)
-	if err == nil {
-		exists = true
-	}
-
+func GenerateSaveCoinKey(keybase keyring.Keybase, keyName, keyPass string, overwrite bool) (sdk.AccAddress, string, error) {
 	// ensure no overwrite
-	if !overwrite && exists {
-		return sdk.AccAddress([]byte{}), "", fmt.Errorf(
-			"key already exists, overwrite is disabled")
-	}
-
-	// generate a private key, with recovery phrase
-	if exists {
-		err = keybase.Delete(keyName)
-		if err != nil {
+	if !overwrite {
+		_, err := keybase.Get(keyName)
+		if err == nil {
 			return sdk.AccAddress([]byte{}), "", fmt.Errorf(
-				"failed to overwrite key")
+				"key already exists, overwrite is disabled")
 		}
 	}
 
-	info, secret, err := keybase.NewMnemonic(keyName, keyring.English, sdk.FullFundraiserPath, algo)
+	// generate a private key, with recovery phrase
+	info, secret, err := keybase.CreateMnemonic(keyName, keyring.English, keyPass, keyring.Secp256k1)
 	if err != nil {
 		return sdk.AccAddress([]byte{}), "", err
 	}

@@ -1,49 +1,26 @@
 package keyring
 
-import (
-	"fmt"
-	"strings"
+// SigningAlgo defines an algorithm to derive key-pairs which can be used for cryptographic signing.
+type SigningAlgo string
 
-	"github.com/orientwalt/htdf/crypto/hd"
+const (
+	// MultiAlgo implies that a pubkey is a multisignature
+	MultiAlgo = SigningAlgo("multi")
+	// Secp256k1 uses the Bitcoin secp256k1 ECDSA parameters.
+	Secp256k1 = SigningAlgo("secp256k1")
+	// Ed25519 represents the Ed25519 signature system.
+	// It is currently not supported for end-user keys (wallets/ledgers).
+	Ed25519 = SigningAlgo("ed25519")
+	// Sr25519 represents the Sr25519 signature system.
+	Sr25519 = SigningAlgo("sr25519")
 )
 
-// SignatureAlgo defines the interface for a keyring supported algorithm.
-type SignatureAlgo interface {
-	Name() hd.PubKeyType
-	Derive() hd.DeriveFn
-	Generate() hd.GenerateFn
-}
-
-// NewSigningAlgoFromString creates a supported SignatureAlgo.
-func NewSigningAlgoFromString(str string, algoList SigningAlgoList) (SignatureAlgo, error) {
-	for _, algo := range algoList {
-		if str == string(algo.Name()) {
-			return algo, nil
-		}
-	}
-	return nil, fmt.Errorf("provided algorithm %q is not supported", str)
-}
-
-// SigningAlgoList is a slice of signature algorithms
-type SigningAlgoList []SignatureAlgo
-
-// Contains returns true if the SigningAlgoList the given SignatureAlgo.
-func (sal SigningAlgoList) Contains(algo SignatureAlgo) bool {
-	for _, cAlgo := range sal {
-		if cAlgo.Name() == algo.Name() {
+// IsSupportedAlgorithm returns whether the signing algorithm is in the passed-in list of supported algorithms.
+func IsSupportedAlgorithm(supported []SigningAlgo, algo SigningAlgo) bool {
+	for _, supportedAlgo := range supported {
+		if algo == supportedAlgo {
 			return true
 		}
 	}
-
 	return false
-}
-
-// String returns a comma separated string of the signature algorithm names in the list.
-func (sal SigningAlgoList) String() string {
-	names := make([]string, len(sal))
-	for i := range sal {
-		names[i] = string(sal[i].Name())
-	}
-
-	return strings.Join(names, ",")
 }

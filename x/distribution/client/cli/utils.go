@@ -3,20 +3,31 @@ package cli
 import (
 	"io/ioutil"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// ParseCommunityPoolSpendProposalWithDeposit reads and parses a CommunityPoolSpendProposalWithDeposit from a file.
-func ParseCommunityPoolSpendProposalWithDeposit(cdc codec.JSONMarshaler, proposalFile string) (types.CommunityPoolSpendProposalWithDeposit, error) {
-	proposal := types.CommunityPoolSpendProposalWithDeposit{}
+type (
+	// CommunityPoolSpendProposalJSON defines a CommunityPoolSpendProposal with a deposit
+	CommunityPoolSpendProposalJSON struct {
+		Title       string         `json:"title" yaml:"title"`
+		Description string         `json:"description" yaml:"description"`
+		Recipient   sdk.AccAddress `json:"recipient" yaml:"recipient"`
+		Amount      string         `json:"amount" yaml:"amount"`
+		Deposit     string         `json:"deposit" yaml:"deposit"`
+	}
+)
+
+// ParseCommunityPoolSpendProposalJSON reads and parses a CommunityPoolSpendProposalJSON from a file.
+func ParseCommunityPoolSpendProposalJSON(cdc *codec.Codec, proposalFile string) (CommunityPoolSpendProposalJSON, error) {
+	proposal := CommunityPoolSpendProposalJSON{}
 
 	contents, err := ioutil.ReadFile(proposalFile)
 	if err != nil {
 		return proposal, err
 	}
 
-	if err = cdc.UnmarshalJSON(contents, &proposal); err != nil {
+	if err := cdc.UnmarshalJSON(contents, &proposal); err != nil {
 		return proposal, err
 	}
 

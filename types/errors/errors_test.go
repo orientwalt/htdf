@@ -5,23 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/suite"
 )
 
-type errorsTestSuite struct {
-	suite.Suite
-}
-
-func TestErrorsTestSuite(t *testing.T) {
-	suite.Run(t, new(errorsTestSuite))
-}
-
-func (s *errorsTestSuite) SetupSuite() {
-	s.T().Parallel()
-}
-
-func (s *errorsTestSuite) TestCause() {
+func TestCause(t *testing.T) {
 	std := stdlib.New("this is a stdlib error")
 
 	cases := map[string]struct {
@@ -43,11 +32,16 @@ func (s *errorsTestSuite) TestCause() {
 	}
 
 	for testName, tc := range cases {
-		s.Require().Equal(tc.root, errors.Cause(tc.err), testName)
+		tc := tc
+		t.Run(testName, func(t *testing.T) {
+			if got := errors.Cause(tc.err); got != tc.root {
+				t.Fatal("unexpected result")
+			}
+		})
 	}
 }
 
-func (s *errorsTestSuite) TestErrorIs() {
+func TestErrorIs(t *testing.T) {
 	cases := map[string]struct {
 		a      *Error
 		b      error
@@ -145,7 +139,12 @@ func (s *errorsTestSuite) TestErrorIs() {
 		// },
 	}
 	for testName, tc := range cases {
-		s.Require().Equal(tc.wantIs, tc.a.Is(tc.b), testName)
+		tc := tc
+		t.Run(testName, func(t *testing.T) {
+			if got := tc.a.Is(tc.b); got != tc.wantIs {
+				t.Fatalf("unexpected result - got:%v want: %v", got, tc.wantIs)
+			}
+		})
 	}
 }
 
@@ -156,61 +155,63 @@ func (customError) Error() string {
 	return "custom error"
 }
 
-func (s *errorsTestSuite) TestWrapEmpty() {
-	s.Require().Nil(Wrap(nil, "wrapping <nil>"))
+func TestWrapEmpty(t *testing.T) {
+	if err := Wrap(nil, "wrapping <nil>"); err != nil {
+		t.Fatal(err)
+	}
 }
 
-func (s *errorsTestSuite) TestWrappedIs() {
+func TestWrappedIs(t *testing.T) {
 	err := Wrap(ErrTxTooLarge, "context")
-	s.Require().True(stdlib.Is(err, ErrTxTooLarge))
+	require.True(t, stdlib.Is(err, ErrTxTooLarge))
 
 	err = Wrap(err, "more context")
-	s.Require().True(stdlib.Is(err, ErrTxTooLarge))
+	require.True(t, stdlib.Is(err, ErrTxTooLarge))
 
 	err = Wrap(err, "even more context")
-	s.Require().True(stdlib.Is(err, ErrTxTooLarge))
+	require.True(t, stdlib.Is(err, ErrTxTooLarge))
 
 	err = Wrap(ErrInsufficientFee, "...")
-	s.Require().False(stdlib.Is(err, ErrTxTooLarge))
+	require.False(t, stdlib.Is(err, ErrTxTooLarge))
 }
 
-func (s *errorsTestSuite) TestWrappedIsMultiple() {
+func TestWrappedIsMultiple(t *testing.T) {
 	var errTest = errors.New("test error")
 	var errTest2 = errors.New("test error 2")
 	err := Wrap(errTest2, Wrap(errTest, "some random description").Error())
-	s.Require().True(stdlib.Is(err, errTest2))
+	require.True(t, stdlib.Is(err, errTest2))
 }
 
-func (s *errorsTestSuite) TestWrappedIsFail() {
+func TestWrappedIsFail(t *testing.T) {
 	var errTest = errors.New("test error")
 	var errTest2 = errors.New("test error 2")
 	err := Wrap(errTest2, Wrap(errTest, "some random description").Error())
-	s.Require().False(stdlib.Is(err, errTest))
+	require.False(t, stdlib.Is(err, errTest))
 }
 
-func (s *errorsTestSuite) TestWrappedUnwrap() {
+func TestWrappedUnwrap(t *testing.T) {
 	var errTest = errors.New("test error")
 	err := Wrap(errTest, "some random description")
-	s.Require().Equal(errTest, stdlib.Unwrap(err))
+	require.Equal(t, errTest, stdlib.Unwrap(err))
 }
 
-func (s *errorsTestSuite) TestWrappedUnwrapMultiple() {
+func TestWrappedUnwrapMultiple(t *testing.T) {
 	var errTest = errors.New("test error")
 	var errTest2 = errors.New("test error 2")
 	err := Wrap(errTest2, Wrap(errTest, "some random description").Error())
-	s.Require().Equal(errTest2, stdlib.Unwrap(err))
+	require.Equal(t, errTest2, stdlib.Unwrap(err))
 }
 
-func (s *errorsTestSuite) TestWrappedUnwrapFail() {
+func TestWrappedUnwrapFail(t *testing.T) {
 	var errTest = errors.New("test error")
 	var errTest2 = errors.New("test error 2")
 	err := Wrap(errTest2, Wrap(errTest, "some random description").Error())
-	s.Require().NotEqual(errTest, stdlib.Unwrap(err))
+	require.NotEqual(t, errTest, stdlib.Unwrap(err))
 }
 
-func (s *errorsTestSuite) TestABCIError() {
-	s.Require().Equal("custom: tx parse error", ABCIError(RootCodespace, 2, "custom").Error())
-	s.Require().Equal("custom: unknown", ABCIError("unknown", 1, "custom").Error())
+func TestABCIError(t *testing.T) {
+	require.Equal(t, "custom: tx parse error", ABCIError(RootCodespace, 2, "custom").Error())
+	require.Equal(t, "custom: unknown", ABCIError("unknown", 1, "custom").Error())
 }
 
 func ExampleWrap() {

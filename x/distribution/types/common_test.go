@@ -2,9 +2,9 @@ package types
 
 import (
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // nolint:deadcode,unused,varcheck

@@ -1,16 +1,14 @@
 package types
 
 import (
-	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var (
@@ -45,7 +43,7 @@ func TestGetValidatorPowerRank(t *testing.T) {
 	for i, tt := range tests {
 		got := hex.EncodeToString(getValidatorPowerRank(tt.validator))
 
-		require.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
+		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
 	}
 }
 
@@ -66,7 +64,7 @@ func TestGetREDByValDstIndexKey(t *testing.T) {
 	for i, tt := range tests {
 		got := hex.EncodeToString(GetREDByValDstIndexKey(tt.delAddr, tt.valSrcAddr, tt.valDstAddr))
 
-		require.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
+		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
 	}
 }
 
@@ -87,32 +85,6 @@ func TestGetREDByValSrcIndexKey(t *testing.T) {
 	for i, tt := range tests {
 		got := hex.EncodeToString(GetREDByValSrcIndexKey(tt.delAddr, tt.valSrcAddr, tt.valDstAddr))
 
-		require.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
+		assert.Equal(t, tt.wantHex, got, "Keys did not match on test case %d", i)
 	}
-}
-
-func TestGetValidatorQueueKey(t *testing.T) {
-	ts := time.Now()
-	height := int64(1024)
-
-	bz := GetValidatorQueueKey(ts, height)
-	rTs, rHeight, err := ParseValidatorQueueKey(bz)
-	require.NoError(t, err)
-	require.Equal(t, ts.UTC(), rTs.UTC())
-	require.Equal(t, rHeight, height)
-}
-
-func TestTestGetValidatorQueueKeyOrder(t *testing.T) {
-	ts := time.Now().UTC()
-	height := int64(1000)
-
-	endKey := GetValidatorQueueKey(ts, height)
-
-	keyA := GetValidatorQueueKey(ts.Add(-10*time.Minute), height-10)
-	keyB := GetValidatorQueueKey(ts.Add(-5*time.Minute), height+50)
-	keyC := GetValidatorQueueKey(ts.Add(10*time.Minute), height+100)
-
-	require.Equal(t, -1, bytes.Compare(keyA, endKey)) // keyA <= endKey
-	require.Equal(t, -1, bytes.Compare(keyB, endKey)) // keyB <= endKey
-	require.Equal(t, 1, bytes.Compare(keyC, endKey))  // keyB >= endKey
 }

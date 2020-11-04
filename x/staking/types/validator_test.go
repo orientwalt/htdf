@@ -8,25 +8,23 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/encoding"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/orientwalt/htdf/codec/legacy"
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	cryptotypes "github.com/orientwalt/htdf/crypto/types"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestValidatorTestEquivalent(t *testing.T) {
 	val1 := NewValidator(valAddr1, pk1, Description{})
 	val2 := NewValidator(valAddr1, pk1, Description{})
 
-	ok := val1.String() == val2.String()
+	ok := val1.Equal(val2)
 	require.True(t, ok)
 
 	val2 = NewValidator(valAddr2, pk2, Description{})
 
-	ok = val1.String() == val2.String()
+	ok = val1.Equal(val2)
 	require.False(t, ok)
 }
 
@@ -63,9 +61,7 @@ func TestABCIValidatorUpdate(t *testing.T) {
 	validator := NewValidator(valAddr1, pk1, Description{})
 
 	abciVal := validator.ABCIValidatorUpdate()
-	pk, err := encoding.PubKeyToProto(validator.GetConsPubKey())
-	require.NoError(t, err)
-	require.Equal(t, pk, abciVal.PubKey)
+	require.Equal(t, tmtypes.TM2PB.PubKey(validator.GetConsPubKey()), abciVal.PubKey)
 	require.Equal(t, validator.BondedTokens().Int64(), abciVal.Power)
 }
 
@@ -73,15 +69,13 @@ func TestABCIValidatorUpdateZero(t *testing.T) {
 	validator := NewValidator(valAddr1, pk1, Description{})
 
 	abciVal := validator.ABCIValidatorUpdateZero()
-	pk, err := encoding.PubKeyToProto(validator.GetConsPubKey())
-	require.NoError(t, err)
-	require.Equal(t, pk, abciVal.PubKey)
+	require.Equal(t, tmtypes.TM2PB.PubKey(validator.GetConsPubKey()), abciVal.PubKey)
 	require.Equal(t, int64(0), abciVal.Power)
 }
 
 func TestShareTokens(t *testing.T) {
 	validator := Validator{
-		OperatorAddress: valAddr1.String(),
+		OperatorAddress: valAddr1,
 		ConsensusPubkey: sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, pk1),
 		Status:          sdk.Bonded,
 		Tokens:          sdk.NewInt(100),
@@ -99,7 +93,7 @@ func TestRemoveTokens(t *testing.T) {
 	valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
 
 	validator := Validator{
-		OperatorAddress: valAddr.String(),
+		OperatorAddress: valAddr,
 		ConsensusPubkey: sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, valPubKey),
 		Status:          sdk.Bonded,
 		Tokens:          sdk.NewInt(100),
@@ -155,7 +149,7 @@ func TestAddTokensValidatorUnbonded(t *testing.T) {
 // TODO refactor to make simpler like the AddToken tests above
 func TestRemoveDelShares(t *testing.T) {
 	valA := Validator{
-		OperatorAddress: sdk.ValAddress(pk1.Address().Bytes()).String(),
+		OperatorAddress: sdk.ValAddress(pk1.Address().Bytes()),
 		ConsensusPubkey: sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, pk1),
 		Status:          sdk.Bonded,
 		Tokens:          sdk.NewInt(100),
@@ -172,7 +166,7 @@ func TestRemoveDelShares(t *testing.T) {
 	poolTokens := sdk.NewInt(5102)
 	delShares := sdk.NewDec(115)
 	validator := Validator{
-		OperatorAddress: sdk.ValAddress(pk1.Address().Bytes()).String(),
+		OperatorAddress: sdk.ValAddress(pk1.Address().Bytes()),
 		ConsensusPubkey: sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, pk1),
 		Status:          sdk.Bonded,
 		Tokens:          poolTokens,
@@ -221,7 +215,7 @@ func TestUpdateStatus(t *testing.T) {
 func TestPossibleOverflow(t *testing.T) {
 	delShares := sdk.NewDec(391432570689183511).Quo(sdk.NewDec(40113011844664))
 	validator := Validator{
-		OperatorAddress: sdk.ValAddress(pk1.Address().Bytes()).String(),
+		OperatorAddress: sdk.ValAddress(pk1.Address().Bytes()),
 		ConsensusPubkey: sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, pk1),
 		Status:          sdk.Bonded,
 		Tokens:          sdk.NewInt(2159),
@@ -236,12 +230,12 @@ func TestPossibleOverflow(t *testing.T) {
 
 func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
 	validator := NewValidator(valAddr1, pk1, Description{})
-	js, err := legacy.Cdc.MarshalJSON(validator)
+	js, err := codec.Cdc.MarshalJSON(validator)
 	require.NoError(t, err)
 	require.NotEmpty(t, js)
 	require.Contains(t, string(js), "\"consensus_pubkey\":\"cosmosvalconspu")
 	got := &Validator{}
-	err = legacy.Cdc.UnmarshalJSON(js, got)
+	err = codec.Cdc.UnmarshalJSON(js, got)
 	assert.NoError(t, err)
 	assert.Equal(t, validator, *got)
 }
@@ -318,7 +312,7 @@ func TestValidatorToTm(t *testing.T) {
 		val.Status = sdk.Bonded
 		val.Tokens = sdk.NewInt(rand.Int63())
 		vals[i] = val
-		expected[i] = tmtypes.NewValidator(pk.(cryptotypes.IntoTmPubKey).AsTmPubKey(), val.ConsensusPower())
+		expected[i] = tmtypes.NewValidator(pk, val.ConsensusPower())
 	}
 
 	require.Equal(t, expected, vals.ToTmValidators())

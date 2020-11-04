@@ -3,7 +3,7 @@ package simapp
 import (
 	"flag"
 
-	"github.com/orientwalt/htdf/types/simulation"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
 )
 
 // List of available flags for the simulator

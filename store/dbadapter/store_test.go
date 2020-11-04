@@ -8,9 +8,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/store/dbadapter"
-	"github.com/orientwalt/htdf/store/types"
-	"github.com/orientwalt/htdf/tests/mocks"
+	"github.com/cosmos/cosmos-sdk/store/dbadapter"
+	"github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/cosmos/cosmos-sdk/tests/mocks"
 )
 
 var errFoo = errors.New("dummy")
@@ -23,9 +23,6 @@ func TestAccessors(t *testing.T) {
 	store := dbadapter.Store{mockDB}
 	key := []byte("test")
 	value := []byte("testvalue")
-
-	require.Panics(t, func() { store.Set(nil, []byte("value")) }, "setting a nil key should panic")
-	require.Panics(t, func() { store.Set([]byte(""), []byte("value")) }, "setting an empty key should panic")
 
 	require.Equal(t, types.StoreTypeDB, store.GetStoreType())
 	store.GetStoreType()

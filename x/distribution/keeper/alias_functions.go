@@ -1,9 +1,9 @@
 package keeper
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 )
 
 // get outstanding rewards
@@ -17,6 +17,6 @@ func (k Keeper) GetFeePoolCommunityCoins(ctx sdk.Context) sdk.DecCoins {
 }
 
 // GetDistributionAccount returns the distribution ModuleAccount
-func (k Keeper) GetDistributionAccount(ctx sdk.Context) authtypes.ModuleAccountI {
-	return k.authKeeper.GetModuleAccount(ctx, types.ModuleName)
+func (k Keeper) GetDistributionAccount(ctx sdk.Context) exported.ModuleAccountI {
+	return k.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 }

@@ -6,19 +6,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/suite"
-	"github.com/tendermint/tendermint/crypto"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/evidence"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
+	"github.com/cosmos/cosmos-sdk/x/evidence/keeper"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 
-	"github.com/orientwalt/htdf/baseapp"
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
-	banktypes "github.com/orientwalt/htdf/x/bank/types"
-	"github.com/orientwalt/htdf/x/evidence/exported"
-	"github.com/orientwalt/htdf/x/evidence/keeper"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	"github.com/stretchr/testify/suite"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 )
 
 var (
@@ -44,7 +45,8 @@ func newPubKey(pk string) (res crypto.PubKey) {
 		panic(err)
 	}
 
-	pubkey := &ed25519.PubKey{Key: pkBytes}
+	var pubkey ed25519.PubKeyEd25519
+	copy(pubkey[:], pkBytes)
 
 	return pubkey
 }
@@ -55,7 +57,7 @@ func testEquivocationHandler(k interface{}) types.Handler {
 			return err
 		}
 
-		ee, ok := e.(*types.Equivocation)
+		ee, ok := e.(types.Equivocation)
 		if !ok {
 			return fmt.Errorf("unexpected evidence type: %T", e)
 		}
@@ -73,8 +75,6 @@ type KeeperTestSuite struct {
 	ctx     sdk.Context
 	querier sdk.Querier
 	app     *simapp.SimApp
-
-	queryClient types.QueryClient
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
@@ -82,27 +82,24 @@ func (suite *KeeperTestSuite) SetupTest() {
 	app := simapp.Setup(checkTx)
 
 	// recreate keeper in order to use custom testing types
-	evidenceKeeper := keeper.NewKeeper(
-		app.AppCodec(), app.GetKey(types.StoreKey), app.StakingKeeper, app.SlashingKeeper,
+	evidenceKeeper := evidence.NewKeeper(
+		codecstd.NewAppCodec(app.Codec()), app.GetKey(evidence.StoreKey),
+		app.GetSubspace(evidence.ModuleName), app.StakingKeeper, app.SlashingKeeper,
 	)
-	router := types.NewRouter()
+	router := evidence.NewRouter()
 	router = router.AddRoute(types.RouteEquivocation, testEquivocationHandler(*evidenceKeeper))
 	evidenceKeeper.SetRouter(router)
 
 	app.EvidenceKeeper = *evidenceKeeper
 
-	suite.ctx = app.BaseApp.NewContext(checkTx, tmproto.Header{Height: 1})
-	suite.querier = keeper.NewQuerier(*evidenceKeeper, app.LegacyAmino())
+	suite.ctx = app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})
+	suite.querier = keeper.NewQuerier(*evidenceKeeper)
 	suite.app = app
 
 	for i, addr := range valAddresses {
 		addr := sdk.AccAddress(addr)
-		app.AccountKeeper.SetAccount(suite.ctx, authtypes.NewBaseAccount(addr, pubkeys[i], uint64(i), 0))
+		app.AccountKeeper.SetAccount(suite.ctx, auth.NewBaseAccount(addr, pubkeys[i], uint64(i), 0))
 	}
-
-	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, app.InterfaceRegistry())
-	types.RegisterQueryServer(queryHelper, app.EvidenceKeeper)
-	suite.queryClient = types.NewQueryClient(queryHelper)
 }
 
 func (suite *KeeperTestSuite) populateEvidence(ctx sdk.Context, numEvidence int) []exported.Evidence {
@@ -111,11 +108,11 @@ func (suite *KeeperTestSuite) populateEvidence(ctx sdk.Context, numEvidence int)
 	for i := 0; i < numEvidence; i++ {
 		pk := ed25519.GenPrivKey()
 
-		evidence[i] = &types.Equivocation{
+		evidence[i] = types.Equivocation{
 			Height:           11,
 			Power:            100,
 			Time:             time.Now().UTC(),
-			ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()).String(),
+			ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()),
 		}
 
 		suite.Nil(suite.app.EvidenceKeeper.SubmitEvidence(ctx, evidence[i]))
@@ -128,10 +125,10 @@ func (suite *KeeperTestSuite) populateValidators(ctx sdk.Context) {
 	// add accounts and set total supply
 	totalSupplyAmt := initAmt.MulRaw(int64(len(valAddresses)))
 	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalSupplyAmt))
-	suite.app.BankKeeper.SetSupply(ctx, banktypes.NewSupply(totalSupply))
+	suite.app.SupplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	for _, addr := range valAddresses {
-		err := suite.app.BankKeeper.AddCoins(ctx, sdk.AccAddress(addr), initCoins)
+		_, err := suite.app.BankKeeper.AddCoins(ctx, sdk.AccAddress(addr), initCoins)
 		suite.NoError(err)
 	}
 }
@@ -140,29 +137,29 @@ func (suite *KeeperTestSuite) TestSubmitValidEvidence() {
 	ctx := suite.ctx.WithIsCheckTx(false)
 	pk := ed25519.GenPrivKey()
 
-	e := &types.Equivocation{
+	e := types.Equivocation{
 		Height:           1,
 		Power:            100,
 		Time:             time.Now().UTC(),
-		ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()).String(),
+		ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()),
 	}
 
 	suite.Nil(suite.app.EvidenceKeeper.SubmitEvidence(ctx, e))
 
 	res, ok := suite.app.EvidenceKeeper.GetEvidence(ctx, e.Hash())
 	suite.True(ok)
-	suite.Equal(e, res)
+	suite.Equal(&e, res)
 }
 
 func (suite *KeeperTestSuite) TestSubmitValidEvidence_Duplicate() {
 	ctx := suite.ctx.WithIsCheckTx(false)
 	pk := ed25519.GenPrivKey()
 
-	e := &types.Equivocation{
+	e := types.Equivocation{
 		Height:           1,
 		Power:            100,
 		Time:             time.Now().UTC(),
-		ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()).String(),
+		ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()),
 	}
 
 	suite.Nil(suite.app.EvidenceKeeper.SubmitEvidence(ctx, e))
@@ -170,17 +167,17 @@ func (suite *KeeperTestSuite) TestSubmitValidEvidence_Duplicate() {
 
 	res, ok := suite.app.EvidenceKeeper.GetEvidence(ctx, e.Hash())
 	suite.True(ok)
-	suite.Equal(e, res)
+	suite.Equal(&e, res)
 }
 
 func (suite *KeeperTestSuite) TestSubmitInvalidEvidence() {
 	ctx := suite.ctx.WithIsCheckTx(false)
 	pk := ed25519.GenPrivKey()
-	e := &types.Equivocation{
+	e := types.Equivocation{
 		Height:           0,
 		Power:            100,
 		Time:             time.Now().UTC(),
-		ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()).String(),
+		ConsensusAddress: sdk.ConsAddress(pk.PubKey().Address().Bytes()),
 	}
 
 	suite.Error(suite.app.EvidenceKeeper.SubmitEvidence(ctx, e))
@@ -200,7 +197,7 @@ func (suite *KeeperTestSuite) TestIterateEvidence() {
 }
 
 func (suite *KeeperTestSuite) TestGetEvidenceHandler() {
-	handler, err := suite.app.EvidenceKeeper.GetEvidenceHandler((&types.Equivocation{}).Route())
+	handler, err := suite.app.EvidenceKeeper.GetEvidenceHandler(types.Equivocation{}.Route())
 	suite.NoError(err)
 	suite.NotNil(handler)
 

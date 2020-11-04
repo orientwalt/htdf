@@ -3,10 +3,10 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/orientwalt/htdf/client"
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // SubmitProposal create new proposal given a content
@@ -32,10 +32,7 @@ func (keeper Keeper) SubmitProposal(ctx sdk.Context, content types.Content) (typ
 	submitTime := ctx.BlockHeader().Time
 	depositPeriod := keeper.GetDepositParams(ctx).MaxDepositPeriod
 
-	proposal, err := types.NewProposal(content, proposalID, submitTime, submitTime.Add(depositPeriod))
-	if err != nil {
-		return types.Proposal{}, err
-	}
+	proposal := types.NewProposal(content, proposalID, submitTime, submitTime.Add(depositPeriod))
 
 	keeper.SetProposal(ctx, proposal)
 	keeper.InsertInactiveProposalQueue(ctx, proposalID, proposal.DepositEndTime)
@@ -60,8 +57,10 @@ func (keeper Keeper) GetProposal(ctx sdk.Context, proposalID uint64) (types.Prop
 		return types.Proposal{}, false
 	}
 
-	var proposal types.Proposal
-	keeper.MustUnmarshalProposal(bz, &proposal)
+	proposal, err := keeper.cdc.UnmarshalProposal(bz)
+	if err != nil {
+		panic(err)
+	}
 
 	return proposal, true
 }
@@ -70,9 +69,12 @@ func (keeper Keeper) GetProposal(ctx sdk.Context, proposalID uint64) (types.Prop
 func (keeper Keeper) SetProposal(ctx sdk.Context, proposal types.Proposal) {
 	store := ctx.KVStore(keeper.storeKey)
 
-	bz := keeper.MustMarshalProposal(proposal)
+	bz, err := keeper.cdc.MarshalProposal(proposal)
+	if err != nil {
+		panic(err)
+	}
 
-	store.Set(types.ProposalKey(proposal.ProposalId), bz)
+	store.Set(types.ProposalKey(proposal.ProposalID), bz)
 }
 
 // DeleteProposal deletes a proposal from store
@@ -95,8 +97,7 @@ func (keeper Keeper) IterateProposals(ctx sdk.Context, cb func(proposal types.Pr
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		var proposal types.Proposal
-		err := keeper.UnmarshalProposal(iterator.Value(), &proposal)
+		proposal, err := keeper.cdc.UnmarshalProposal(iterator.Value())
 		if err != nil {
 			panic(err)
 		}
@@ -125,7 +126,7 @@ func (keeper Keeper) GetProposals(ctx sdk.Context) (proposals types.Proposals) {
 //
 // NOTE: If no filters are provided, all proposals will be returned in paginated
 // form.
-func (keeper Keeper) GetProposalsFiltered(ctx sdk.Context, params types.QueryProposalsParams) types.Proposals {
+func (keeper Keeper) GetProposalsFiltered(ctx sdk.Context, params types.QueryProposalsParams) []types.Proposal {
 	proposals := keeper.GetProposals(ctx)
 	filteredProposals := make([]types.Proposal, 0, len(proposals))
 
@@ -139,12 +140,12 @@ func (keeper Keeper) GetProposalsFiltered(ctx sdk.Context, params types.QueryPro
 
 		// match voter address (if supplied)
 		if len(params.Voter) > 0 {
-			_, matchVoter = keeper.GetVote(ctx, p.ProposalId, params.Voter)
+			_, matchVoter = keeper.GetVote(ctx, p.ProposalID, params.Voter)
 		}
 
 		// match depositor (if supplied)
 		if len(params.Depositor) > 0 {
-			_, matchDepositor = keeper.GetDeposit(ctx, p.ProposalId, params.Depositor)
+			_, matchDepositor = keeper.GetDeposit(ctx, p.ProposalID, params.Depositor)
 		}
 
 		if matchVoter && matchDepositor && matchStatus {
@@ -187,37 +188,6 @@ func (keeper Keeper) ActivateVotingPeriod(ctx sdk.Context, proposal types.Propos
 	proposal.Status = types.StatusVotingPeriod
 	keeper.SetProposal(ctx, proposal)
 
-	keeper.RemoveFromInactiveProposalQueue(ctx, proposal.ProposalId, proposal.DepositEndTime)
-	keeper.InsertActiveProposalQueue(ctx, proposal.ProposalId, proposal.VotingEndTime)
-}
-
-func (keeper Keeper) MarshalProposal(proposal types.Proposal) ([]byte, error) {
-	bz, err := keeper.cdc.MarshalBinaryBare(&proposal)
-	if err != nil {
-		return nil, err
-	}
-	return bz, nil
-}
-
-func (keeper Keeper) UnmarshalProposal(bz []byte, proposal *types.Proposal) error {
-	err := keeper.cdc.UnmarshalBinaryBare(bz, proposal)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (keeper Keeper) MustMarshalProposal(proposal types.Proposal) []byte {
-	bz, err := keeper.MarshalProposal(proposal)
-	if err != nil {
-		panic(err)
-	}
-	return bz
-}
-
-func (keeper Keeper) MustUnmarshalProposal(bz []byte, proposal *types.Proposal) {
-	err := keeper.UnmarshalProposal(bz, proposal)
-	if err != nil {
-		panic(err)
-	}
+	keeper.RemoveFromInactiveProposalQueue(ctx, proposal.ProposalID, proposal.DepositEndTime)
+	keeper.InsertActiveProposalQueue(ctx, proposal.ProposalID, proposal.VotingEndTime)
 }

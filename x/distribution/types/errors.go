@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // x/distribution module sentinel errors

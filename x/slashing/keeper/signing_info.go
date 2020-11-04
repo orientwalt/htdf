@@ -5,15 +5,15 @@ import (
 
 	gogotypes "github.com/gogo/protobuf/types"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/slashing/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/slashing/types"
 )
 
 // GetValidatorSigningInfo retruns the ValidatorSigningInfo for a specific validator
 // ConsAddress
 func (k Keeper) GetValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress) (info types.ValidatorSigningInfo, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.ValidatorSigningInfoKey(address))
+	bz := store.Get(types.GetValidatorSigningInfoKey(address))
 	if bz == nil {
 		found = false
 		return
@@ -34,7 +34,7 @@ func (k Keeper) HasValidatorSigningInfo(ctx sdk.Context, consAddr sdk.ConsAddres
 func (k Keeper) SetValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress, info types.ValidatorSigningInfo) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(&info)
-	store.Set(types.ValidatorSigningInfoKey(address), bz)
+	store.Set(types.GetValidatorSigningInfoKey(address), bz)
 }
 
 // IterateValidatorSigningInfos iterates over the stored ValidatorSigningInfo
@@ -42,10 +42,10 @@ func (k Keeper) IterateValidatorSigningInfos(ctx sdk.Context,
 	handler func(address sdk.ConsAddress, info types.ValidatorSigningInfo) (stop bool)) {
 
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.ValidatorSigningInfoKeyPrefix)
+	iter := sdk.KVStorePrefixIterator(store, types.ValidatorSigningInfoKey)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		address := types.ValidatorSigningInfoAddress(iter.Key())
+		address := types.GetValidatorSigningInfoAddress(iter.Key())
 		var info types.ValidatorSigningInfo
 		k.cdc.MustUnmarshalBinaryBare(iter.Value(), &info)
 		if handler(address, info) {
@@ -57,7 +57,7 @@ func (k Keeper) IterateValidatorSigningInfos(ctx sdk.Context,
 // GetValidatorMissedBlockBitArray gets the bit for the missed blocks array
 func (k Keeper) GetValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress, index int64) bool {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.ValidatorMissedBlockBitArrayKey(address, index))
+	bz := store.Get(types.GetValidatorMissedBlockBitArrayKey(address, index))
 	var missed gogotypes.BoolValue
 	if bz == nil {
 		// lazy: treat empty key as not missed
@@ -78,7 +78,7 @@ func (k Keeper) IterateValidatorMissedBlockBitArray(ctx sdk.Context,
 	// Array may be sparse
 	for ; index < k.SignedBlocksWindow(ctx); index++ {
 		var missed gogotypes.BoolValue
-		bz := store.Get(types.ValidatorMissedBlockBitArrayKey(address, index))
+		bz := store.Get(types.GetValidatorMissedBlockBitArrayKey(address, index))
 		if bz == nil {
 			continue
 		}
@@ -88,17 +88,6 @@ func (k Keeper) IterateValidatorMissedBlockBitArray(ctx sdk.Context,
 			break
 		}
 	}
-}
-
-// GetValidatorMissedBlocks returns array of missed blocks for given validator Cons address
-func (k Keeper) GetValidatorMissedBlocks(ctx sdk.Context, address sdk.ConsAddress) []types.MissedBlock {
-	missedBlocks := []types.MissedBlock{}
-	k.IterateValidatorMissedBlockBitArray(ctx, address, func(index int64, missed bool) (stop bool) {
-		missedBlocks = append(missedBlocks, types.NewMissedBlock(index, missed))
-		return false
-	})
-
-	return missedBlocks
 }
 
 // JailUntil attempts to set a validator's JailedUntil attribute in its signing
@@ -144,13 +133,13 @@ func (k Keeper) IsTombstoned(ctx sdk.Context, consAddr sdk.ConsAddress) bool {
 func (k Keeper) SetValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress, index int64, missed bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(&gogotypes.BoolValue{Value: missed})
-	store.Set(types.ValidatorMissedBlockBitArrayKey(address, index), bz)
+	store.Set(types.GetValidatorMissedBlockBitArrayKey(address, index), bz)
 }
 
 // clearValidatorMissedBlockBitArray deletes every instance of ValidatorMissedBlockBitArray in the store
 func (k Keeper) clearValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.ValidatorMissedBlockBitArrayPrefixKey(address))
+	iter := sdk.KVStorePrefixIterator(store, types.GetValidatorMissedBlockBitArrayPrefixKey(address))
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		store.Delete(iter.Key())

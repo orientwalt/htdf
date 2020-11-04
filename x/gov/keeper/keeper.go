@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tendermint/tendermint/libs/log"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
-	"github.com/orientwalt/htdf/x/gov/types"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // Keeper defines the governance module Keeper
@@ -17,8 +16,8 @@ type Keeper struct {
 	// The reference to the Paramstore to get and set gov specific params
 	paramSpace types.ParamSubspace
 
-	authKeeper types.AccountKeeper
-	bankKeeper types.BankKeeper
+	// The SupplyKeeper to reduce the supply of the network
+	supplyKeeper types.SupplyKeeper
 
 	// The reference to the DelegationSet and ValidatorSet to get information about validators and delegators
 	sk types.StakingKeeper
@@ -27,7 +26,7 @@ type Keeper struct {
 	storeKey sdk.StoreKey
 
 	// The codec codec for binary encoding/decoding.
-	cdc codec.BinaryMarshaler
+	cdc types.Codec
 
 	// Proposal router
 	router types.Router
@@ -41,12 +40,12 @@ type Keeper struct {
 //
 // CONTRACT: the parameter Subspace must have the param key table already initialized
 func NewKeeper(
-	cdc codec.BinaryMarshaler, key sdk.StoreKey, paramSpace types.ParamSubspace,
-	authKeeper types.AccountKeeper, bankKeeper types.BankKeeper, sk types.StakingKeeper, rtr types.Router,
+	cdc types.Codec, key sdk.StoreKey, paramSpace types.ParamSubspace,
+	supplyKeeper types.SupplyKeeper, sk types.StakingKeeper, rtr types.Router,
 ) Keeper {
 
 	// ensure governance module account is set
-	if addr := authKeeper.GetModuleAddress(types.ModuleName); addr == nil {
+	if addr := supplyKeeper.GetModuleAddress(types.ModuleName); addr == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
 	}
 
@@ -56,13 +55,12 @@ func NewKeeper(
 	rtr.Seal()
 
 	return Keeper{
-		storeKey:   key,
-		paramSpace: paramSpace,
-		authKeeper: authKeeper,
-		bankKeeper: bankKeeper,
-		sk:         sk,
-		cdc:        cdc,
-		router:     rtr,
+		storeKey:     key,
+		paramSpace:   paramSpace,
+		supplyKeeper: supplyKeeper,
+		sk:           sk,
+		cdc:          cdc,
+		router:       rtr,
 	}
 }
 
@@ -77,8 +75,8 @@ func (keeper Keeper) Router() types.Router {
 }
 
 // GetGovernanceAccount returns the governance ModuleAccount
-func (keeper Keeper) GetGovernanceAccount(ctx sdk.Context) authtypes.ModuleAccountI {
-	return keeper.authKeeper.GetModuleAccount(ctx, types.ModuleName)
+func (keeper Keeper) GetGovernanceAccount(ctx sdk.Context) exported.ModuleAccountI {
+	return keeper.supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 }
 
 // ProposalQueues

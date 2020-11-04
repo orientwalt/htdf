@@ -1,47 +1,63 @@
-package cli_test
+package cli
 
 import (
-	"context"
 	"io/ioutil"
 	"path"
 	"testing"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
+	"github.com/tendermint/tendermint/libs/cli"
+	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/testutil"
-	"github.com/orientwalt/htdf/x/genutil/client/cli"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/server"
+	"github.com/cosmos/cosmos-sdk/tests"
 )
 
+func setupCmd(genesisTime string, chainID string) *cobra.Command {
+	c := &cobra.Command{
+		Use:  "c",
+		Args: cobra.ArbitraryArgs,
+		Run:  func(_ *cobra.Command, args []string) {},
+	}
+
+	c.Flags().String(flagGenesisTime, genesisTime, "")
+	c.Flags().String(flagChainID, chainID, "")
+
+	return c
+}
+
 func TestGetMigrationCallback(t *testing.T) {
-	for _, version := range cli.GetMigrationVersions() {
-		require.NotNil(t, cli.GetMigrationCallback(version))
+	for _, version := range GetMigrationVersions() {
+		require.NotNil(t, GetMigrationCallback(version))
 	}
 }
 
 func TestMigrateGenesis(t *testing.T) {
-	home := t.TempDir()
-
+	home, cleanup := tests.NewTestCaseDir(t)
+	t.Cleanup(cleanup)
+	viper.Set(cli.HomeFlag, home)
+	viper.Set(flags.FlagName, "moniker")
+	logger := log.NewNopLogger()
+	cfg, err := tcmd.ParseConfig()
+	require.Nil(t, err)
+	ctx := server.NewContext(cfg, logger)
 	cdc := makeCodec()
 
 	genesisPath := path.Join(home, "genesis.json")
 	target := "v0.36"
 
-	cmd := cli.MigrateGenesisCmd()
-	_ = testutil.ApplyMockIODiscardOutErr(cmd)
-
-	clientCtx := client.Context{}.WithLegacyAmino(cdc)
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, client.ClientContextKey, &clientCtx)
-
 	// Reject if we dont' have the right parameters or genesis does not exists
-	cmd.SetArgs([]string{target, genesisPath})
-	require.Error(t, cmd.ExecuteContext(ctx))
+	require.Error(t, MigrateGenesisCmd(ctx, cdc).RunE(nil, []string{target, genesisPath}))
 
 	// Noop migration with minimal genesis
 	emptyGenesis := []byte(`{"chain_id":"test","app_state":{}}`)
-	require.NoError(t, ioutil.WriteFile(genesisPath, emptyGenesis, 0644))
-
-	cmd.SetArgs([]string{target, genesisPath})
-	require.NoError(t, cmd.ExecuteContext(ctx))
+	err = ioutil.WriteFile(genesisPath, emptyGenesis, 0644)
+	require.Nil(t, err)
+	cmd := setupCmd("", "test2")
+	require.NoError(t, MigrateGenesisCmd(ctx, cdc).RunE(cmd, []string{target, genesisPath}))
+	// Every migration function shuold tests its own module separately
 }

@@ -5,10 +5,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/multisig"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	kmultisig "github.com/orientwalt/htdf/crypto/keys/multisig"
-	"github.com/orientwalt/htdf/crypto/keys/secp256k1"
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestBech32KeysOutput(t *testing.T) {
@@ -16,7 +16,7 @@ func TestBech32KeysOutput(t *testing.T) {
 	bechTmpKey := sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, tmpKey)
 	tmpAddr := sdk.AccAddress(tmpKey.Address().Bytes())
 
-	multisigPks := kmultisig.NewLegacyAminoPubKey(1, []crypto.PubKey{tmpKey})
+	multisigPks := multisig.NewPubKeyMultisigThreshold(1, []crypto.PubKey{tmpKey})
 	multiInfo := NewMultiInfo("multisig", multisigPks)
 	accAddr := sdk.AccAddress(multiInfo.GetPubKey().Address().Bytes())
 	bechPubKey := sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeAccPub, multiInfo.GetPubKey())

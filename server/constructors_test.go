@@ -5,18 +5,23 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/cosmos/cosmos-sdk/tests"
 )
 
 func Test_openDB(t *testing.T) {
 	t.Parallel()
-	_, err := openDB(t.TempDir())
+	dir, cleanup := tests.NewTestCaseDir(t)
+	t.Cleanup(cleanup)
+	_, err := openDB(dir)
 	require.NoError(t, err)
 }
 
 func Test_openTraceWriter(t *testing.T) {
 	t.Parallel()
-
-	fname := filepath.Join(t.TempDir(), "logfile")
+	dir, cleanup := tests.NewTestCaseDir(t)
+	t.Cleanup(cleanup)
+	fname := filepath.Join(dir, "logfile")
 	w, err := openTraceWriter(fname)
 	require.NoError(t, err)
 	require.NotNil(t, w)

@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"github.com/tendermint/crypto/bcrypt"
+
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/armor"
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/xsalsa20symmetric"
 
-	"github.com/orientwalt/htdf/codec/legacy"
-	cryptoAmino "github.com/orientwalt/htdf/crypto/codec"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 	headerType    = "type"
 )
 
-// BcryptSecurityParameter is security parameter var, and it can be changed within the lcd test.
+// Make bcrypt security parameter var, so it can be changed within the lcd test
 // Making the bcrypt security parameter a var shouldn't be a security issue:
 // One can't verify an invalid key by maliciously changing the bcrypt
 // parameter during a runtime vulnerability. The main security
@@ -49,7 +49,6 @@ func ArmorInfoBytes(bz []byte) string {
 		headerType:    "Info",
 		headerVersion: "0.0.0",
 	}
-
 	return armor.EncodeArmor(blockTypeKeyInfo, header, bz)
 }
 
@@ -61,7 +60,6 @@ func ArmorPubKeyBytes(bz []byte, algo string) string {
 	if algo != "" {
 		header[headerType] = algo
 	}
-
 	return armor.EncodeArmor(blockTypePubKey, header, bz)
 }
 
@@ -78,7 +76,6 @@ func UnarmorInfoBytes(armorStr string) ([]byte, error) {
 	if header[headerVersion] != "0.0.0" {
 		return nil, fmt.Errorf("unrecognized version: %v", header[headerVersion])
 	}
-
 	return bz, nil
 }
 
@@ -96,7 +93,6 @@ func UnarmorPubKeyBytes(armorStr string) (bz []byte, algo string, err error) {
 		if header[headerType] == "" {
 			header[headerType] = defaultAlgo
 		}
-
 		return bz, header[headerType], err
 	case "":
 		return nil, "", fmt.Errorf("header's version field is empty")
@@ -111,12 +107,10 @@ func unarmorBytes(armorStr, blockType string) (bz []byte, header map[string]stri
 	if err != nil {
 		return
 	}
-
 	if bType != blockType {
 		err = fmt.Errorf("unrecognized armor type %q, expected: %q", bType, blockType)
 		return
 	}
-
 	return
 }
 
@@ -130,13 +124,10 @@ func EncryptArmorPrivKey(privKey crypto.PrivKey, passphrase string, algo string)
 		"kdf":  "bcrypt",
 		"salt": fmt.Sprintf("%X", saltBytes),
 	}
-
 	if algo != "" {
 		header[headerType] = algo
 	}
-
 	armorStr := armor.EncodeArmor(blockTypePrivKey, header, encBytes)
-
 	return armorStr
 }
 
@@ -146,14 +137,11 @@ func EncryptArmorPrivKey(privKey crypto.PrivKey, passphrase string, algo string)
 func encryptPrivKey(privKey crypto.PrivKey, passphrase string) (saltBytes []byte, encBytes []byte) {
 	saltBytes = crypto.CRandBytes(16)
 	key, err := bcrypt.GenerateFromPassword(saltBytes, []byte(passphrase), BcryptSecurityParameter)
-
 	if err != nil {
 		panic(sdkerrors.Wrap(err, "error generating bcrypt key from passphrase"))
 	}
-
 	key = crypto.Sha256(key) // get 32 bytes
-	privKeyBytes := legacy.Cdc.Amino.MustMarshalBinaryBare(privKey)
-
+	privKeyBytes := privKey.Bytes()
 	return saltBytes, xsalsa20symmetric.EncryptSymmetric(privKeyBytes, key)
 }
 
@@ -163,30 +151,24 @@ func UnarmorDecryptPrivKey(armorStr string, passphrase string) (privKey crypto.P
 	if err != nil {
 		return privKey, "", err
 	}
-
 	if blockType != blockTypePrivKey {
 		return privKey, "", fmt.Errorf("unrecognized armor type: %v", blockType)
 	}
-
 	if header["kdf"] != "bcrypt" {
 		return privKey, "", fmt.Errorf("unrecognized KDF type: %v", header["kdf"])
 	}
-
 	if header["salt"] == "" {
 		return privKey, "", fmt.Errorf("missing salt bytes")
 	}
-
 	saltBytes, err := hex.DecodeString(header["salt"])
 	if err != nil {
 		return privKey, "", fmt.Errorf("error decoding salt: %v", err.Error())
 	}
-
 	privKey, err = decryptPrivKey(saltBytes, encBytes, passphrase)
 
 	if header[headerType] == "" {
 		header[headerType] = defaultAlgo
 	}
-
 	return privKey, header[headerType], err
 }
 
@@ -195,15 +177,13 @@ func decryptPrivKey(saltBytes []byte, encBytes []byte, passphrase string) (privK
 	if err != nil {
 		return privKey, sdkerrors.Wrap(err, "error generating bcrypt key from passphrase")
 	}
-
 	key = crypto.Sha256(key) // Get 32 bytes
-
 	privKeyBytes, err := xsalsa20symmetric.DecryptSymmetric(encBytes, key)
 	if err != nil && err.Error() == "Ciphertext decryption failed" {
 		return privKey, sdkerrors.ErrWrongPassword
 	} else if err != nil {
 		return privKey, err
 	}
-
-	return cryptoAmino.PrivKeyFromBytes(privKeyBytes)
+	privKey, err = cryptoAmino.PrivKeyFromBytes(privKeyBytes)
+	return privKey, err
 }

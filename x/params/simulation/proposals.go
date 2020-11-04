@@ -1,9 +1,9 @@
 package simulation
 
 import (
-	simappparams "github.com/orientwalt/htdf/simapp/params"
-	simtypes "github.com/orientwalt/htdf/types/simulation"
-	"github.com/orientwalt/htdf/x/simulation"
+	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/simulation"
 )
 
 // OpWeightSubmitParamChangeProposal app params key for param change proposal

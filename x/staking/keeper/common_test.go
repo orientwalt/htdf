@@ -3,13 +3,15 @@ package keeper_test
 import (
 	"testing"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/staking/keeper"
-	"github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 var (
@@ -18,21 +20,21 @@ var (
 
 // createTestInput Returns a simapp with custom StakingKeeper
 // to avoid messing with the hooks.
-func createTestInput() (*codec.LegacyAmino, *simapp.SimApp, sdk.Context) {
+func createTestInput() (*codec.Codec, *simapp.SimApp, sdk.Context) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 
-	appCodec := app.AppCodec()
+	appCodec := codecstd.NewAppCodec(codec.New())
 
 	app.StakingKeeper = keeper.NewKeeper(
 		appCodec,
-		app.GetKey(types.StoreKey),
-		app.AccountKeeper,
+		app.GetKey(staking.StoreKey),
 		app.BankKeeper,
-		app.GetSubspace(types.ModuleName),
+		app.SupplyKeeper,
+		app.GetSubspace(staking.ModuleName),
 	)
 
-	return codec.NewLegacyAmino(), app, ctx
+	return codec.New(), app, ctx
 }
 
 // intended to be used with require/assert:  require.True(ValEq(...))

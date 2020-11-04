@@ -31,17 +31,13 @@ package module
 import (
 	"encoding/json"
 
-	"github.com/gogo/protobuf/grpc"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	codectypes "github.com/orientwalt/htdf/codec/types"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 //__________________________________________________________________________________________
@@ -49,17 +45,15 @@ import (
 // AppModuleBasic is the standard form for basic non-dependant elements of an application module.
 type AppModuleBasic interface {
 	Name() string
-	RegisterLegacyAminoCodec(*codec.LegacyAmino)
-	RegisterInterfaces(codectypes.InterfaceRegistry)
+	RegisterCodec(*codec.Codec)
 
 	DefaultGenesis(codec.JSONMarshaler) json.RawMessage
-	ValidateGenesis(codec.JSONMarshaler, client.TxEncodingConfig, json.RawMessage) error
+	ValidateGenesis(codec.JSONMarshaler, json.RawMessage) error
 
 	// client functionality
-	RegisterRESTRoutes(client.Context, *mux.Router)
-	RegisterGRPCRoutes(client.Context, *runtime.ServeMux)
-	GetTxCmd() *cobra.Command
-	GetQueryCmd() *cobra.Command
+	RegisterRESTRoutes(context.CLIContext, *mux.Router)
+	GetTxCmd(*codec.Codec) *cobra.Command
+	GetQueryCmd(*codec.Codec) *cobra.Command
 }
 
 // BasicManager is a collection of AppModuleBasic
@@ -74,17 +68,10 @@ func NewBasicManager(modules ...AppModuleBasic) BasicManager {
 	return moduleMap
 }
 
-// RegisterLegacyAminoCodec registers all module codecs
-func (bm BasicManager) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
+// RegisterCodec registers all module codecs
+func (bm BasicManager) RegisterCodec(cdc *codec.Codec) {
 	for _, b := range bm {
-		b.RegisterLegacyAminoCodec(cdc)
-	}
-}
-
-// RegisterInterfaces registers all module interface types
-func (bm BasicManager) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	for _, m := range bm {
-		m.RegisterInterfaces(registry)
+		b.RegisterCodec(cdc)
 	}
 }
 
@@ -99,9 +86,9 @@ func (bm BasicManager) DefaultGenesis(cdc codec.JSONMarshaler) map[string]json.R
 }
 
 // ValidateGenesis performs genesis state validation for all modules
-func (bm BasicManager) ValidateGenesis(cdc codec.JSONMarshaler, txEncCfg client.TxEncodingConfig, genesis map[string]json.RawMessage) error {
+func (bm BasicManager) ValidateGenesis(cdc codec.JSONMarshaler, genesis map[string]json.RawMessage) error {
 	for _, b := range bm {
-		if err := b.ValidateGenesis(cdc, txEncCfg, genesis[b.Name()]); err != nil {
+		if err := b.ValidateGenesis(cdc, genesis[b.Name()]); err != nil {
 			return err
 		}
 	}
@@ -110,38 +97,25 @@ func (bm BasicManager) ValidateGenesis(cdc codec.JSONMarshaler, txEncCfg client.
 }
 
 // RegisterRESTRoutes registers all module rest routes
-func (bm BasicManager) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Router) {
+func (bm BasicManager) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
 	for _, b := range bm {
-		b.RegisterRESTRoutes(clientCtx, rtr)
+		b.RegisterRESTRoutes(ctx, rtr)
 	}
 }
 
-// RegisterGRPCRoutes registers all module rest routes
-func (bm BasicManager) RegisterGRPCRoutes(clientCtx client.Context, rtr *runtime.ServeMux) {
+// AddTxCommands adds all tx commands to the rootTxCmd
+func (bm BasicManager) AddTxCommands(rootTxCmd *cobra.Command, cdc *codec.Codec) {
 	for _, b := range bm {
-		b.RegisterGRPCRoutes(clientCtx, rtr)
-	}
-}
-
-// AddTxCommands adds all tx commands to the rootTxCmd.
-//
-// TODO: Remove clientCtx argument.
-// REF: https://github.com/orientwalt/htdf/issues/6571
-func (bm BasicManager) AddTxCommands(rootTxCmd *cobra.Command) {
-	for _, b := range bm {
-		if cmd := b.GetTxCmd(); cmd != nil {
+		if cmd := b.GetTxCmd(cdc); cmd != nil {
 			rootTxCmd.AddCommand(cmd)
 		}
 	}
 }
 
-// AddQueryCommands adds all query commands to the rootQueryCmd.
-//
-// TODO: Remove clientCtx argument.
-// REF: https://github.com/orientwalt/htdf/issues/6571
-func (bm BasicManager) AddQueryCommands(rootQueryCmd *cobra.Command) {
+// AddQueryCommands adds all query commands to the rootQueryCmd
+func (bm BasicManager) AddQueryCommands(rootQueryCmd *cobra.Command, cdc *codec.Codec) {
 	for _, b := range bm {
-		if cmd := b.GetQueryCmd(); cmd != nil {
+		if cmd := b.GetQueryCmd(cdc); cmd != nil {
 			rootQueryCmd.AddCommand(cmd)
 		}
 	}
@@ -165,16 +139,10 @@ type AppModule interface {
 	RegisterInvariants(sdk.InvariantRegistry)
 
 	// routes
-	Route() sdk.Route
-
-	// Deprecated: use RegisterQueryService
+	Route() string
+	NewHandler() sdk.Handler
 	QuerierRoute() string
-
-	// Deprecated: use RegisterQueryService
-	LegacyQuerierHandler(*codec.LegacyAmino) sdk.Querier
-
-	// RegisterQueryService allows a module to register a gRPC query service
-	RegisterQueryService(grpc.Server)
+	NewQuerierHandler() sdk.Querier
 
 	// ABCI
 	BeginBlock(sdk.Context, abci.RequestBeginBlock)
@@ -199,16 +167,16 @@ func NewGenesisOnlyAppModule(amg AppModuleGenesis) AppModule {
 func (GenesisOnlyAppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 
 // Route empty module message route
-func (GenesisOnlyAppModule) Route() sdk.Route { return sdk.Route{} }
+func (GenesisOnlyAppModule) Route() string { return "" }
+
+// NewHandler returns an empty module handler
+func (GenesisOnlyAppModule) NewHandler() sdk.Handler { return nil }
 
 // QuerierRoute returns an empty module querier route
 func (GenesisOnlyAppModule) QuerierRoute() string { return "" }
 
-// LegacyQuerierHandler returns an empty module querier
-func (gam GenesisOnlyAppModule) LegacyQuerierHandler(*codec.LegacyAmino) sdk.Querier { return nil }
-
-// RegisterQueryService registers all gRPC query services.
-func (gam GenesisOnlyAppModule) RegisterQueryService(grpc.Server) {}
+// NewQuerierHandler returns an empty module querier
+func (gam GenesisOnlyAppModule) NewQuerierHandler() sdk.Querier { return nil }
 
 // BeginBlock returns an empty module begin-block
 func (gam GenesisOnlyAppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {}
@@ -277,21 +245,14 @@ func (m *Manager) RegisterInvariants(ir sdk.InvariantRegistry) {
 }
 
 // RegisterRoutes registers all module routes and module querier routes
-func (m *Manager) RegisterRoutes(router sdk.Router, queryRouter sdk.QueryRouter, legacyQuerierCdc *codec.LegacyAmino) {
+func (m *Manager) RegisterRoutes(router sdk.Router, queryRouter sdk.QueryRouter) {
 	for _, module := range m.Modules {
-		if !module.Route().Empty() {
-			router.AddRoute(module.Route())
+		if module.Route() != "" {
+			router.AddRoute(module.Route(), module.NewHandler())
 		}
 		if module.QuerierRoute() != "" {
-			queryRouter.AddRoute(module.QuerierRoute(), module.LegacyQuerierHandler(legacyQuerierCdc))
+			queryRouter.AddRoute(module.QuerierRoute(), module.NewQuerierHandler())
 		}
-	}
-}
-
-// RegisterQueryServices registers all module query services
-func (m *Manager) RegisterQueryServices(grpcRouter grpc.Server) {
-	for _, module := range m.Modules {
-		module.RegisterQueryService(grpcRouter)
 	}
 }
 

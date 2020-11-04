@@ -3,7 +3,7 @@ package baseapp
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type Router struct {
@@ -21,15 +21,15 @@ func NewRouter() *Router {
 
 // AddRoute adds a route path to the router with a given handler. The route must
 // be alphanumeric.
-func (rtr *Router) AddRoute(route sdk.Route) sdk.Router {
-	if !sdk.IsAlphaNumeric(route.Path()) {
+func (rtr *Router) AddRoute(path string, h sdk.Handler) sdk.Router {
+	if !isAlphaNumeric(path) {
 		panic("route expressions can only contain alphanumeric characters")
 	}
-	if rtr.routes[route.Path()] != nil {
-		panic(fmt.Sprintf("route %s has already been initialized", route.Path()))
+	if rtr.routes[path] != nil {
+		panic(fmt.Sprintf("route %s has already been initialized", path))
 	}
 
-	rtr.routes[route.Path()] = route.Handler()
+	rtr.routes[path] = h
 	return rtr
 }
 

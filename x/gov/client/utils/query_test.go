@@ -1,22 +1,19 @@
-package utils_test
+package utils
 
 import (
-	"context"
 	"testing"
-
-	"github.com/orientwalt/htdf/simapp"
-	"github.com/orientwalt/htdf/x/gov/client/utils"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/rpc/client/mock"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
-	"github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 type TxSearchMock struct {
@@ -24,16 +21,8 @@ type TxSearchMock struct {
 	txs []tmtypes.Tx
 }
 
-func (mock TxSearchMock) TxSearch(ctx context.Context, query string, prove bool, page, perPage *int, orderBy string) (*ctypes.ResultTxSearch, error) {
-	if page == nil {
-		*page = 0
-	}
-
-	if perPage == nil {
-		*perPage = 0
-	}
-
-	start, end := client.Paginate(len(mock.txs), *page, *perPage, 100)
+func (mock TxSearchMock) TxSearch(query string, prove bool, page, perPage int, orderBy string) (*ctypes.ResultTxSearch, error) {
+	start, end := client.Paginate(len(mock.txs), page, perPage, 100)
 	if start < 0 || end < 0 {
 		// nil result with nil error crashes utils.QueryTxsByEvents
 		return &ctypes.ResultTxSearch{}, nil
@@ -46,16 +35,16 @@ func (mock TxSearchMock) TxSearch(ctx context.Context, query string, prove bool,
 	return rst, nil
 }
 
-func (mock TxSearchMock) Block(ctx context.Context, height *int64) (*ctypes.ResultBlock, error) {
+func (mock TxSearchMock) Block(height *int64) (*ctypes.ResultBlock, error) {
 	// any non nil Block needs to be returned. used to get time value
 	return &ctypes.ResultBlock{Block: &tmtypes.Block{}}, nil
 }
 
-func newTestCodec() *codec.LegacyAmino {
-	cdc := codec.NewLegacyAmino()
-	sdk.RegisterLegacyAminoCodec(cdc)
-	types.RegisterLegacyAminoCodec(cdc)
-	authtypes.RegisterLegacyAminoCodec(cdc)
+func newTestCodec() *codec.Codec {
+	cdc := codec.New()
+	sdk.RegisterCodec(cdc)
+	types.RegisterCodec(cdc)
+	authtypes.RegisterCodec(cdc)
 	return cdc
 }
 
@@ -63,7 +52,7 @@ func TestGetPaginatedVotes(t *testing.T) {
 	type testCase struct {
 		description string
 		page, limit int
-		msgs        [][]sdk.Msg
+		txs         []authtypes.StdTx
 		votes       []types.Vote
 	}
 	acc1 := make(sdk.AccAddress, 20)
@@ -83,21 +72,22 @@ func TestGetPaginatedVotes(t *testing.T) {
 			description: "1MsgPerTxAll",
 			page:        1,
 			limit:       2,
-			msgs: [][]sdk.Msg{
-				acc1Msgs[:1],
-				acc2Msgs[:1],
+			txs: []authtypes.StdTx{
+				{Msgs: acc1Msgs[:1]},
+				{Msgs: acc2Msgs[:1]},
 			},
 			votes: []types.Vote{
 				types.NewVote(0, acc1, types.OptionYes),
 				types.NewVote(0, acc2, types.OptionYes)},
 		},
+
 		{
 			description: "2MsgPerTx1Chunk",
 			page:        1,
 			limit:       2,
-			msgs: [][]sdk.Msg{
-				acc1Msgs,
-				acc2Msgs,
+			txs: []authtypes.StdTx{
+				{Msgs: acc1Msgs},
+				{Msgs: acc2Msgs},
 			},
 			votes: []types.Vote{
 				types.NewVote(0, acc1, types.OptionYes),
@@ -107,9 +97,9 @@ func TestGetPaginatedVotes(t *testing.T) {
 			description: "2MsgPerTx2Chunk",
 			page:        2,
 			limit:       2,
-			msgs: [][]sdk.Msg{
-				acc1Msgs,
-				acc2Msgs,
+			txs: []authtypes.StdTx{
+				{Msgs: acc1Msgs},
+				{Msgs: acc2Msgs},
 			},
 			votes: []types.Vote{
 				types.NewVote(0, acc2, types.OptionYes),
@@ -119,57 +109,46 @@ func TestGetPaginatedVotes(t *testing.T) {
 			description: "IncompleteSearchTx",
 			page:        1,
 			limit:       2,
-			msgs: [][]sdk.Msg{
-				acc1Msgs[:1],
+			txs: []authtypes.StdTx{
+				{Msgs: acc1Msgs[:1]},
 			},
 			votes: []types.Vote{types.NewVote(0, acc1, types.OptionYes)},
 		},
 		{
 			description: "InvalidPage",
 			page:        -1,
-			msgs: [][]sdk.Msg{
-				acc1Msgs[:1],
+			txs: []authtypes.StdTx{
+				{Msgs: acc1Msgs[:1]},
 			},
 		},
 		{
 			description: "OutOfBounds",
 			page:        2,
 			limit:       10,
-			msgs: [][]sdk.Msg{
-				acc1Msgs[:1],
+			txs: []authtypes.StdTx{
+				{Msgs: acc1Msgs[:1]},
 			},
 		},
 	} {
 		tc := tc
-
 		t.Run(tc.description, func(t *testing.T) {
 			var (
-				marshalled = make([]tmtypes.Tx, len(tc.msgs))
+				marshalled = make([]tmtypes.Tx, len(tc.txs))
 				cdc        = newTestCodec()
 			)
-
-			encodingConfig := simapp.MakeEncodingConfig()
-			cli := TxSearchMock{txs: marshalled}
-			clientCtx := client.Context{}.
-				WithLegacyAmino(cdc).
-				WithClient(cli).
-				WithTxConfig(encodingConfig.TxConfig)
-
-			for i := range tc.msgs {
-				txBuilder := clientCtx.TxConfig.NewTxBuilder()
-				err := txBuilder.SetMsgs(tc.msgs[i]...)
-				require.NoError(t, err)
-
-				tx, err := clientCtx.TxConfig.TxEncoder()(txBuilder.GetTx())
+			for i := range tc.txs {
+				tx, err := cdc.MarshalBinaryBare(&tc.txs[i])
 				require.NoError(t, err)
 				marshalled[i] = tx
 			}
+			client := TxSearchMock{txs: marshalled}
+			ctx := context.CLIContext{}.WithCodec(cdc).WithTrustNode(true).WithClient(client)
 
 			params := types.NewQueryProposalVotesParams(0, tc.page, tc.limit)
-			votesData, err := utils.QueryVotesByTxQuery(clientCtx, params)
+			votesData, err := QueryVotesByTxQuery(ctx, params)
 			require.NoError(t, err)
 			votes := []types.Vote{}
-			require.NoError(t, clientCtx.LegacyAmino.UnmarshalJSON(votesData, &votes))
+			require.NoError(t, ctx.Codec.UnmarshalJSON(votesData, &votes))
 			require.Equal(t, len(tc.votes), len(votes))
 			for i := range votes {
 				require.Equal(t, tc.votes[i], votes[i])

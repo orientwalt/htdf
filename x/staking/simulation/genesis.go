@@ -3,22 +3,22 @@ package simulation
 // DONTCOVER
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/module"
-	"github.com/orientwalt/htdf/types/simulation"
-	"github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // Simulation parameter constants
 const (
-	unbondingTime     = "unbonding_time"
-	maxValidators     = "max_validators"
-	historicalEntries = "historical_entries"
+	UnbondingTime = "unbonding_time"
+	MaxValidators = "max_validators"
 )
 
 // GenUnbondingTime randomized UnbondingTime
@@ -31,39 +31,26 @@ func GenMaxValidators(r *rand.Rand) (maxValidators uint32) {
 	return uint32(r.Intn(250) + 1)
 }
 
-// GetHistEntries randomized HistoricalEntries between 0-100.
-func GetHistEntries(r *rand.Rand) uint32 {
-	return uint32(r.Intn(int(types.DefaultHistoricalEntries + 1)))
-}
-
 // RandomizedGenState generates a random GenesisState for staking
 func RandomizedGenState(simState *module.SimulationState) {
 	// params
-	var (
-		unbondTime  time.Duration
-		maxVals     uint32
-		histEntries uint32
-	)
-
+	var unbondTime time.Duration
 	simState.AppParams.GetOrGenerate(
-		simState.Cdc, unbondingTime, &unbondTime, simState.Rand,
+		simState.Cdc, UnbondingTime, &unbondTime, simState.Rand,
 		func(r *rand.Rand) { unbondTime = GenUnbondingTime(r) },
 	)
 
+	var maxValidators uint32
 	simState.AppParams.GetOrGenerate(
-		simState.Cdc, maxValidators, &maxVals, simState.Rand,
-		func(r *rand.Rand) { maxVals = GenMaxValidators(r) },
-	)
-
-	simState.AppParams.GetOrGenerate(
-		simState.Cdc, historicalEntries, &histEntries, simState.Rand,
-		func(r *rand.Rand) { histEntries = GetHistEntries(r) },
+		simState.Cdc, MaxValidators, &maxValidators, simState.Rand,
+		func(r *rand.Rand) { maxValidators = GenMaxValidators(r) },
 	)
 
 	// NOTE: the slashing module need to be defined after the staking module on the
 	// NewSimulationManager constructor for this to work
 	simState.UnbondTime = unbondTime
-	params := types.NewParams(simState.UnbondTime, maxVals, 7, histEntries, sdk.DefaultBondDenom)
+
+	params := types.NewParams(simState.UnbondTime, maxValidators, 7, 3, sdk.DefaultBondDenom)
 
 	// validators & delegations
 	var (
@@ -72,7 +59,6 @@ func RandomizedGenState(simState *module.SimulationState) {
 	)
 
 	valAddrs := make([]sdk.ValAddress, simState.NumBonded)
-
 	for i := 0; i < int(simState.NumBonded); i++ {
 		valAddr := sdk.ValAddress(simState.Accounts[i].Address)
 		valAddrs[i] = valAddr
@@ -84,23 +70,18 @@ func RandomizedGenState(simState *module.SimulationState) {
 			simulation.RandomDecAmount(simState.Rand, maxCommission),
 		)
 
-		validator := types.NewValidator(valAddr, simState.Accounts[i].ConsKey.PubKey(), types.Description{})
+		validator := types.NewValidator(valAddr, simState.Accounts[i].PubKey, types.Description{})
 		validator.Tokens = sdk.NewInt(simState.InitialStake)
 		validator.DelegatorShares = sdk.NewDec(simState.InitialStake)
 		validator.Commission = commission
 
 		delegation := types.NewDelegation(simState.Accounts[i].Address, valAddr, sdk.NewDec(simState.InitialStake))
-
 		validators = append(validators, validator)
 		delegations = append(delegations, delegation)
 	}
 
 	stakingGenesis := types.NewGenesisState(params, validators, delegations)
 
-	bz, err := json.MarshalIndent(&stakingGenesis, "", " ")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Selected randomly generated staking parameters:\n%s\n", bz)
+	fmt.Printf("Selected randomly generated staking parameters:\n%s\n", codec.MustMarshalJSONIndent(types.ModuleCdc, stakingGenesis.Params))
 	simState.GenState[types.ModuleName] = simState.Cdc.MustMarshalJSON(stakingGenesis)
 }

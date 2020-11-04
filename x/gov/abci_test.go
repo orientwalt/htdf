@@ -6,21 +6,20 @@ import (
 
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/gov"
-	"github.com/orientwalt/htdf/x/gov/types"
-	"github.com/orientwalt/htdf/x/staking"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/staking"
 )
 
 func TestTickExpiredDepositPeriod(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	addrs := simapp.AddTestAddrs(app, ctx, 10, valTokens)
 
-	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
+	header := abci.Header{Height: app.LastBlockHeight() + 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	govHandler := gov.NewHandler(app.GovKeeper)
@@ -29,8 +28,8 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 	require.False(t, inactiveQueue.Valid())
 	inactiveQueue.Close()
 
-	newProposalMsg, err := types.NewMsgSubmitProposal(
-		types.ContentFromProposalType("test", "test", types.ProposalTypeText),
+	newProposalMsg, err := codecstd.NewMsgSubmitProposal(
+		gov.ContentFromProposalType("test", "test", gov.ProposalTypeText),
 		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
 		addrs[0],
 	)
@@ -69,10 +68,10 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 
 func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	addrs := simapp.AddTestAddrs(app, ctx, 10, valTokens)
 
-	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
+	header := abci.Header{Height: app.LastBlockHeight() + 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	govHandler := gov.NewHandler(app.GovKeeper)
@@ -81,8 +80,8 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	require.False(t, inactiveQueue.Valid())
 	inactiveQueue.Close()
 
-	newProposalMsg, err := types.NewMsgSubmitProposal(
-		types.ContentFromProposalType("test", "test", types.ProposalTypeText),
+	newProposalMsg, err := codecstd.NewMsgSubmitProposal(
+		gov.ContentFromProposalType("test", "test", gov.ProposalTypeText),
 		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
 		addrs[0],
 	)
@@ -104,8 +103,8 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 	require.False(t, inactiveQueue.Valid())
 	inactiveQueue.Close()
 
-	newProposalMsg2, err := types.NewMsgSubmitProposal(
-		types.ContentFromProposalType("test2", "test2", types.ProposalTypeText),
+	newProposalMsg2, err := codecstd.NewMsgSubmitProposal(
+		gov.ContentFromProposalType("test2", "test2", gov.ProposalTypeText),
 		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
 		addrs[0],
 	)
@@ -146,10 +145,10 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 
 func TestTickPassedDepositPeriod(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	addrs := simapp.AddTestAddrs(app, ctx, 10, valTokens)
 
-	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
+	header := abci.Header{Height: app.LastBlockHeight() + 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	govHandler := gov.NewHandler(app.GovKeeper)
@@ -161,8 +160,8 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.False(t, activeQueue.Valid())
 	activeQueue.Close()
 
-	newProposalMsg, err := types.NewMsgSubmitProposal(
-		types.ContentFromProposalType("test2", "test2", types.ProposalTypeText),
+	newProposalMsg, err := codecstd.NewMsgSubmitProposal(
+		gov.ContentFromProposalType("test2", "test2", gov.ProposalTypeText),
 		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
 		addrs[0],
 	)
@@ -172,7 +171,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	proposalID := types.GetProposalIDFromBytes(res.Data)
+	proposalID := gov.GetProposalIDFromBytes(res.Data)
 
 	inactiveQueue = app.GovKeeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.False(t, inactiveQueue.Valid())
@@ -186,7 +185,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.False(t, inactiveQueue.Valid())
 	inactiveQueue.Close()
 
-	newDepositMsg := types.NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)})
+	newDepositMsg := gov.NewMsgDeposit(addrs[1], proposalID, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)})
 
 	res, err = govHandler(ctx, newDepositMsg)
 	require.NoError(t, err)
@@ -199,12 +198,12 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 
 func TestTickPassedVotingPeriod(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	addrs := simapp.AddTestAddrs(app, ctx, 10, valTokens)
 
 	SortAddresses(addrs)
 
-	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
+	header := abci.Header{Height: app.LastBlockHeight() + 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	govHandler := gov.NewHandler(app.GovKeeper)
@@ -217,20 +216,20 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	activeQueue.Close()
 
 	proposalCoins := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(5))}
-	newProposalMsg, err := types.NewMsgSubmitProposal(TestProposal, proposalCoins, addrs[0])
+	newProposalMsg, err := codecstd.NewMsgSubmitProposal(TestProposal, proposalCoins, addrs[0])
 	require.NoError(t, err)
 
 	res, err := govHandler(ctx, newProposalMsg)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	proposalID := types.GetProposalIDFromBytes(res.Data)
+	proposalID := gov.GetProposalIDFromBytes(res.Data)
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
 	ctx = ctx.WithBlockHeader(newHeader)
 
-	newDepositMsg := types.NewMsgDeposit(addrs[1], proposalID, proposalCoins)
+	newDepositMsg := gov.NewMsgDeposit(addrs[1], proposalID, proposalCoins)
 
 	res, err = govHandler(ctx, newDepositMsg)
 	require.NoError(t, err)
@@ -247,10 +246,10 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	activeQueue = app.GovKeeper.ActiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, activeQueue.Valid())
 
-	activeProposalID := types.GetProposalIDFromBytes(activeQueue.Value())
+	activeProposalID := gov.GetProposalIDFromBytes(activeQueue.Value())
 	proposal, ok := app.GovKeeper.GetProposal(ctx, activeProposalID)
 	require.True(t, ok)
-	require.Equal(t, types.StatusVotingPeriod, proposal.Status)
+	require.Equal(t, gov.StatusVotingPeriod, proposal.Status)
 
 	activeQueue.Close()
 
@@ -263,7 +262,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 
 func TestProposalPassedEndblocker(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	addrs := simapp.AddTestAddrs(app, ctx, 10, valTokens)
 
 	SortAddresses(addrs)
@@ -271,7 +270,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 	handler := gov.NewHandler(app.GovKeeper)
 	stakingHandler := staking.NewHandler(app.StakingKeeper)
 
-	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
+	header := abci.Header{Height: app.LastBlockHeight() + 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	valAddr := sdk.ValAddress(addrs[0])
@@ -287,7 +286,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 	require.NoError(t, err)
 
 	proposalCoins := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(10))}
-	newDepositMsg := types.NewMsgDeposit(addrs[0], proposal.ProposalId, proposalCoins)
+	newDepositMsg := gov.NewMsgDeposit(addrs[0], proposal.ProposalID, proposalCoins)
 
 	res, err := handler(ctx, newDepositMsg)
 	require.NoError(t, err)
@@ -300,7 +299,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 	deposits := initialModuleAccCoins.Add(proposal.TotalDeposit...).Add(proposalCoins...)
 	require.True(t, moduleAccCoins.IsEqual(deposits))
 
-	err = app.GovKeeper.AddVote(ctx, proposal.ProposalId, addrs[0], types.OptionYes)
+	err = app.GovKeeper.AddVote(ctx, proposal.ProposalID, addrs[0], gov.OptionYes)
 	require.NoError(t, err)
 
 	newHeader := ctx.BlockHeader()
@@ -316,7 +315,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 
 func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 	addrs := simapp.AddTestAddrs(app, ctx, 1, valTokens)
 
 	SortAddresses(addrs)
@@ -324,7 +323,7 @@ func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 	handler := gov.NewHandler(app.GovKeeper)
 	stakingHandler := staking.NewHandler(app.StakingKeeper)
 
-	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
+	header := abci.Header{Height: app.LastBlockHeight() + 1}
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 
 	valAddr := sdk.ValAddress(addrs[0])
@@ -339,13 +338,13 @@ func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 	require.NoError(t, err)
 
 	proposalCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(10)))
-	newDepositMsg := types.NewMsgDeposit(addrs[0], proposal.ProposalId, proposalCoins)
+	newDepositMsg := gov.NewMsgDeposit(addrs[0], proposal.ProposalID, proposalCoins)
 
 	res, err := handler(ctx, newDepositMsg)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	err = app.GovKeeper.AddVote(ctx, proposal.ProposalId, addrs[0], types.OptionYes)
+	err = app.GovKeeper.AddVote(ctx, proposal.ProposalID, addrs[0], gov.OptionYes)
 	require.NoError(t, err)
 
 	newHeader := ctx.BlockHeader()

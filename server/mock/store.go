@@ -5,8 +5,8 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
-	store "github.com/orientwalt/htdf/store/types"
-	sdk "github.com/orientwalt/htdf/types"
+	store "github.com/cosmos/cosmos-sdk/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var _ sdk.MultiStore = multiStore{}
@@ -55,10 +55,6 @@ func (ms multiStore) SetPruning(opts sdk.PruningOptions) {
 	panic("not implemented")
 }
 
-func (ms multiStore) GetPruning() sdk.PruningOptions {
-	panic("not implemented")
-}
-
 func (ms multiStore) GetCommitKVStore(key sdk.StoreKey) sdk.CommitKVStore {
 	panic("not implemented")
 }
@@ -103,20 +99,6 @@ func (ms multiStore) SetInterBlockCache(_ sdk.MultiStorePersistentCache) {
 	panic("not implemented")
 }
 
-func (ms multiStore) SetInitialVersion(version int64) error {
-	panic("not implemented")
-}
-
-func (ms multiStore) Snapshot(height uint64, format uint32) (<-chan io.ReadCloser, error) {
-	panic("not implemented")
-}
-
-func (ms multiStore) Restore(
-	height uint64, format uint32, chunks <-chan io.ReadCloser, ready chan<- struct{},
-) error {
-	panic("not implemented")
-}
-
 var _ sdk.KVStore = kvStore{}
 
 type kvStore struct {
@@ -149,7 +131,6 @@ func (kv kvStore) Has(key []byte) bool {
 }
 
 func (kv kvStore) Set(key, value []byte) {
-	store.AssertValidKey(key)
 	kv.store[string(key)] = value
 }
 

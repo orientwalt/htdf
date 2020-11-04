@@ -8,19 +8,17 @@ import (
 	gogotypes "github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/orientwalt/htdf/crypto/keys/secp256k1"
-	cryptotypes "github.com/orientwalt/htdf/crypto/types"
-	"github.com/orientwalt/htdf/simapp"
-	"github.com/orientwalt/htdf/testutil/testdata"
-	sdk "github.com/orientwalt/htdf/types"
-	banktypes "github.com/orientwalt/htdf/x/bank/types"
-	"github.com/orientwalt/htdf/x/staking"
-	"github.com/orientwalt/htdf/x/staking/keeper"
-	"github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 )
 
 func bootstrapHandlerGenesisTest(t *testing.T, power int64, numAddrs int, accAmount int64) (*simapp.SimApp, sdk.Context, []sdk.AccAddress, []sdk.ValAddress) {
@@ -34,9 +32,9 @@ func bootstrapHandlerGenesisTest(t *testing.T, power int64, numAddrs int, accAmo
 	notBondedPool := app.StakingKeeper.GetNotBondedPool(ctx)
 	err := app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), totalSupply)
 	require.NoError(t, err)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
-	app.BankKeeper.SetSupply(ctx, banktypes.NewSupply(totalSupply))
+	app.SupplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	return app, ctx, addrDels, addrVals
 }
@@ -70,7 +68,7 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	// verify that the by power index exists
 	validator, found := app.StakingKeeper.GetValidator(ctx, validatorAddr)
 	require.True(t, found)
-	power := types.GetValidatorsByPowerIndexKey(validator)
+	power := staking.GetValidatorsByPowerIndexKey(validator)
 	require.True(t, keeper.ValidatorByPowerIndexExists(ctx, app.StakingKeeper, power))
 
 	// create a second validator keep it bonded
@@ -101,17 +99,17 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	// but the new power record should have been created
 	validator, found = app.StakingKeeper.GetValidator(ctx, validatorAddr)
 	require.True(t, found)
-	power2 := types.GetValidatorsByPowerIndexKey(validator)
+	power2 := staking.GetValidatorsByPowerIndexKey(validator)
 	require.True(t, keeper.ValidatorByPowerIndexExists(ctx, app.StakingKeeper, power2))
 
 	// now the new record power index should be the same as the original record
-	power3 := types.GetValidatorsByPowerIndexKey(validator)
+	power3 := staking.GetValidatorsByPowerIndexKey(validator)
 	require.Equal(t, power2, power3)
 
 	// unbond self-delegation
 	totalBond := validator.TokensFromShares(bond.GetShares()).TruncateInt()
 	unbondAmt := sdk.NewCoin(sdk.DefaultBondDenom, totalBond)
-	msgUndelegate := types.NewMsgUndelegate(sdk.AccAddress(validatorAddr), validatorAddr, unbondAmt)
+	msgUndelegate := staking.NewMsgUndelegate(sdk.AccAddress(validatorAddr), validatorAddr, unbondAmt)
 
 	res, err = handler(ctx, msgUndelegate)
 	require.NoError(t, err)
@@ -153,8 +151,8 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 	validator, found := app.StakingKeeper.GetValidator(ctx, addr1)
 	require.True(t, found)
 	assert.Equal(t, sdk.Bonded, validator.Status)
-	assert.Equal(t, addr1.String(), validator.OperatorAddress)
-	assert.Equal(t, pk1.(cryptotypes.IntoTmPubKey).AsTmPubKey(), validator.GetConsPubKey())
+	assert.Equal(t, addr1, validator.OperatorAddress)
+	assert.Equal(t, pk1, validator.GetConsPubKey())
 	assert.Equal(t, valTokens, validator.BondedTokens())
 	assert.Equal(t, valTokens.ToDec(), validator.DelegatorShares)
 	assert.Equal(t, types.Description{}, validator.Description)
@@ -185,8 +183,8 @@ func TestDuplicatesMsgCreateValidator(t *testing.T) {
 
 	require.True(t, found)
 	assert.Equal(t, sdk.Bonded, validator.Status)
-	assert.Equal(t, addr2.String(), validator.OperatorAddress)
-	assert.Equal(t, pk2.(cryptotypes.IntoTmPubKey).AsTmPubKey(), validator.GetConsPubKey())
+	assert.Equal(t, addr2, validator.OperatorAddress)
+	assert.Equal(t, pk2, validator.GetConsPubKey())
 	assert.True(sdk.IntEq(t, valTokens, validator.Tokens))
 	assert.True(sdk.DecEq(t, valTokens.ToDec(), validator.DelegatorShares))
 	assert.Equal(t, types.Description{}, validator.Description)
@@ -196,7 +194,7 @@ func TestInvalidPubKeyTypeMsgCreateValidator(t *testing.T) {
 	app, ctx, _, valAddrs := bootstrapHandlerGenesisTest(t, 1000, 1, 1000)
 	handler := staking.NewHandler(app.StakingKeeper)
 	ctx = ctx.WithConsensusParams(&abci.ConsensusParams{
-		Validator: &tmproto.ValidatorParams{PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519}},
+		Validator: &abci.ValidatorParams{PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519}},
 	})
 
 	addr := valAddrs[0]
@@ -207,6 +205,14 @@ func TestInvalidPubKeyTypeMsgCreateValidator(t *testing.T) {
 	res, err := handler(ctx, msgCreateValidator)
 	require.Error(t, err)
 	require.Nil(t, res)
+
+	ctx = ctx.WithConsensusParams(&abci.ConsensusParams{
+		Validator: &abci.ValidatorParams{PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeSecp256k1}},
+	})
+
+	res, err = handler(ctx, msgCreateValidator)
+	require.NoError(t, err)
+	require.NotNil(t, res)
 }
 
 func TestLegacyValidatorDelegations(t *testing.T) {
@@ -1222,7 +1228,7 @@ func TestMultipleUnbondingDelegationAtUniqueTimes(t *testing.T) {
 	// begin an unbonding delegation
 	selfDelAddr := sdk.AccAddress(valAddr) // (the validator is it's own delegator)
 	unbondAmt := sdk.NewCoin(sdk.DefaultBondDenom, valTokens.QuoRaw(2))
-	msgUndelegate := types.NewMsgUndelegate(selfDelAddr, valAddr, unbondAmt)
+	msgUndelegate := staking.NewMsgUndelegate(selfDelAddr, valAddr, unbondAmt)
 	res, err = handler(ctx, msgUndelegate)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -1430,10 +1436,10 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 }
 
 func TestInvalidMsg(t *testing.T) {
-	k := keeper.Keeper{}
+	k := staking.Keeper{}
 	h := staking.NewHandler(k)
 
-	res, err := h(sdk.NewContext(nil, tmproto.Header{}, false, nil), testdata.NewTestMsg())
+	res, err := h(sdk.NewContext(nil, abci.Header{}, false, nil), sdk.NewTestMsg())
 	require.Error(t, err)
 	require.Nil(t, res)
 	require.True(t, strings.Contains(err.Error(), "unrecognized staking message type"))

@@ -1,25 +1,19 @@
 package types
 
-import (
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-
-	query "github.com/orientwalt/htdf/types/query"
-)
-
 // Querier routes for the evidence module
 const (
+	QueryParameters  = "parameters"
 	QueryEvidence    = "evidence"
 	QueryAllEvidence = "all_evidence"
 )
 
-// NewQueryEvidenceRequest creates a new instance of QueryEvidenceRequest.
-func NewQueryEvidenceRequest(hash tmbytes.HexBytes) *QueryEvidenceRequest {
-	return &QueryEvidenceRequest{EvidenceHash: hash}
+// QueryEvidenceParams defines the parameters necessary for querying Evidence.
+type QueryEvidenceParams struct {
+	EvidenceHash string `json:"evidence_hash" yaml:"evidence_hash"`
 }
 
-// NewQueryAllEvidenceRequest creates a new instance of QueryAllEvidenceRequest.
-func NewQueryAllEvidenceRequest(pageReq *query.PageRequest) *QueryAllEvidenceRequest {
-	return &QueryAllEvidenceRequest{Pagination: pageReq}
+func NewQueryEvidenceParams(hash string) QueryEvidenceParams {
+	return QueryEvidenceParams{EvidenceHash: hash}
 }
 
 // QueryAllEvidenceParams defines the parameters necessary for querying for all Evidence.

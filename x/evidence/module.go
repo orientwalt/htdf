@@ -1,37 +1,28 @@
 package evidence
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 
-	"github.com/gogo/protobuf/grpc"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/x/evidence/client"
+	"github.com/cosmos/cosmos-sdk/x/evidence/client/cli"
+	"github.com/cosmos/cosmos-sdk/x/evidence/client/rest"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
-
 	abci "github.com/tendermint/tendermint/abci/types"
-
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	codectypes "github.com/orientwalt/htdf/codec/types"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/module"
-	simtypes "github.com/orientwalt/htdf/types/simulation"
-	eviclient "github.com/orientwalt/htdf/x/evidence/client"
-	"github.com/orientwalt/htdf/x/evidence/client/cli"
-	"github.com/orientwalt/htdf/x/evidence/client/rest"
-	"github.com/orientwalt/htdf/x/evidence/keeper"
-	"github.com/orientwalt/htdf/x/evidence/simulation"
-	"github.com/orientwalt/htdf/x/evidence/types"
 )
 
 var (
-	_ module.AppModule           = AppModule{}
-	_ module.AppModuleBasic      = AppModuleBasic{}
-	_ module.AppModuleSimulation = AppModule{}
+	_ module.AppModule      = AppModule{}
+	_ module.AppModuleBasic = AppModuleBasic{}
+
+	// TODO: Enable simulation once concrete types are defined.
+	// _ module.AppModuleSimulation = AppModuleSimulation{}
 )
 
 // ----------------------------------------------------------------------------
@@ -40,11 +31,10 @@ var (
 
 // AppModuleBasic implements the AppModuleBasic interface for the evidence module.
 type AppModuleBasic struct {
-	evidenceHandlers []eviclient.EvidenceHandler // eviclient evidence submission handlers
+	evidenceHandlers []client.EvidenceHandler // client evidence submission handlers
 }
 
-// NewAppModuleBasic crates a AppModuleBasic without the codec.
-func NewAppModuleBasic(evidenceHandlers ...eviclient.EvidenceHandler) AppModuleBasic {
+func NewAppModuleBasic(evidenceHandlers ...client.EvidenceHandler) AppModuleBasic {
 	return AppModuleBasic{
 		evidenceHandlers: evidenceHandlers,
 	}
@@ -52,63 +42,54 @@ func NewAppModuleBasic(evidenceHandlers ...eviclient.EvidenceHandler) AppModuleB
 
 // Name returns the evidence module's name.
 func (AppModuleBasic) Name() string {
-	return types.ModuleName
+	return ModuleName
 }
 
-// RegisterLegacyAminoCodec registers the evidence module's types to the LegacyAmino codec.
-func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	types.RegisterLegacyAminoCodec(cdc)
+// RegisterCodec registers the evidence module's types to the provided codec.
+func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
+	RegisterCodec(cdc)
 }
 
 // DefaultGenesis returns the evidence module's default genesis state.
 func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
-	return cdc.MustMarshalJSON(types.DefaultGenesisState())
+	return cdc.MustMarshalJSON(DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the evidence module.
-func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, config client.TxEncodingConfig, bz json.RawMessage) error {
-	var gs types.GenesisState
+func (AppModuleBasic) ValidateGenesis(cdc codec.JSONMarshaler, bz json.RawMessage) error {
+	var gs GenesisState
 	if err := cdc.UnmarshalJSON(bz, &gs); err != nil {
-		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", ModuleName, err)
 	}
 
 	return gs.Validate()
 }
 
 // RegisterRESTRoutes registers the evidence module's REST service handlers.
-func (a AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Router) {
+func (a AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router) {
 	evidenceRESTHandlers := make([]rest.EvidenceRESTHandler, len(a.evidenceHandlers))
 
 	for i, evidenceHandler := range a.evidenceHandlers {
-		evidenceRESTHandlers[i] = evidenceHandler.RESTHandler(clientCtx)
+		evidenceRESTHandlers[i] = evidenceHandler.RESTHandler(ctx)
 	}
 
-	rest.RegisterRoutes(clientCtx, rtr, evidenceRESTHandlers)
-}
-
-// RegisterGRPCRoutes registers the gRPC Gateway routes for the evidence module.
-func (a AppModuleBasic) RegisterGRPCRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
-	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
+	rest.RegisterRoutes(ctx, rtr, evidenceRESTHandlers)
 }
 
 // GetTxCmd returns the evidence module's root tx command.
-func (a AppModuleBasic) GetTxCmd() *cobra.Command {
+func (a AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	evidenceCLIHandlers := make([]*cobra.Command, len(a.evidenceHandlers))
 
 	for i, evidenceHandler := range a.evidenceHandlers {
-		evidenceCLIHandlers[i] = evidenceHandler.CLIHandler()
+		evidenceCLIHandlers[i] = evidenceHandler.CLIHandler(cdc)
 	}
 
-	return cli.GetTxCmd(evidenceCLIHandlers)
+	return cli.GetTxCmd(StoreKey, cdc, evidenceCLIHandlers)
 }
 
-// GetQueryCmd returns the evidence module's root query command.
-func (AppModuleBasic) GetQueryCmd() *cobra.Command {
-	return cli.GetQueryCmd()
-}
-
-func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	types.RegisterInterfaces(registry)
+// GetTxCmd returns the evidence module's root query command.
+func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	return cli.GetQueryCmd(StoreKey, cdc)
 }
 
 // ----------------------------------------------------------------------------
@@ -119,12 +100,12 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 type AppModule struct {
 	AppModuleBasic
 
-	keeper keeper.Keeper
+	keeper Keeper
 }
 
-func NewAppModule(keeper keeper.Keeper) AppModule {
+func NewAppModule(keeper Keeper) AppModule {
 	return AppModule{
-		AppModuleBasic: AppModuleBasic{},
+		AppModuleBasic: NewAppModuleBasic(),
 		keeper:         keeper,
 	}
 }
@@ -135,24 +116,23 @@ func (am AppModule) Name() string {
 }
 
 // Route returns the evidence module's message routing key.
-func (am AppModule) Route() sdk.Route {
-	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
+func (AppModule) Route() string {
+	return RouterKey
 }
 
 // QuerierRoute returns the evidence module's query routing key.
 func (AppModule) QuerierRoute() string {
-	return types.QuerierRoute
+	return QuerierRoute
 }
 
-// LegacyQuerierHandler returns the evidence module's Querier.
-func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
-	return keeper.NewQuerier(am.keeper, legacyQuerierCdc)
+// NewHandler returns the evidence module's message Handler.
+func (am AppModule) NewHandler() sdk.Handler {
+	return NewHandler(am.keeper)
 }
 
-// RegisterQueryService registers a GRPC query service to respond to the
-// module-specific GRPC queries.
-func (am AppModule) RegisterQueryService(server grpc.Server) {
-	types.RegisterQueryServer(server, am.keeper)
+// NewQuerierHandler returns the evidence module's Querier.
+func (am AppModule) NewQuerierHandler() sdk.Querier {
+	return NewQuerier(am.keeper)
 }
 
 // RegisterInvariants registers the evidence module's invariants.
@@ -161,13 +141,13 @@ func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 // InitGenesis performs the evidence module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
-	var gs types.GenesisState
+	var gs GenesisState
 	err := cdc.UnmarshalJSON(bz, &gs)
 	if err != nil {
-		panic(fmt.Sprintf("failed to unmarshal %s genesis state: %s", types.ModuleName, err))
+		panic(fmt.Sprintf("failed to unmarshal %s genesis state: %s", ModuleName, err))
 	}
 
-	InitGenesis(ctx, am.keeper, &gs)
+	InitGenesis(ctx, am.keeper, gs)
 	return []abci.ValidatorUpdate{}
 }
 
@@ -185,34 +165,4 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 // returns no validator updates.
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
-}
-
-//____________________________________________________________________________
-
-// AppModuleSimulation functions
-
-// GenerateGenesisState creates a randomized GenState of the evidence module.
-func (AppModule) GenerateGenesisState(simState *module.SimulationState) {
-	simulation.RandomizedGenState(simState)
-}
-
-// ProposalContents returns all the evidence content functions used to
-// simulate governance proposals.
-func (am AppModule) ProposalContents(simState module.SimulationState) []simtypes.WeightedProposalContent {
-	return nil
-}
-
-// RandomizedParams creates randomized evidence param changes for the simulator.
-func (AppModule) RandomizedParams(r *rand.Rand) []simtypes.ParamChange {
-	return nil
-}
-
-// RegisterStoreDecoder registers a decoder for evidence module's types
-func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
-	sdr[types.StoreKey] = simulation.NewDecodeStore(am.keeper)
-}
-
-// WeightedOperations returns the all the gov module operations with their respective weights.
-func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
-	return nil
 }

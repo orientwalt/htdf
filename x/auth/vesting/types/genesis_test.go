@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	sdk "github.com/orientwalt/htdf/types"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 var (
@@ -29,7 +30,7 @@ func TestValidateGenesisInvalidAccounts(t *testing.T) {
 	acc2 := authtypes.NewBaseAccountWithAddress(sdk.AccAddress(addr2))
 	// acc2Balance := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))
 
-	genAccs := make([]authtypes.GenesisAccount, 2)
+	genAccs := make([]exported.GenesisAccount, 2)
 	genAccs[0] = baseVestingAcc
 	genAccs[1] = acc2
 

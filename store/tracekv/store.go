@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/orientwalt/htdf/store/types"
-	"github.com/orientwalt/htdf/types/errors"
+	"github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const (
@@ -60,7 +60,6 @@ func (tkv *Store) Get(key []byte) []byte {
 // Set implements the KVStore interface. It traces a write operation and
 // delegates the Set call to the parent KVStore.
 func (tkv *Store) Set(key []byte, value []byte) {
-	types.AssertValidKey(key)
 	writeOperation(tkv.writer, writeOp, tkv.context, key, value)
 	tkv.parent.Set(key, value)
 }
@@ -146,8 +145,8 @@ func (ti *traceIterator) Value() []byte {
 }
 
 // Close implements the Iterator interface.
-func (ti *traceIterator) Close() error {
-	return ti.parent.Close()
+func (ti *traceIterator) Close() {
+	ti.parent.Close()
 }
 
 // Error delegates the Error call to the parent iterator.

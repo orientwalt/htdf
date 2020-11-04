@@ -1,10 +1,11 @@
 package store
 
 import (
-	"github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store/types"
 )
 
 // Import cosmos-sdk/types/store.go for convenience.
+// nolint
 type (
 	PruningOptions   = types.PruningOptions
 	Store            = types.Store
@@ -21,11 +22,18 @@ type (
 	CacheWrapper     = types.CacheWrapper
 	CacheWrap        = types.CacheWrap
 	CommitID         = types.CommitID
-	Key              = types.StoreKey
-	Type             = types.StoreType
+	StoreKey         = types.StoreKey
+	StoreType        = types.StoreType
 	Queryable        = types.Queryable
 	TraceContext     = types.TraceContext
 	Gas              = types.Gas
 	GasMeter         = types.GasMeter
 	GasConfig        = types.GasConfig
+)
+
+// nolint - reexport
+var (
+	PruneNothing    = types.PruneNothing
+	PruneEverything = types.PruneEverything
+	PruneSyncable   = types.PruneSyncable
 )

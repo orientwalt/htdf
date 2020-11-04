@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -20,6 +20,9 @@ const (
 
 	// QuerierRoute is the querier route for gov
 	QuerierRoute = ModuleName
+
+	// DefaultParamspace default name for parameter store
+	DefaultParamspace = ModuleName
 )
 
 // Keys for governance store

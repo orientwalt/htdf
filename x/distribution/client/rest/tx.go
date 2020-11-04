@@ -5,13 +5,47 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/client/tx"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/x/distribution/client/common"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/rest"
 )
+
+func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute string) {
+	// Withdraw all delegator rewards
+	r.HandleFunc(
+		"/distribution/delegators/{delegatorAddr}/rewards",
+		withdrawDelegatorRewardsHandlerFn(cliCtx, queryRoute),
+	).Methods("POST")
+
+	// Withdraw delegation rewards
+	r.HandleFunc(
+		"/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}",
+		withdrawDelegationRewardsHandlerFn(cliCtx),
+	).Methods("POST")
+
+	// Replace the rewards withdrawal address
+	r.HandleFunc(
+		"/distribution/delegators/{delegatorAddr}/withdraw_address",
+		setDelegatorWithdrawalAddrHandlerFn(cliCtx),
+	).Methods("POST")
+
+	// Withdraw validator rewards and commission
+	r.HandleFunc(
+		"/distribution/validators/{validatorAddr}/rewards",
+		withdrawValidatorRewardsHandlerFn(cliCtx),
+	).Methods("POST")
+
+	// Fund the community pool
+	r.HandleFunc(
+		"/distribution/community_pool",
+		fundCommunityPoolHandlerFn(cliCtx),
+	).Methods("POST")
+
+}
 
 type (
 	withdrawRewardsReq struct {
@@ -29,42 +63,11 @@ type (
 	}
 )
 
-func registerTxHandlers(clientCtx client.Context, r *mux.Router) {
-	// Withdraw all delegator rewards
-	r.HandleFunc(
-		"/distribution/delegators/{delegatorAddr}/rewards",
-		newWithdrawDelegatorRewardsHandlerFn(clientCtx),
-	).Methods("POST")
-
-	// Withdraw delegation rewards
-	r.HandleFunc(
-		"/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}",
-		newWithdrawDelegationRewardsHandlerFn(clientCtx),
-	).Methods("POST")
-
-	// Replace the rewards withdrawal address
-	r.HandleFunc(
-		"/distribution/delegators/{delegatorAddr}/withdraw_address",
-		newSetDelegatorWithdrawalAddrHandlerFn(clientCtx),
-	).Methods("POST")
-
-	// Withdraw validator rewards and commission
-	r.HandleFunc(
-		"/distribution/validators/{validatorAddr}/rewards",
-		newWithdrawValidatorRewardsHandlerFn(clientCtx),
-	).Methods("POST")
-
-	// Fund the community pool
-	r.HandleFunc(
-		"/distribution/community_pool",
-		newFundCommunityPoolHandlerFn(clientCtx),
-	).Methods("POST")
-}
-
-func newWithdrawDelegatorRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+// Withdraw delegator rewards
+func withdrawDelegatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req withdrawRewardsReq
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -79,19 +82,21 @@ func newWithdrawDelegatorRewardsHandlerFn(clientCtx client.Context) http.Handler
 			return
 		}
 
-		msgs, err := common.WithdrawAllDelegatorRewards(clientCtx, delAddr)
+		msgs, err := common.WithdrawAllDelegatorRewards(cliCtx, queryRoute, delAddr)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msgs...)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, msgs)
 	}
 }
 
-func newWithdrawDelegationRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+// Withdraw delegation rewards
+func withdrawDelegationRewardsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req withdrawRewardsReq
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -116,14 +121,16 @@ func newWithdrawDelegationRewardsHandlerFn(clientCtx client.Context) http.Handle
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
 
-func newSetDelegatorWithdrawalAddrHandlerFn(clientCtx client.Context) http.HandlerFunc {
+// Replace the rewards withdrawal address
+func setDelegatorWithdrawalAddrHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req setWithdrawalAddrReq
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -143,14 +150,16 @@ func newSetDelegatorWithdrawalAddrHandlerFn(clientCtx client.Context) http.Handl
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
 
-func newWithdrawValidatorRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+// Withdraw validator rewards and commission
+func withdrawValidatorRewardsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req withdrawRewardsReq
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -171,14 +180,14 @@ func newWithdrawValidatorRewardsHandlerFn(clientCtx client.Context) http.Handler
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msgs...)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, msgs)
 	}
 }
 
-func newFundCommunityPoolHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func fundCommunityPoolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req fundCommunityPoolReq
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -197,7 +206,7 @@ func newFundCommunityPoolHandlerFn(clientCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
 

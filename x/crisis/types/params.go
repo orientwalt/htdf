@@ -3,8 +3,13 @@ package types
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
-	paramtypes "github.com/orientwalt/htdf/x/params/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+)
+
+// Default parameter namespace
+const (
+	DefaultParamspace = ModuleName
 )
 
 var (

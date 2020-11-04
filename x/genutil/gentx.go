@@ -1,29 +1,31 @@
 package genutil
 
+// DONTCOVER
+
 import (
 	"encoding/json"
 	"fmt"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	bankexported "github.com/orientwalt/htdf/x/bank/exported"
-	"github.com/orientwalt/htdf/x/genutil/types"
-	stakingtypes "github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
+	"github.com/cosmos/cosmos-sdk/x/genutil/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // SetGenTxsInAppGenesisState - sets the genesis transactions in the app genesis state
 func SetGenTxsInAppGenesisState(
-	cdc codec.JSONMarshaler, txJSONEncoder sdk.TxEncoder, appGenesisState map[string]json.RawMessage, genTxs []sdk.Tx,
+	cdc *codec.Codec, appGenesisState map[string]json.RawMessage, genTxs []authtypes.StdTx,
 ) (map[string]json.RawMessage, error) {
 
-	genesisState := types.GetGenesisStateFromAppState(cdc, appGenesisState)
+	genesisState := GetGenesisStateFromAppState(cdc, appGenesisState)
 	genTxsBz := make([]json.RawMessage, 0, len(genTxs))
 
 	for _, genTx := range genTxs {
-		txBz, err := txJSONEncoder(genTx)
+		txBz, err := cdc.MarshalJSON(genTx)
 		if err != nil {
 			return appGenesisState, err
 		}
@@ -32,14 +34,14 @@ func SetGenTxsInAppGenesisState(
 	}
 
 	genesisState.GenTxs = genTxsBz
-	return types.SetGenesisStateInAppState(cdc, appGenesisState, genesisState), nil
+	return SetGenesisStateInAppState(cdc, appGenesisState, genesisState), nil
 }
 
 // ValidateAccountInGenesis checks that the provided account has a sufficient
 // balance in the set of genesis accounts.
 func ValidateAccountInGenesis(
 	appGenesisState map[string]json.RawMessage, genBalIterator types.GenesisBalancesIterator,
-	addr sdk.Address, coins sdk.Coins, cdc codec.JSONMarshaler,
+	addr sdk.Address, coins sdk.Coins, cdc *codec.Codec,
 ) error {
 
 	var stakingData stakingtypes.GenesisState
@@ -88,25 +90,19 @@ func ValidateAccountInGenesis(
 
 type deliverTxfn func(abci.RequestDeliverTx) abci.ResponseDeliverTx
 
-// DeliverGenTxs iterates over all genesis txs, decodes each into a Tx and
-// invokes the provided deliverTxfn with the decoded Tx. It returns the result
+// DeliverGenTxs iterates over all genesis txs, decodes each into a StdTx and
+// invokes the provided deliverTxfn with the decoded StdTx. It returns the result
 // of the staking module's ApplyAndReturnValidatorSetUpdates.
 func DeliverGenTxs(
-	ctx sdk.Context, genTxs []json.RawMessage,
+	ctx sdk.Context, cdc *codec.Codec, genTxs []json.RawMessage,
 	stakingKeeper types.StakingKeeper, deliverTx deliverTxfn,
-	txEncodingConfig client.TxEncodingConfig,
 ) []abci.ValidatorUpdate {
 
 	for _, genTx := range genTxs {
-		tx, err := txEncodingConfig.TxJSONDecoder()(genTx)
-		if err != nil {
-			panic(err)
-		}
+		var tx authtypes.StdTx
+		cdc.MustUnmarshalJSON(genTx, &tx)
 
-		bz, err := txEncodingConfig.TxEncoder()(tx)
-		if err != nil {
-			panic(err)
-		}
+		bz := cdc.MustMarshalBinaryBare(tx)
 
 		res := deliverTx(abci.RequestDeliverTx{Tx: bz})
 		if !res.IsOK() {

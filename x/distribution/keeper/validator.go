@@ -3,10 +3,10 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/orientwalt/htdf/x/distribution/types"
-	"github.com/orientwalt/htdf/x/staking/exported"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/exported"
 )
 
 // initialize rewards for a new validator

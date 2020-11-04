@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	sdk "github.com/orientwalt/htdf/types"
-	paramtypes "github.com/orientwalt/htdf/x/params/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // Default parameter namespace
 const (
+	DefaultParamspace           = ModuleName
 	DefaultSignedBlocksWindow   = int64(100)
 	DefaultDowntimeJailDuration = 60 * 10 * time.Second
 )
@@ -34,6 +35,15 @@ func ParamKeyTable() paramtypes.KeyTable {
 	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
 }
 
+// Params - used for initializing default parameter for slashing at genesis
+type Params struct {
+	SignedBlocksWindow      int64         `json:"signed_blocks_window" yaml:"signed_blocks_window"`
+	MinSignedPerWindow      sdk.Dec       `json:"min_signed_per_window" yaml:"min_signed_per_window"`
+	DowntimeJailDuration    time.Duration `json:"downtime_jail_duration" yaml:"downtime_jail_duration"`
+	SlashFractionDoubleSign sdk.Dec       `json:"slash_fraction_double_sign" yaml:"slash_fraction_double_sign"`
+	SlashFractionDowntime   sdk.Dec       `json:"slash_fraction_downtime" yaml:"slash_fraction_downtime"`
+}
+
 // NewParams creates a new Params object
 func NewParams(
 	signedBlocksWindow int64, minSignedPerWindow sdk.Dec, downtimeJailDuration time.Duration,
@@ -47,6 +57,19 @@ func NewParams(
 		SlashFractionDoubleSign: slashFractionDoubleSign,
 		SlashFractionDowntime:   slashFractionDowntime,
 	}
+}
+
+// String implements the stringer interface for Params
+func (p Params) String() string {
+	return fmt.Sprintf(`Slashing Params:
+  SignedBlocksWindow:      %d
+  MinSignedPerWindow:      %s
+  DowntimeJailDuration:    %s
+  SlashFractionDoubleSign: %s
+  SlashFractionDowntime:   %s`,
+		p.SignedBlocksWindow, p.MinSignedPerWindow,
+		p.DowntimeJailDuration, p.SlashFractionDoubleSign,
+		p.SlashFractionDowntime)
 }
 
 // ParamSetPairs - Implements params.ParamSet

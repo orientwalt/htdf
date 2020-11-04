@@ -3,16 +3,17 @@ package client
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/x/evidence/client/rest"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/x/evidence/client/rest"
 )
 
 type (
 	// RESTHandlerFn defines a REST service handler for evidence submission
-	RESTHandlerFn func(client.Context) rest.EvidenceRESTHandler
+	RESTHandlerFn func(context.CLIContext) rest.EvidenceRESTHandler
 
 	// CLIHandlerFn defines a CLI command handler for evidence submission
-	CLIHandlerFn func() *cobra.Command
+	CLIHandlerFn func(*codec.Codec) *cobra.Command
 
 	// EvidenceHandler defines a type that exposes REST and CLI client handlers for
 	// evidence submission.

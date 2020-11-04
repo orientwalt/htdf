@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	sdk "github.com/orientwalt/htdf/types"
-	simtypes "github.com/orientwalt/htdf/types/simulation"
+	abci "github.com/tendermint/tendermint/abci/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 )
 
 func TestParamChange(t *testing.T) {
@@ -39,7 +40,7 @@ func TestNewWeightedProposalContent(t *testing.T) {
 	require.Equal(t, key, pContent.AppParamsKey())
 	require.Equal(t, weight, pContent.DefaultWeight())
 
-	ctx := sdk.NewContext(nil, tmproto.Header{}, true, nil)
+	ctx := sdk.NewContext(nil, abci.Header{}, true, nil)
 	require.Equal(t, content, pContent.ContentSimulatorFn()(nil, ctx, nil))
 }
 

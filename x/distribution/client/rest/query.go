@@ -6,69 +6,69 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/orientwalt/htdf/x/distribution/client/common"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 
-	"github.com/orientwalt/htdf/client"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/rest"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/rest"
 )
 
-func registerQueryRoutes(clientCtx client.Context, r *mux.Router) {
+func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute string) {
 	// Get the total rewards balance from all delegations
 	r.HandleFunc(
 		"/distribution/delegators/{delegatorAddr}/rewards",
-		delegatorRewardsHandlerFn(clientCtx),
+		delegatorRewardsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Query a delegation reward
 	r.HandleFunc(
 		"/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}",
-		delegationRewardsHandlerFn(clientCtx),
+		delegationRewardsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Get the rewards withdrawal address
 	r.HandleFunc(
 		"/distribution/delegators/{delegatorAddr}/withdraw_address",
-		delegatorWithdrawalAddrHandlerFn(clientCtx),
+		delegatorWithdrawalAddrHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Validator distribution information
 	r.HandleFunc(
 		"/distribution/validators/{validatorAddr}",
-		validatorInfoHandlerFn(clientCtx),
+		validatorInfoHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Commission and self-delegation rewards of a single a validator
 	r.HandleFunc(
 		"/distribution/validators/{validatorAddr}/rewards",
-		validatorRewardsHandlerFn(clientCtx),
+		validatorRewardsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Outstanding rewards of a single validator
 	r.HandleFunc(
 		"/distribution/validators/{validatorAddr}/outstanding_rewards",
-		outstandingRewardsHandlerFn(clientCtx),
+		outstandingRewardsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Get the current distribution parameter values
 	r.HandleFunc(
 		"/distribution/parameters",
-		paramsHandlerFn(clientCtx),
+		paramsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Get the amount held in the community pool
 	r.HandleFunc(
 		"/distribution/community_pool",
-		communityPoolHandler(clientCtx),
+		communityPoolHandler(cliCtx, queryRoute),
 	).Methods("GET")
 
 }
 
 // HTTP request handler to query the total rewards balance from all delegations
-func delegatorRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func delegatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
@@ -79,27 +79,27 @@ func delegatorRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
 		}
 
 		params := types.NewQueryDelegatorParams(delegatorAddr)
-		bz, err := clientCtx.LegacyAmino.MarshalJSON(params)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("failed to marshal params: %s", err))
 			return
 		}
 
-		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegatorTotalRewards)
-		res, height, err := clientCtx.QueryWithData(route, bz)
+		route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryDelegatorTotalRewards)
+		res, height, err := cliCtx.QueryWithData(route, bz)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
 // HTTP request handler to query a delegation rewards
-func delegationRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func delegationRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
@@ -108,37 +108,37 @@ func delegationRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
 		valAddr := mux.Vars(r)["validatorAddr"]
 
 		// query for rewards from a particular delegation
-		res, height, ok := checkResponseQueryDelegationRewards(w, clientCtx, delAddr, valAddr)
+		res, height, ok := checkResponseQueryDelegationRewards(w, cliCtx, queryRoute, delAddr, valAddr)
 		if !ok {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
 // HTTP request handler to query a delegation rewards
-func delegatorWithdrawalAddrHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func delegatorWithdrawalAddrHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		delegatorAddr, ok := checkDelegatorAddressVar(w, r)
 		if !ok {
 			return
 		}
 
-		clientCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		bz := clientCtx.LegacyAmino.MustMarshalJSON(types.NewQueryDelegatorWithdrawAddrParams(delegatorAddr))
-		res, height, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/withdraw_addr", types.QuerierRoute), bz)
+		bz := cliCtx.Codec.MustMarshalJSON(types.NewQueryDelegatorWithdrawAddrParams(delegatorAddr))
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/withdraw_addr", queryRoute), bz)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
@@ -161,53 +161,53 @@ func NewValidatorDistInfo(operatorAddr sdk.AccAddress, rewards sdk.DecCoins,
 }
 
 // HTTP request handler to query validator's distribution information
-func validatorInfoHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func validatorInfoHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		valAddr, ok := checkValidatorAddressVar(w, r)
 		if !ok {
 			return
 		}
 
-		clientCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
 		// query commission
-		bz, err := common.QueryValidatorCommission(clientCtx, valAddr)
+		bz, err := common.QueryValidatorCommission(cliCtx, queryRoute, valAddr)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
 		var commission types.ValidatorAccumulatedCommission
-		if rest.CheckInternalServerError(w, clientCtx.LegacyAmino.UnmarshalJSON(bz, &commission)) {
+		if rest.CheckInternalServerError(w, cliCtx.Codec.UnmarshalJSON(bz, &commission)) {
 			return
 		}
 
 		// self bond rewards
 		delAddr := sdk.AccAddress(valAddr)
-		bz, height, ok := checkResponseQueryDelegationRewards(w, clientCtx, delAddr.String(), valAddr.String())
+		bz, height, ok := checkResponseQueryDelegationRewards(w, cliCtx, queryRoute, delAddr.String(), valAddr.String())
 		if !ok {
 			return
 		}
 
 		var rewards sdk.DecCoins
-		if rest.CheckInternalServerError(w, clientCtx.LegacyAmino.UnmarshalJSON(bz, &rewards)) {
+		if rest.CheckInternalServerError(w, cliCtx.Codec.UnmarshalJSON(bz, &rewards)) {
 			return
 		}
 
-		bz, err = clientCtx.LegacyAmino.MarshalJSON(NewValidatorDistInfo(delAddr, rewards, commission))
+		bz, err = cliCtx.Codec.MarshalJSON(NewValidatorDistInfo(delAddr, rewards, commission))
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, bz)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, bz)
 	}
 }
 
 // HTTP request handler to query validator's commission and self-delegation rewards
-func validatorRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func validatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		valAddr := mux.Vars(r)["validatorAddr"]
 		validatorAddr, ok := checkValidatorAddressVar(w, r)
@@ -215,92 +215,92 @@ func validatorRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		clientCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
 		delAddr := sdk.AccAddress(validatorAddr).String()
-		bz, height, ok := checkResponseQueryDelegationRewards(w, clientCtx, delAddr, valAddr)
+		bz, height, ok := checkResponseQueryDelegationRewards(w, cliCtx, queryRoute, delAddr, valAddr)
 		if !ok {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, bz)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, bz)
 	}
 }
 
 // HTTP request handler to query the distribution params values
-func paramsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func paramsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParams)
-		res, height, err := clientCtx.QueryWithData(route, nil)
+		res, height, err := cliCtx.QueryWithData(route, nil)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
-func communityPoolHandler(clientCtx client.Context) http.HandlerFunc {
+func communityPoolHandler(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		res, height, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/community_pool", types.QuerierRoute), nil)
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/community_pool", queryRoute), nil)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
 		var result sdk.DecCoins
-		if rest.CheckInternalServerError(w, clientCtx.LegacyAmino.UnmarshalJSON(res, &result)) {
+		if rest.CheckInternalServerError(w, cliCtx.Codec.UnmarshalJSON(res, &result)) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, result)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, result)
 	}
 }
 
 // HTTP request handler to query the outstanding rewards
-func outstandingRewardsHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func outstandingRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		validatorAddr, ok := checkValidatorAddressVar(w, r)
 		if !ok {
 			return
 		}
 
-		clientCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		bin := clientCtx.LegacyAmino.MustMarshalJSON(types.NewQueryValidatorOutstandingRewardsParams(validatorAddr))
-		res, height, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/validator_outstanding_rewards", types.QuerierRoute), bin)
+		bin := cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorOutstandingRewardsParams(validatorAddr))
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/validator_outstanding_rewards", queryRoute), bin)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
 func checkResponseQueryDelegationRewards(
-	w http.ResponseWriter, clientCtx client.Context, delAddr, valAddr string,
+	w http.ResponseWriter, cliCtx context.CLIContext, queryRoute, delAddr, valAddr string,
 ) (res []byte, height int64, ok bool) {
 
-	res, height, err := common.QueryDelegationRewards(clientCtx, delAddr, valAddr)
+	res, height, err := common.QueryDelegationRewards(cliCtx, queryRoute, delAddr, valAddr)
 	if rest.CheckInternalServerError(w, err) {
 		return nil, 0, false
 	}

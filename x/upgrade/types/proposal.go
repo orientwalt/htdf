@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	gov "github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 )
 
 const (
@@ -12,24 +12,25 @@ const (
 )
 
 func NewSoftwareUpgradeProposal(title, description string, plan Plan) gov.Content {
-	return &SoftwareUpgradeProposal{title, description, plan}
+	return SoftwareUpgradeProposal{title, description, plan}
 }
 
 // Implements Proposal Interface
-var _ gov.Content = &SoftwareUpgradeProposal{}
+var _ gov.Content = SoftwareUpgradeProposal{}
 
 func init() {
 	gov.RegisterProposalType(ProposalTypeSoftwareUpgrade)
-	gov.RegisterProposalTypeCodec(&SoftwareUpgradeProposal{}, "cosmos-sdk/SoftwareUpgradeProposal")
+	gov.RegisterProposalTypeCodec(SoftwareUpgradeProposal{}, "cosmos-sdk/SoftwareUpgradeProposal")
 	gov.RegisterProposalType(ProposalTypeCancelSoftwareUpgrade)
-	gov.RegisterProposalTypeCodec(&CancelSoftwareUpgradeProposal{}, "cosmos-sdk/CancelSoftwareUpgradeProposal")
+	gov.RegisterProposalTypeCodec(CancelSoftwareUpgradeProposal{}, "cosmos-sdk/CancelSoftwareUpgradeProposal")
 }
 
-func (sup *SoftwareUpgradeProposal) GetTitle() string       { return sup.Title }
-func (sup *SoftwareUpgradeProposal) GetDescription() string { return sup.Description }
-func (sup *SoftwareUpgradeProposal) ProposalRoute() string  { return RouterKey }
-func (sup *SoftwareUpgradeProposal) ProposalType() string   { return ProposalTypeSoftwareUpgrade }
-func (sup *SoftwareUpgradeProposal) ValidateBasic() error {
+// nolint
+func (sup SoftwareUpgradeProposal) GetTitle() string       { return sup.Title }
+func (sup SoftwareUpgradeProposal) GetDescription() string { return sup.Description }
+func (sup SoftwareUpgradeProposal) ProposalRoute() string  { return RouterKey }
+func (sup SoftwareUpgradeProposal) ProposalType() string   { return ProposalTypeSoftwareUpgrade }
+func (sup SoftwareUpgradeProposal) ValidateBasic() error {
 	if err := sup.Plan.ValidateBasic(); err != nil {
 		return err
 	}
@@ -44,19 +45,20 @@ func (sup SoftwareUpgradeProposal) String() string {
 }
 
 func NewCancelSoftwareUpgradeProposal(title, description string) gov.Content {
-	return &CancelSoftwareUpgradeProposal{title, description}
+	return CancelSoftwareUpgradeProposal{title, description}
 }
 
 // Implements Proposal Interface
-var _ gov.Content = &CancelSoftwareUpgradeProposal{}
+var _ gov.Content = CancelSoftwareUpgradeProposal{}
 
-func (sup *CancelSoftwareUpgradeProposal) GetTitle() string       { return sup.Title }
-func (sup *CancelSoftwareUpgradeProposal) GetDescription() string { return sup.Description }
-func (sup *CancelSoftwareUpgradeProposal) ProposalRoute() string  { return RouterKey }
-func (sup *CancelSoftwareUpgradeProposal) ProposalType() string {
+// nolint
+func (sup CancelSoftwareUpgradeProposal) GetTitle() string       { return sup.Title }
+func (sup CancelSoftwareUpgradeProposal) GetDescription() string { return sup.Description }
+func (sup CancelSoftwareUpgradeProposal) ProposalRoute() string  { return RouterKey }
+func (sup CancelSoftwareUpgradeProposal) ProposalType() string {
 	return ProposalTypeCancelSoftwareUpgrade
 }
-func (sup *CancelSoftwareUpgradeProposal) ValidateBasic() error {
+func (sup CancelSoftwareUpgradeProposal) ValidateBasic() error {
 	return gov.ValidateAbstract(sup)
 }
 

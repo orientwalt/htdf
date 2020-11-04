@@ -3,26 +3,27 @@ package gov_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	abcitypes "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 
-	"github.com/orientwalt/htdf/simapp"
-	authtypes "github.com/orientwalt/htdf/x/auth/types"
-	"github.com/orientwalt/htdf/x/gov/types"
+	"github.com/stretchr/testify/require"
+
+	"github.com/tendermint/tendermint/abci/types"
+
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 )
 
 func TestItCreatesModuleAccountOnInitBlock(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, types.Header{})
 
 	app.InitChain(
-		abcitypes.RequestInitChain{
+		types.RequestInitChain{
 			AppStateBytes: []byte("{}"),
 			ChainId:       "test-chain-id",
 		},
 	)
 
-	acc := app.AccountKeeper.GetAccount(ctx, authtypes.NewModuleAddress(types.ModuleName))
+	acc := app.AccountKeeper.GetAccount(ctx, supply.NewModuleAddress(gov.ModuleName))
 	require.NotNil(t, acc)
 }

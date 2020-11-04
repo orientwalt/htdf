@@ -1,12 +1,12 @@
 package client
 
 import (
-	"github.com/orientwalt/htdf/x/distribution/client/cli"
-	"github.com/orientwalt/htdf/x/distribution/client/rest"
-	govclient "github.com/orientwalt/htdf/x/gov/client"
+	"github.com/cosmos/cosmos-sdk/x/distribution/client/cli"
+	"github.com/cosmos/cosmos-sdk/x/distribution/client/rest"
+	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
 )
 
-// ProposalHandler is the community spend proposal handler.
+// param change proposal handler
 var (
 	ProposalHandler = govclient.NewProposalHandler(cli.GetCmdSubmitProposal, rest.ProposalRESTHandler)
 )

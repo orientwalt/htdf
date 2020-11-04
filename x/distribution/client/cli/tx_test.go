@@ -1,53 +1,70 @@
 package cli
 
 import (
+	"io/ioutil"
 	"testing"
-
-	"github.com/spf13/pflag"
-
-	"github.com/orientwalt/htdf/crypto/keys/secp256k1"
-	"github.com/orientwalt/htdf/simapp/params"
-	"github.com/orientwalt/htdf/testutil"
-	"github.com/orientwalt/htdf/testutil/testdata"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 
-	"github.com/orientwalt/htdf/client"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 )
 
-func Test_splitAndCall_NoMessages(t *testing.T) {
-	clientCtx := client.Context{}
+func createFakeTxBuilder() auth.TxBuilder {
+	cdc := codec.New()
+	return auth.NewTxBuilder(
+		authclient.GetTxEncoder(cdc),
+		123,
+		9876,
+		0,
+		1.2,
+		false,
+		"test_chain",
+		"hello",
+		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1))),
+		sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(10000, sdk.Precision))},
+	)
+}
 
-	err := newSplitAndApply(nil, clientCtx, nil, nil, 10)
+func Test_splitAndCall_NoMessages(t *testing.T) {
+	ctx := context.CLIContext{}
+	txBldr := createFakeTxBuilder()
+
+	err := splitAndApply(nil, ctx, txBldr, nil, 10)
 	assert.NoError(t, err, "")
 }
 
 func Test_splitAndCall_Splitting(t *testing.T) {
-	clientCtx := client.Context{}
+	ctx := context.CLIContext{}
+	txBldr := createFakeTxBuilder()
 
 	addr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 
 	// Add five messages
 	msgs := []sdk.Msg{
-		testdata.NewTestMsg(addr),
-		testdata.NewTestMsg(addr),
-		testdata.NewTestMsg(addr),
-		testdata.NewTestMsg(addr),
-		testdata.NewTestMsg(addr),
+		sdk.NewTestMsg(addr),
+		sdk.NewTestMsg(addr),
+		sdk.NewTestMsg(addr),
+		sdk.NewTestMsg(addr),
+		sdk.NewTestMsg(addr),
 	}
 
 	// Keep track of number of calls
 	const chunkSize = 2
 
 	callCount := 0
-	err := newSplitAndApply(
-		func(clientCtx client.Context, fs *pflag.FlagSet, msgs ...sdk.Msg) error {
+	err := splitAndApply(
+		func(ctx context.CLIContext, txBldr auth.TxBuilder, msgs []sdk.Msg) error {
 			callCount++
 
-			assert.NotNil(t, clientCtx)
+			assert.NotNil(t, ctx)
+			assert.NotNil(t, txBldr)
 			assert.NotNil(t, msgs)
 
 			if callCount < 3 {
@@ -58,16 +75,17 @@ func Test_splitAndCall_Splitting(t *testing.T) {
 
 			return nil
 		},
-		clientCtx, nil, msgs, chunkSize)
+		ctx, txBldr, msgs, chunkSize)
 
 	assert.NoError(t, err, "")
 	assert.Equal(t, 3, callCount)
 }
 
 func TestParseProposal(t *testing.T) {
-	encodingConfig := params.MakeEncodingConfig()
-
-	okJSON, cleanup := testutil.WriteToNewTempFile(t, `
+	cdc := codec.New()
+	okJSON, err := ioutil.TempFile("", "proposal")
+	require.Nil(t, err, "unexpected error")
+	_, err = okJSON.WriteString(`
 {
   "title": "Community Pool Spend",
   "description": "Pay me some Atoms!",
@@ -76,14 +94,17 @@ func TestParseProposal(t *testing.T) {
   "deposit": "1000stake"
 }
 `)
-	t.Cleanup(cleanup)
+	require.NoError(t, err)
 
-	proposal, err := ParseCommunityPoolSpendProposalWithDeposit(encodingConfig.Marshaler, okJSON.Name())
+	proposal, err := ParseCommunityPoolSpendProposalJSON(cdc, okJSON.Name())
+	require.NoError(t, err)
+
+	addr, err := sdk.AccAddressFromBech32("cosmos1s5afhd6gxevu37mkqcvvsj8qeylhn0rz46zdlq")
 	require.NoError(t, err)
 
 	require.Equal(t, "Community Pool Spend", proposal.Title)
 	require.Equal(t, "Pay me some Atoms!", proposal.Description)
-	require.Equal(t, "cosmos1s5afhd6gxevu37mkqcvvsj8qeylhn0rz46zdlq", proposal.Recipient)
+	require.Equal(t, addr, proposal.Recipient)
 	require.Equal(t, "1000stake", proposal.Deposit)
 	require.Equal(t, "1000stake", proposal.Amount)
 }

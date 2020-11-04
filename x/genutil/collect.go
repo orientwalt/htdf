@@ -9,29 +9,28 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
 	cfg "github.com/tendermint/tendermint/config"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	bankexported "github.com/orientwalt/htdf/x/bank/exported"
-	"github.com/orientwalt/htdf/x/genutil/types"
-	stakingtypes "github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
+	"github.com/cosmos/cosmos-sdk/x/genutil/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // GenAppStateFromConfig gets the genesis app state from the config
-func GenAppStateFromConfig(cdc codec.JSONMarshaler, txEncodingConfig client.TxEncodingConfig,
-	config *cfg.Config, initCfg types.InitConfig, genDoc tmtypes.GenesisDoc, genBalIterator types.GenesisBalancesIterator,
+func GenAppStateFromConfig(cdc *codec.Codec, config *cfg.Config,
+	initCfg InitConfig, genDoc tmtypes.GenesisDoc, genBalIterator types.GenesisBalancesIterator,
 ) (appState json.RawMessage, err error) {
 
 	// process genesis transactions, else create default genesis.json
-	appGenTxs, persistentPeers, err := CollectTxs(
-		cdc, txEncodingConfig.TxJSONDecoder(), config.Moniker, initCfg.GenTxsDir, genDoc, genBalIterator,
+	appGenTxs, persistentPeers, err := CollectStdTxs(
+		cdc, config.Moniker, initCfg.GenTxsDir, genDoc, genBalIterator,
 	)
 	if err != nil {
 		return appState, err
@@ -46,17 +45,17 @@ func GenAppStateFromConfig(cdc codec.JSONMarshaler, txEncodingConfig client.TxEn
 	}
 
 	// create the app state
-	appGenesisState, err := types.GenesisStateFromGenDoc(genDoc)
+	appGenesisState, err := GenesisStateFromGenDoc(cdc, genDoc)
 	if err != nil {
 		return appState, err
 	}
 
-	appGenesisState, err = SetGenTxsInAppGenesisState(cdc, txEncodingConfig.TxJSONEncoder(), appGenesisState, appGenTxs)
+	appGenesisState, err = SetGenTxsInAppGenesisState(cdc, appGenesisState, appGenTxs)
 	if err != nil {
 		return appState, err
 	}
 
-	appState, err = json.MarshalIndent(appGenesisState, "", "  ")
+	appState, err = codec.MarshalJSONIndent(cdc, appGenesisState)
 	if err != nil {
 		return appState, err
 	}
@@ -67,17 +66,11 @@ func GenAppStateFromConfig(cdc codec.JSONMarshaler, txEncodingConfig client.TxEn
 	return appState, err
 }
 
-// CollectTxs processes and validates application's genesis Txs and returns
+// CollectStdTxs processes and validates application's genesis StdTxs and returns
 // the list of appGenTxs, and persistent peers required to generate genesis.json.
-func CollectTxs(cdc codec.JSONMarshaler, txJSONDecoder sdk.TxDecoder, moniker, genTxsDir string,
+func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 	genDoc tmtypes.GenesisDoc, genBalIterator types.GenesisBalancesIterator,
-) (appGenTxs []sdk.Tx, persistentPeers string, err error) {
-	// prepare a map of all balances in genesis state to then validate
-	// against the validators addresses
-	var appState map[string]json.RawMessage
-	if err := json.Unmarshal(genDoc.AppState, &appState); err != nil {
-		return appGenTxs, persistentPeers, err
-	}
+) (appGenTxs []authtypes.StdTx, persistentPeers string, err error) {
 
 	var fos []os.FileInfo
 	fos, err = ioutil.ReadDir(genTxsDir)
@@ -85,8 +78,14 @@ func CollectTxs(cdc codec.JSONMarshaler, txJSONDecoder sdk.TxDecoder, moniker, g
 		return appGenTxs, persistentPeers, err
 	}
 
-	balancesMap := make(map[string]bankexported.GenesisBalance)
+	// prepare a map of all balances in genesis state to then validate
+	// against the validators addresses
+	var appState map[string]json.RawMessage
+	if err := cdc.UnmarshalJSON(genDoc.AppState, &appState); err != nil {
+		return appGenTxs, persistentPeers, err
+	}
 
+	balancesMap := make(map[string]bankexported.GenesisBalance)
 	genBalIterator.IterateGenesisBalances(
 		cdc, appState,
 		func(balance bankexported.GenesisBalance) (stop bool) {
@@ -99,71 +98,52 @@ func CollectTxs(cdc codec.JSONMarshaler, txJSONDecoder sdk.TxDecoder, moniker, g
 	var addressesIPs []string
 
 	for _, fo := range fos {
-		if fo.IsDir() {
-			continue
-		}
-		if !strings.HasSuffix(fo.Name(), ".json") {
+		filename := filepath.Join(genTxsDir, fo.Name())
+		if !fo.IsDir() && (filepath.Ext(filename) != ".json") {
 			continue
 		}
 
-		// get the genTx
-		jsonRawTx, err := ioutil.ReadFile(filepath.Join(genTxsDir, fo.Name()))
-		if err != nil {
+		// get the genStdTx
+		var jsonRawTx []byte
+		if jsonRawTx, err = ioutil.ReadFile(filename); err != nil {
 			return appGenTxs, persistentPeers, err
 		}
 
-		var genTx sdk.Tx
-		if genTx, err = txJSONDecoder(jsonRawTx); err != nil {
+		var genStdTx authtypes.StdTx
+		if err = cdc.UnmarshalJSON(jsonRawTx, &genStdTx); err != nil {
 			return appGenTxs, persistentPeers, err
 		}
 
-		appGenTxs = append(appGenTxs, genTx)
+		appGenTxs = append(appGenTxs, genStdTx)
 
 		// the memo flag is used to store
 		// the ip and node-id, for example this may be:
 		// "528fd3df22b31f4969b05652bfe8f0fe921321d5@192.168.2.37:26656"
-
-		memoTx, ok := genTx.(sdk.TxWithMemo)
-		if !ok {
-			return appGenTxs, persistentPeers, fmt.Errorf("expected TxWithMemo, got %T", genTx)
-		}
-		nodeAddrIP := memoTx.GetMemo()
+		nodeAddrIP := genStdTx.GetMemo()
 		if len(nodeAddrIP) == 0 {
 			return appGenTxs, persistentPeers, fmt.Errorf("failed to find node's address and IP in %s", fo.Name())
 		}
 
 		// genesis transactions must be single-message
-		msgs := genTx.GetMsgs()
+		msgs := genStdTx.GetMsgs()
 		if len(msgs) != 1 {
 			return appGenTxs, persistentPeers, errors.New("each genesis transaction must provide a single genesis message")
 		}
 
 		// TODO abstract out staking message validation back to staking
-		msg := msgs[0].(*stakingtypes.MsgCreateValidator)
+		msg := msgs[0].(stakingtypes.MsgCreateValidator)
 
 		// validate delegator and validator addresses and funds against the accounts in the state
-		delAddr := msg.DelegatorAddress
-		valAddr, err := sdk.ValAddressFromBech32(msg.ValidatorAddress)
-		if err != nil {
-			return appGenTxs, persistentPeers, err
-		}
+		delAddr := msg.DelegatorAddress.String()
+		valAddr := sdk.AccAddress(msg.ValidatorAddress).String()
 
 		delBal, delOk := balancesMap[delAddr]
 		if !delOk {
-			_, file, no, ok := runtime.Caller(1)
-			if ok {
-				fmt.Printf("CollectTxs-1, called from %s#%d\n", file, no)
-			}
-
 			return appGenTxs, persistentPeers, fmt.Errorf("account %s balance not in genesis state: %+v", delAddr, balancesMap)
 		}
 
-		_, valOk := balancesMap[sdk.AccAddress(valAddr).String()]
+		_, valOk := balancesMap[valAddr]
 		if !valOk {
-			_, file, no, ok := runtime.Caller(1)
-			if ok {
-				fmt.Printf("CollectTxs-2, called from %s#%d - %s\n", file, no, sdk.AccAddress(msg.ValidatorAddress).String())
-			}
 			return appGenTxs, persistentPeers, fmt.Errorf("account %s balance not in genesis state: %+v", valAddr, balancesMap)
 		}
 

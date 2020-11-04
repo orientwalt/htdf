@@ -5,13 +5,11 @@ import (
 	"io"
 
 	abci "github.com/tendermint/tendermint/abci/types"
+	tmkv "github.com/tendermint/tendermint/libs/kv"
 	dbm "github.com/tendermint/tm-db"
-
-	snapshottypes "github.com/orientwalt/htdf/snapshots/types"
-	"github.com/orientwalt/htdf/types/kv"
 )
 
-type Store interface {
+type Store interface { //nolint
 	GetStoreType() StoreType
 	CacheWrapper
 }
@@ -20,9 +18,7 @@ type Store interface {
 type Committer interface {
 	Commit() CommitID
 	LastCommitID() CommitID
-
 	SetPruning(PruningOptions)
-	GetPruning() PruningOptions
 }
 
 // Stores of MultiStore must implement CommitStore.
@@ -91,7 +87,7 @@ func (s *StoreUpgrades) RenamedFrom(key string) string {
 
 }
 
-type MultiStore interface {
+type MultiStore interface { //nolint
 	Store
 
 	// Cache wrap MultiStore.
@@ -132,7 +128,6 @@ type CacheMultiStore interface {
 type CommitMultiStore interface {
 	Committer
 	MultiStore
-	snapshottypes.Snapshotter
 
 	// Mount a store of type using the given db.
 	// If db == nil, the new store will use the CommitMultiStore db.
@@ -167,10 +162,6 @@ type CommitMultiStore interface {
 	// Set an inter-block (persistent) cache that maintains a mapping from
 	// StoreKeys to CommitKVStores.
 	SetInterBlockCache(MultiStorePersistentCache)
-
-	// SetInitialVersion sets the initial version of the IAVL tree. It is used when
-	// starting a new chain at an arbitrary height.
-	SetInitialVersion(version int64) error
 }
 
 //---------subsp-------------------------------
@@ -245,7 +236,7 @@ type CacheWrap interface {
 	CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap
 }
 
-type CacheWrapper interface {
+type CacheWrapper interface { //nolint
 	// CacheWrap cache wraps.
 	CacheWrap() CacheWrap
 
@@ -253,7 +244,16 @@ type CacheWrapper interface {
 	CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap
 }
 
-func (cid CommitID) IsZero() bool {
+//----------------------------------------
+// CommitID
+
+// CommitID contains the tree version number and its merkle root.
+type CommitID struct {
+	Version int64
+	Hash    []byte
+}
+
+func (cid CommitID) IsZero() bool { //nolint
 	return cid.Version == 0 && len(cid.Hash) == 0
 }
 
@@ -268,33 +268,12 @@ func (cid CommitID) String() string {
 type StoreType int
 
 const (
+	//nolint
 	StoreTypeMulti StoreType = iota
 	StoreTypeDB
 	StoreTypeIAVL
 	StoreTypeTransient
-	StoreTypeMemory
 )
-
-func (st StoreType) String() string {
-	switch st {
-	case StoreTypeMulti:
-		return "StoreTypeMulti"
-
-	case StoreTypeDB:
-		return "StoreTypeDB"
-
-	case StoreTypeIAVL:
-		return "StoreTypeIAVL"
-
-	case StoreTypeTransient:
-		return "StoreTypeTransient"
-
-	case StoreTypeMemory:
-		return "StoreTypeMemory"
-	}
-
-	return "unknown store type"
-}
 
 //----------------------------------------
 // Keys for accessing substores
@@ -318,9 +297,6 @@ type KVStoreKey struct {
 // NewKVStoreKey returns a new pointer to a KVStoreKey.
 // Use a pointer so keys don't collide.
 func NewKVStoreKey(name string) *KVStoreKey {
-	if name == "" {
-		panic("empty key name not allowed")
-	}
 	return &KVStoreKey{
 		name: name,
 	}
@@ -357,29 +333,10 @@ func (key *TransientStoreKey) String() string {
 	return fmt.Sprintf("TransientStoreKey{%p, %s}", key, key.name)
 }
 
-// MemoryStoreKey defines a typed key to be used with an in-memory KVStore.
-type MemoryStoreKey struct {
-	name string
-}
-
-func NewMemoryStoreKey(name string) *MemoryStoreKey {
-	return &MemoryStoreKey{name: name}
-}
-
-// Name returns the name of the MemoryStoreKey.
-func (key *MemoryStoreKey) Name() string {
-	return key.name
-}
-
-// String returns a stringified representation of the MemoryStoreKey.
-func (key *MemoryStoreKey) String() string {
-	return fmt.Sprintf("MemoryStoreKey{%p, %s}", key, key.name)
-}
-
 //----------------------------------------
 
 // key-value result for iterator queries
-type KVPair kv.Pair
+type KVPair tmkv.Pair
 
 //----------------------------------------
 
@@ -399,12 +356,4 @@ type MultiStorePersistentCache interface {
 
 	// Reset the entire set of internal caches.
 	Reset()
-}
-
-// StoreWithInitialVersion is a store that can have an arbitrary initial
-// version.
-type StoreWithInitialVersion interface {
-	// SetInitialVersion sets the initial version of the IAVL tree. It is used when
-	// starting a new chain at an arbitrary height.
-	SetInitialVersion(version int64)
 }

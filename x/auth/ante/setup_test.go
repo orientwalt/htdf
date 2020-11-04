@@ -1,84 +1,80 @@
 package ante_test
 
 import (
-	"github.com/orientwalt/htdf/testutil/testdata"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
 
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/auth/ante"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/auth/ante"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
-func (suite *AnteTestSuite) TestSetup() {
-	suite.SetupTest(true) // setup
-	suite.txBuilder = suite.clientCtx.TxConfig.NewTxBuilder()
+func TestSetup(t *testing.T) {
+	// setup
+	_, ctx := createTestApp(true)
 
 	// keys and addresses
-	priv1, _, addr1 := testdata.KeyTestPubAddr()
+	priv1, _, addr1 := types.KeyTestPubAddr()
 
 	// msg and signatures
-	msg := testdata.NewTestMsg(addr1)
-	feeAmount := testdata.NewTestFeeAmount()
-	gasLimit := testdata.NewTestGasLimit()
-	suite.Require().NoError(suite.txBuilder.SetMsgs(msg))
-	suite.txBuilder.SetFeeAmount(feeAmount)
-	suite.txBuilder.SetGasLimit(gasLimit)
+	msg1 := types.NewTestMsg(addr1)
+	fee := types.NewTestStdFee()
 
-	privs, accNums, accSeqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
-	tx, err := suite.CreateTestTx(privs, accNums, accSeqs, suite.ctx.ChainID())
-	suite.Require().NoError(err)
+	msgs := []sdk.Msg{msg1}
+
+	privs, accNums, seqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
+	tx := types.NewTestTx(ctx, msgs, privs, accNums, seqs, fee)
 
 	sud := ante.NewSetUpContextDecorator()
 	antehandler := sdk.ChainAnteDecorators(sud)
 
 	// Set height to non-zero value for GasMeter to be set
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	ctx = ctx.WithBlockHeight(1)
 
 	// Context GasMeter Limit not set
-	suite.Require().Equal(uint64(0), suite.ctx.GasMeter().Limit(), "GasMeter set with limit before setup")
+	require.Equal(t, uint64(0), ctx.GasMeter().Limit(), "GasMeter set with limit before setup")
 
-	newCtx, err := antehandler(suite.ctx, tx, false)
-	suite.Require().Nil(err, "SetUpContextDecorator returned error")
+	newCtx, err := antehandler(ctx, tx, false)
+	require.Nil(t, err, "SetUpContextDecorator returned error")
 
 	// Context GasMeter Limit should be set after SetUpContextDecorator runs
-	suite.Require().Equal(gasLimit, newCtx.GasMeter().Limit(), "GasMeter not set correctly")
+	require.Equal(t, fee.Gas, newCtx.GasMeter().Limit(), "GasMeter not set correctly")
 }
 
-func (suite *AnteTestSuite) TestRecoverPanic() {
-	suite.SetupTest(true) // setup
-	suite.txBuilder = suite.clientCtx.TxConfig.NewTxBuilder()
+func TestRecoverPanic(t *testing.T) {
+	// setup
+	_, ctx := createTestApp(true)
 
 	// keys and addresses
-	priv1, _, addr1 := testdata.KeyTestPubAddr()
+	priv1, _, addr1 := types.KeyTestPubAddr()
 
 	// msg and signatures
-	msg := testdata.NewTestMsg(addr1)
-	feeAmount := testdata.NewTestFeeAmount()
-	gasLimit := testdata.NewTestGasLimit()
-	suite.Require().NoError(suite.txBuilder.SetMsgs(msg))
-	suite.txBuilder.SetFeeAmount(feeAmount)
-	suite.txBuilder.SetGasLimit(gasLimit)
+	msg1 := types.NewTestMsg(addr1)
+	fee := types.NewTestStdFee()
 
-	privs, accNums, accSeqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
-	tx, err := suite.CreateTestTx(privs, accNums, accSeqs, suite.ctx.ChainID())
-	suite.Require().NoError(err)
+	msgs := []sdk.Msg{msg1}
+
+	privs, accNums, seqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
+	tx := types.NewTestTx(ctx, msgs, privs, accNums, seqs, fee)
 
 	sud := ante.NewSetUpContextDecorator()
 	antehandler := sdk.ChainAnteDecorators(sud, OutOfGasDecorator{})
 
 	// Set height to non-zero value for GasMeter to be set
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	ctx = ctx.WithBlockHeight(1)
 
-	newCtx, err := antehandler(suite.ctx, tx, false)
+	newCtx, err := antehandler(ctx, tx, false)
 
-	suite.Require().NotNil(err, "Did not return error on OutOfGas panic")
+	require.NotNil(t, err, "Did not return error on OutOfGas panic")
 
-	suite.Require().True(sdkerrors.ErrOutOfGas.Is(err), "Returned error is not an out of gas error")
-	suite.Require().Equal(gasLimit, newCtx.GasMeter().Limit())
+	require.True(t, sdkerrors.ErrOutOfGas.Is(err), "Returned error is not an out of gas error")
+	require.Equal(t, fee.Gas, newCtx.GasMeter().Limit())
 
 	antehandler = sdk.ChainAnteDecorators(sud, PanicDecorator{})
-	suite.Require().Panics(func() { antehandler(suite.ctx, tx, false) }, "Recovered from non-Out-of-Gas panic") // nolint:errcheck
+	require.Panics(t, func() { antehandler(ctx, tx, false) }, "Recovered from non-Out-of-Gas panic") // nolint:errcheck
 }
 
 type OutOfGasDecorator struct{}

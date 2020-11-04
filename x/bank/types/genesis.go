@@ -5,17 +5,29 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/bank/exported"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/exported"
 )
 
 var _ exported.GenesisBalance = (*Balance)(nil)
 
+// GenesisState defines the bank module's genesis state.
+type GenesisState struct {
+	SendEnabled bool      `json:"send_enabled" yaml:"send_enabled"`
+	Balances    []Balance `json:"balances" yaml:"balances"`
+}
+
+// Balance defines an account address and balance pair used in the bank module's
+// genesis state.
+type Balance struct {
+	Address sdk.AccAddress `json:"address" yaml:"address"`
+	Coins   sdk.Coins      `json:"coins" yaml:"coins"`
+}
+
 // GetAddress returns the account address of the Balance object.
 func (b Balance) GetAddress() sdk.AccAddress {
-	addr1, _ := sdk.AccAddressFromBech32(b.Address)
-	return addr1
+	return b.Address
 }
 
 // GetAddress returns the account coins of the Balance object.
@@ -26,9 +38,7 @@ func (b Balance) GetCoins() sdk.Coins {
 // SanitizeGenesisAccounts sorts addresses and coin sets.
 func SanitizeGenesisBalances(balances []Balance) []Balance {
 	sort.Slice(balances, func(i, j int) bool {
-		addr1, _ := sdk.AccAddressFromBech32(balances[i].Address)
-		addr2, _ := sdk.AccAddressFromBech32(balances[j].Address)
-		return bytes.Compare(addr1.Bytes(), addr2.Bytes()) < 0
+		return bytes.Compare(balances[i].Address.Bytes(), balances[j].Address.Bytes()) < 0
 	})
 
 	for _, balance := range balances {
@@ -38,41 +48,27 @@ func SanitizeGenesisBalances(balances []Balance) []Balance {
 	return balances
 }
 
-// ValidateGenesis performs basic validation of supply genesis data returning an
-// error for any failed validation criteria.
-func ValidateGenesis(data GenesisState) error {
-	if err := data.Params.Validate(); err != nil {
-		return err
-	}
-
-	return NewSupply(data.Supply).ValidateBasic()
-}
-
 // NewGenesisState creates a new genesis state.
-func NewGenesisState(params Params, balances []Balance, supply sdk.Coins, denomMetaData []Metadata) *GenesisState {
-	return &GenesisState{
-		Params:        params,
-		Balances:      balances,
-		Supply:        supply,
-		DenomMetadata: denomMetaData,
-	}
+func NewGenesisState(sendEnabled bool, balances []Balance) GenesisState {
+	return GenesisState{SendEnabled: sendEnabled, Balances: balances}
 }
 
 // DefaultGenesisState returns a default bank module genesis state.
-func DefaultGenesisState() *GenesisState {
-	return NewGenesisState(DefaultParams(), []Balance{}, DefaultSupply().GetTotal(), []Metadata{})
-}
+func DefaultGenesisState() GenesisState { return NewGenesisState(true, []Balance{}) }
+
+// ValidateGenesis performs basic validation of bank genesis data returning an
+// error for any failed validation criteria.
+func ValidateGenesis(data GenesisState) error { return nil }
 
 // GetGenesisStateFromAppState returns x/bank GenesisState given raw application
 // genesis state.
-func GetGenesisStateFromAppState(cdc codec.JSONMarshaler, appState map[string]json.RawMessage) *GenesisState {
+func GetGenesisStateFromAppState(cdc *codec.Codec, appState map[string]json.RawMessage) GenesisState {
 	var genesisState GenesisState
-
 	if appState[ModuleName] != nil {
 		cdc.MustUnmarshalJSON(appState[ModuleName], &genesisState)
 	}
 
-	return &genesisState
+	return genesisState
 }
 
 // GenesisAccountIterator implements genesis account iteration.
@@ -82,7 +78,7 @@ type GenesisBalancesIterator struct{}
 // appGenesis and invokes a callback on each genesis account. If any call
 // returns true, iteration stops.
 func (GenesisBalancesIterator) IterateGenesisBalances(
-	cdc codec.JSONMarshaler, appState map[string]json.RawMessage, cb func(exported.GenesisBalance) (stop bool),
+	cdc *codec.Codec, appState map[string]json.RawMessage, cb func(exported.GenesisBalance) (stop bool),
 ) {
 	for _, balance := range GetGenesisStateFromAppState(cdc, appState).Balances {
 		if cb(balance) {

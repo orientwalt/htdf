@@ -1,15 +1,10 @@
 package types
 
 import (
-	"fmt"
+	"gopkg.in/yaml.v2"
 
-	yaml "gopkg.in/yaml.v2"
-
-	"github.com/gogo/protobuf/proto"
-
-	"github.com/orientwalt/htdf/codec/types"
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // Governance message types and routes
@@ -19,11 +14,7 @@ const (
 	TypeMsgSubmitProposal = "submit_proposal"
 )
 
-var (
-	_, _, _ sdk.Msg                       = &MsgSubmitProposal{}, &MsgDeposit{}, &MsgVote{}
-	_       MsgSubmitProposalI            = &MsgSubmitProposal{}
-	_       types.UnpackInterfacesMessage = &MsgSubmitProposal{}
-)
+var _, _, _ sdk.Msg = MsgSubmitProposalBase{}, MsgDeposit{}, MsgVote{}
 
 // MsgSubmitProposalI defines the specific interface a concrete message must
 // implement in order to process governance proposals. The concrete MsgSubmitProposal
@@ -32,125 +23,59 @@ type MsgSubmitProposalI interface {
 	sdk.Msg
 
 	GetContent() Content
-	SetContent(Content) error
-
 	GetInitialDeposit() sdk.Coins
-	SetInitialDeposit(sdk.Coins)
-
 	GetProposer() sdk.AccAddress
-	SetProposer(sdk.AccAddress)
 }
 
-// NewMsgSubmitProposal creates a new MsgSubmitProposal.
-//nolint:interfacer
-func NewMsgSubmitProposal(content Content, initialDeposit sdk.Coins, proposer sdk.AccAddress) (*MsgSubmitProposal, error) {
-	m := &MsgSubmitProposal{
+// NewMsgSubmitProposalBase creates a new MsgSubmitProposalBase.
+func NewMsgSubmitProposalBase(initialDeposit sdk.Coins, proposer sdk.AccAddress) MsgSubmitProposalBase {
+	return MsgSubmitProposalBase{
 		InitialDeposit: initialDeposit,
-		Proposer:       proposer.String(),
+		Proposer:       proposer,
 	}
-	err := m.SetContent(content)
-	if err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (m *MsgSubmitProposal) GetInitialDeposit() sdk.Coins { return m.InitialDeposit }
-
-func (m *MsgSubmitProposal) GetProposer() sdk.AccAddress {
-	proposer, _ := sdk.AccAddressFromBech32(m.Proposer)
-	return proposer
-}
-
-func (m *MsgSubmitProposal) GetContent() Content {
-	content, ok := m.Content.GetCachedValue().(Content)
-	if !ok {
-		return nil
-	}
-	return content
-}
-
-func (m *MsgSubmitProposal) SetInitialDeposit(coins sdk.Coins) {
-	m.InitialDeposit = coins
-}
-
-func (m *MsgSubmitProposal) SetProposer(address sdk.AccAddress) {
-	m.Proposer = address.String()
-}
-
-func (m *MsgSubmitProposal) SetContent(content Content) error {
-	msg, ok := content.(proto.Message)
-	if !ok {
-		return fmt.Errorf("can't proto marshal %T", msg)
-	}
-	any, err := types.NewAnyWithValue(msg)
-	if err != nil {
-		return err
-	}
-	m.Content = any
-	return nil
 }
 
 // Route implements Msg
-func (m MsgSubmitProposal) Route() string { return RouterKey }
+func (msg MsgSubmitProposalBase) Route() string { return RouterKey }
 
 // Type implements Msg
-func (m MsgSubmitProposal) Type() string { return TypeMsgSubmitProposal }
+func (msg MsgSubmitProposalBase) Type() string { return TypeMsgSubmitProposal }
 
 // ValidateBasic implements Msg
-func (m MsgSubmitProposal) ValidateBasic() error {
-	if m.Proposer == "" {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, m.Proposer)
+func (msg MsgSubmitProposalBase) ValidateBasic() error {
+	if msg.Proposer.Empty() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Proposer.String())
 	}
-	if !m.InitialDeposit.IsValid() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, m.InitialDeposit.String())
+	if !msg.InitialDeposit.IsValid() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, msg.InitialDeposit.String())
 	}
-	if m.InitialDeposit.IsAnyNegative() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, m.InitialDeposit.String())
-	}
-
-	content := m.GetContent()
-	if content == nil {
-		return sdkerrors.Wrap(ErrInvalidProposalContent, "missing content")
-	}
-	if !IsValidProposalType(content.ProposalType()) {
-		return sdkerrors.Wrap(ErrInvalidProposalType, content.ProposalType())
-	}
-	if err := content.ValidateBasic(); err != nil {
-		return err
+	if msg.InitialDeposit.IsAnyNegative() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, msg.InitialDeposit.String())
 	}
 
 	return nil
 }
 
 // GetSignBytes implements Msg
-func (m MsgSubmitProposal) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(&m)
+func (msg MsgSubmitProposalBase) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
 // GetSigners implements Msg
-func (m MsgSubmitProposal) GetSigners() []sdk.AccAddress {
-	proposer, _ := sdk.AccAddressFromBech32(m.Proposer)
-	return []sdk.AccAddress{proposer}
+func (msg MsgSubmitProposalBase) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Proposer}
 }
 
 // String implements the Stringer interface
-func (m MsgSubmitProposal) String() string {
-	out, _ := yaml.Marshal(m)
+func (msg MsgSubmitProposalBase) String() string {
+	out, _ := yaml.Marshal(msg)
 	return string(out)
 }
 
-// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-func (m MsgSubmitProposal) UnpackInterfaces(unpacker types.AnyUnpacker) error {
-	var content Content
-	return unpacker.UnpackAny(m.Content, &content)
-}
-
 // NewMsgDeposit creates a new MsgDeposit instance
-//nolint:interfacer
-func NewMsgDeposit(depositor sdk.AccAddress, proposalID uint64, amount sdk.Coins) *MsgDeposit {
-	return &MsgDeposit{proposalID, depositor.String(), amount}
+func NewMsgDeposit(depositor sdk.AccAddress, proposalID uint64, amount sdk.Coins) MsgDeposit {
+	return MsgDeposit{proposalID, depositor, amount}
 }
 
 // Route implements Msg
@@ -161,8 +86,8 @@ func (msg MsgDeposit) Type() string { return TypeMsgDeposit }
 
 // ValidateBasic implements Msg
 func (msg MsgDeposit) ValidateBasic() error {
-	if msg.Depositor == "" {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Depositor)
+	if msg.Depositor.Empty() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Depositor.String())
 	}
 	if !msg.Amount.IsValid() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, msg.Amount.String())
@@ -182,20 +107,18 @@ func (msg MsgDeposit) String() string {
 
 // GetSignBytes implements Msg
 func (msg MsgDeposit) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(&msg)
+	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
 // GetSigners implements Msg
 func (msg MsgDeposit) GetSigners() []sdk.AccAddress {
-	depositor, _ := sdk.AccAddressFromBech32(msg.Depositor)
-	return []sdk.AccAddress{depositor}
+	return []sdk.AccAddress{msg.Depositor}
 }
 
 // NewMsgVote creates a message to cast a vote on an active proposal
-//nolint:interfacer
-func NewMsgVote(voter sdk.AccAddress, proposalID uint64, option VoteOption) *MsgVote {
-	return &MsgVote{proposalID, voter.String(), option}
+func NewMsgVote(voter sdk.AccAddress, proposalID uint64, option VoteOption) MsgVote {
+	return MsgVote{proposalID, voter, option}
 }
 
 // Route implements Msg
@@ -206,8 +129,8 @@ func (msg MsgVote) Type() string { return TypeMsgVote }
 
 // ValidateBasic implements Msg
 func (msg MsgVote) ValidateBasic() error {
-	if msg.Voter == "" {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Voter)
+	if msg.Voter.Empty() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Voter.String())
 	}
 	if !ValidVoteOption(msg.Option) {
 		return sdkerrors.Wrap(ErrInvalidVote, msg.Option.String())
@@ -224,12 +147,69 @@ func (msg MsgVote) String() string {
 
 // GetSignBytes implements Msg
 func (msg MsgVote) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(&msg)
+	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
 // GetSigners implements Msg
 func (msg MsgVote) GetSigners() []sdk.AccAddress {
-	voter, _ := sdk.AccAddressFromBech32(msg.Voter)
-	return []sdk.AccAddress{voter}
+	return []sdk.AccAddress{msg.Voter}
 }
+
+// ---------------------------------------------------------------------------
+// Deprecated
+//
+// TODO: Remove once client-side Protobuf migration has been completed.
+// ---------------------------------------------------------------------------
+
+// MsgSubmitProposal defines a (deprecated) message to create/submit a governance
+// proposal.
+//
+// TODO: Remove once client-side Protobuf migration has been completed.
+type MsgSubmitProposal struct {
+	Content        Content        `json:"content" yaml:"content"`
+	InitialDeposit sdk.Coins      `json:"initial_deposit" yaml:"initial_deposit"` //  Initial deposit paid by sender. Must be strictly positive
+	Proposer       sdk.AccAddress `json:"proposer" yaml:"proposer"`               //  Address of the proposer
+}
+
+// NewMsgSubmitProposal returns a (deprecated) MsgSubmitProposal message.
+//
+// TODO: Remove once client-side Protobuf migration has been completed.
+func NewMsgSubmitProposal(content Content, initialDeposit sdk.Coins, proposer sdk.AccAddress) MsgSubmitProposal {
+	return MsgSubmitProposal{content, initialDeposit, proposer}
+}
+
+// ValidateBasic implements Msg
+func (msg MsgSubmitProposal) ValidateBasic() error {
+	if msg.Content == nil {
+		return sdkerrors.Wrap(ErrInvalidProposalContent, "missing content")
+	}
+	if msg.Proposer.Empty() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Proposer.String())
+	}
+	if !msg.InitialDeposit.IsValid() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, msg.InitialDeposit.String())
+	}
+	if msg.InitialDeposit.IsAnyNegative() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, msg.InitialDeposit.String())
+	}
+	if !IsValidProposalType(msg.Content.ProposalType()) {
+		return sdkerrors.Wrap(ErrInvalidProposalType, msg.Content.ProposalType())
+	}
+
+	return msg.Content.ValidateBasic()
+}
+
+// GetSignBytes implements Msg
+func (msg MsgSubmitProposal) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// nolint
+func (msg MsgSubmitProposal) GetSigners() []sdk.AccAddress { return []sdk.AccAddress{msg.Proposer} }
+func (msg MsgSubmitProposal) Route() string                { return RouterKey }
+func (msg MsgSubmitProposal) Type() string                 { return TypeMsgSubmitProposal }
+func (msg MsgSubmitProposal) GetContent() Content          { return msg.Content }
+func (msg MsgSubmitProposal) GetInitialDeposit() sdk.Coins { return msg.InitialDeposit }
+func (msg MsgSubmitProposal) GetProposer() sdk.AccAddress  { return msg.Proposer }

@@ -5,32 +5,33 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/client/tx"
-	"github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/x/distribution/types"
-	govrest "github.com/orientwalt/htdf/x/gov/client/rest"
-	govtypes "github.com/orientwalt/htdf/x/gov/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/rest"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
+	govrest "github.com/cosmos/cosmos-sdk/x/gov/client/rest"
 )
 
-func RegisterHandlers(clientCtx client.Context, r *mux.Router) {
-	registerQueryRoutes(clientCtx, r)
-	registerTxHandlers(clientCtx, r)
+// RegisterRoutes register distribution REST routes.
+func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute string) {
+	registerQueryRoutes(cliCtx, r, queryRoute)
+	registerTxRoutes(cliCtx, r, queryRoute)
 }
 
-// TODO add proto compatible Handler after x/gov migration
 // ProposalRESTHandler returns a ProposalRESTHandler that exposes the community pool spend REST handler with a given sub-route.
-func ProposalRESTHandler(clientCtx client.Context) govrest.ProposalRESTHandler {
+func ProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "community_pool_spend",
-		Handler:  postProposalHandlerFn(clientCtx),
+		Handler:  postProposalHandlerFn(cliCtx),
 	}
 }
 
-func postProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
+func postProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CommunityPoolSpendProposalReq
-		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -41,14 +42,11 @@ func postProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
 
 		content := types.NewCommunityPoolSpendProposal(req.Title, req.Description, req.Recipient, req.Amount)
 
-		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
-		if rest.CheckBadRequestError(w, err) {
-			return
-		}
+		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
 		if rest.CheckBadRequestError(w, msg.ValidateBasic()) {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }

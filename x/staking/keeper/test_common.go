@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"math/rand"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/staking/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // does a certain by-power index record exist
@@ -20,41 +20,35 @@ func TestingUpdateValidator(keeper Keeper, ctx sdk.Context, validator types.Vali
 
 	// Remove any existing power key for validator.
 	store := ctx.KVStore(keeper.storeKey)
-	deleted := false
-
 	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorsByPowerIndexKey)
 	defer iterator.Close()
-
+	deleted := false
 	for ; iterator.Valid(); iterator.Next() {
 		valAddr := types.ParseValidatorPowerRankKey(iterator.Key())
-		if bytes.Equal(valAddr, validator.GetOperator()) {
+		if bytes.Equal(valAddr, validator.OperatorAddress) {
 			if deleted {
 				panic("found duplicate power index key")
 			} else {
 				deleted = true
 			}
-
 			store.Delete(iterator.Key())
 		}
 	}
 
 	keeper.SetValidatorByPowerIndex(ctx, validator)
-
 	if apply {
 		keeper.ApplyAndReturnValidatorSetUpdates(ctx)
-
-		validator, found := keeper.GetValidator(ctx, validator.GetOperator())
+		validator, found := keeper.GetValidator(ctx, validator.OperatorAddress)
 		if !found {
 			panic("validator expected but not found")
 		}
-
 		return validator
 	}
 
 	cachectx, _ := ctx.CacheContext()
 	keeper.ApplyAndReturnValidatorSetUpdates(cachectx)
 
-	validator, found := keeper.GetValidator(cachectx, validator.GetOperator())
+	validator, found := keeper.GetValidator(cachectx, validator.OperatorAddress)
 	if !found {
 		panic("validator expected but not found")
 	}
@@ -70,6 +64,5 @@ func RandomValidator(r *rand.Rand, keeper Keeper, ctx sdk.Context) (val types.Va
 	}
 
 	i := r.Intn(len(vals))
-
 	return vals[i], true
 }

@@ -3,14 +3,18 @@ package distribution_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/distribution"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+
+	"github.com/cosmos/cosmos-sdk/simapp"
+
+	"github.com/tendermint/tendermint/crypto/ed25519"
+
+	"github.com/stretchr/testify/require"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
 var (
@@ -20,13 +24,13 @@ var (
 	amount = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
 )
 
-func testProposal(recipient sdk.AccAddress, amount sdk.Coins) *types.CommunityPoolSpendProposal {
+func testProposal(recipient sdk.AccAddress, amount sdk.Coins) types.CommunityPoolSpendProposal {
 	return types.NewCommunityPoolSpendProposal("Test", "description", recipient, amount)
 }
 
 func TestProposalHandlerPassed(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 
 	recipient := delAddr1
 
@@ -36,7 +40,7 @@ func TestProposalHandlerPassed(t *testing.T) {
 	err := app.BankKeeper.SetBalances(ctx, macc.GetAddress(), balances.Add(amount...))
 	require.NoError(t, err)
 
-	app.AccountKeeper.SetModuleAccount(ctx, macc)
+	app.SupplyKeeper.SetModuleAccount(ctx, macc)
 
 	account := app.AccountKeeper.NewAccountWithAddress(ctx, recipient)
 	app.AccountKeeper.SetAccount(ctx, account)
@@ -56,7 +60,7 @@ func TestProposalHandlerPassed(t *testing.T) {
 
 func TestProposalHandlerFailed(t *testing.T) {
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
 
 	recipient := delAddr1
 

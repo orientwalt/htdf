@@ -3,7 +3,7 @@ package types
 import (
 	"reflect"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type attribute struct {
@@ -48,7 +48,7 @@ func (t KeyTable) RegisterType(psp ParamSetPair) KeyTable {
 	rty := reflect.TypeOf(psp.Value)
 
 	// indirect rty if it is a pointer
-	for rty.Kind() == reflect.Ptr {
+	if rty.Kind() == reflect.Ptr {
 		rty = rty.Elem()
 	}
 

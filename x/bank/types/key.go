@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -20,18 +20,10 @@ const (
 	QuerierRoute = ModuleName
 )
 
-// KVStore keys
+// KVStore key prefixes
 var (
-	BalancesPrefix      = []byte("balances")
-	SupplyKey           = []byte{0x00}
-	DenomMetadataPrefix = []byte{0x1}
+	BalancesPrefix = []byte("balances")
 )
-
-// DenomMetadataKey returns the denomination metadata key.
-func DenomMetadataKey(denom string) []byte {
-	d := []byte(denom)
-	return append(DenomMetadataPrefix, d...)
-}
 
 // AddressFromBalancesStore returns an account address from a balances prefix
 // store. The key must not contain the perfix BalancesPrefix as the prefix store

@@ -5,14 +5,17 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	banktypes "github.com/orientwalt/htdf/x/bank/types"
-	"github.com/orientwalt/htdf/x/staking/keeper"
-	"github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
+
+	abci "github.com/tendermint/tendermint/abci/types"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // bootstrapSlashTest creates 3 validators and bootstrap the app.
@@ -27,18 +30,16 @@ func bootstrapSlashTest(t *testing.T, power int64) (*simapp.SimApp, sdk.Context,
 	notBondedPool := app.StakingKeeper.GetNotBondedPool(ctx)
 	err := app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), totalSupply)
 	require.NoError(t, err)
-
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	numVals := int64(3)
 	bondedCoins := sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), amt.MulRaw(numVals)))
 	bondedPool := app.StakingKeeper.GetBondedPool(ctx)
-
 	err = app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), bondedCoins)
 	require.NoError(t, err)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
 
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
-	app.BankKeeper.SetSupply(ctx, banktypes.NewSupply(totalSupply))
+	app.SupplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	for i := int64(0); i < numVals; i++ {
 		validator := types.NewValidator(addrVals[i], PKs[i], types.Description{})
@@ -92,7 +93,7 @@ func TestSlashUnbondingDelegation(t *testing.T) {
 	require.Equal(t, int64(0), slashAmount.Int64())
 
 	// after the expiration time, no longer eligible for slashing
-	ctx = ctx.WithBlockHeader(tmproto.Header{Time: time.Unix(10, 0)})
+	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(10, 0)})
 	app.StakingKeeper.SetUnbondingDelegation(ctx, ubd)
 	slashAmount = app.StakingKeeper.SlashUnbondingDelegation(ctx, ubd, 0, fraction)
 	require.Equal(t, int64(0), slashAmount.Int64())
@@ -100,7 +101,7 @@ func TestSlashUnbondingDelegation(t *testing.T) {
 	// test valid slash, before expiration timestamp and to which stake contributed
 	notBondedPool := app.StakingKeeper.GetNotBondedPool(ctx)
 	oldUnbondedPoolBalances := app.BankKeeper.GetAllBalances(ctx, notBondedPool.GetAddress())
-	ctx = ctx.WithBlockHeader(tmproto.Header{Time: time.Unix(0, 0)})
+	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(0, 0)})
 	app.StakingKeeper.SetUnbondingDelegation(ctx, ubd)
 	slashAmount = app.StakingKeeper.SlashUnbondingDelegation(ctx, ubd, 0, fraction)
 	require.Equal(t, int64(5), slashAmount.Int64())
@@ -129,7 +130,7 @@ func TestSlashRedelegation(t *testing.T) {
 	balances := app.BankKeeper.GetAllBalances(ctx, bondedPool.GetAddress())
 
 	require.NoError(t, app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), balances.Add(startCoins...)))
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
 
 	// set a redelegation with an expiration timestamp beyond which the
 	// redelegation shouldn't be slashed
@@ -149,7 +150,7 @@ func TestSlashRedelegation(t *testing.T) {
 	require.Equal(t, int64(0), slashAmount.Int64())
 
 	// after the expiration time, no longer eligible for slashing
-	ctx = ctx.WithBlockHeader(tmproto.Header{Time: time.Unix(10, 0)})
+	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(10, 0)})
 	app.StakingKeeper.SetRedelegation(ctx, rd)
 	validator, found = app.StakingKeeper.GetValidator(ctx, addrVals[1])
 	require.True(t, found)
@@ -159,7 +160,7 @@ func TestSlashRedelegation(t *testing.T) {
 	balances = app.BankKeeper.GetAllBalances(ctx, bondedPool.GetAddress())
 
 	// test valid slash, before expiration timestamp and to which stake contributed
-	ctx = ctx.WithBlockHeader(tmproto.Header{Time: time.Unix(0, 0)})
+	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(0, 0)})
 	app.StakingKeeper.SetRedelegation(ctx, rd)
 	validator, found = app.StakingKeeper.GetValidator(ctx, addrVals[1])
 	require.True(t, found)
@@ -217,7 +218,7 @@ func TestSlashAtNegativeHeight(t *testing.T) {
 	updates := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates), "cons addr: %v, updates: %v", []byte(consAddr), updates)
 
-	validator, found = app.StakingKeeper.GetValidator(ctx, validator.GetOperator())
+	validator, found = app.StakingKeeper.GetValidator(ctx, validator.OperatorAddress)
 	require.True(t, found)
 	// power decreased
 	require.Equal(t, int64(5), validator.GetConsensusPower())
@@ -249,7 +250,7 @@ func TestSlashValidatorAtCurrentHeight(t *testing.T) {
 	updates := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 1, len(updates), "cons addr: %v, updates: %v", []byte(consAddr), updates)
 
-	validator, found = app.StakingKeeper.GetValidator(ctx, validator.GetOperator())
+	validator, found = app.StakingKeeper.GetValidator(ctx, validator.OperatorAddress)
 	assert.True(t, found)
 	// power decreased
 	require.Equal(t, int64(5), validator.GetConsensusPower())
@@ -336,7 +337,7 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 	// slash validator again
 	// all originally bonded stake has been slashed, so this will have no effect
 	// on the unbonding delegation, but it will slash stake bonded since the infraction
-	// this may not be the desirable behaviour, ref https://github.com/orientwalt/htdf/issues/1440
+	// this may not be the desirable behaviour, ref https://github.com/cosmos/cosmos-sdk/issues/1440
 	ctx = ctx.WithBlockHeight(13)
 	app.StakingKeeper.Slash(ctx, consAddr, 9, 10, fraction)
 
@@ -362,7 +363,7 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 	// slash validator again
 	// all originally bonded stake has been slashed, so this will have no effect
 	// on the unbonding delegation, but it will slash stake bonded since the infraction
-	// this may not be the desirable behaviour, ref https://github.com/orientwalt/htdf/issues/1440
+	// this may not be the desirable behaviour, ref https://github.com/cosmos/cosmos-sdk/issues/1440
 	ctx = ctx.WithBlockHeight(13)
 	app.StakingKeeper.Slash(ctx, consAddr, 9, 10, fraction)
 
@@ -412,11 +413,10 @@ func TestSlashWithRedelegation(t *testing.T) {
 	rdCoins := sdk.NewCoins(sdk.NewCoin(bondDenom, rdTokens.MulRaw(2)))
 
 	balances := app.BankKeeper.GetAllBalances(ctx, bondedPool.GetAddress())
-
 	err := app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), balances.Add(rdCoins...))
 	require.NoError(t, err)
 
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
 
 	oldBonded := app.BankKeeper.GetBalance(ctx, bondedPool.GetAddress(), bondDenom).Amount
 	oldNotBonded := app.BankKeeper.GetBalance(ctx, notBondedPool.GetAddress(), bondDenom).Amount
@@ -583,8 +583,8 @@ func TestSlashBoth(t *testing.T) {
 	notBondedPoolBalances := app.BankKeeper.GetAllBalances(ctx, notBondedPool.GetAddress())
 	require.NoError(t, app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), notBondedPoolBalances.Add(notBondedCoins...)))
 
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	oldBonded := app.BankKeeper.GetBalance(ctx, bondedPool.GetAddress(), bondDenom).Amount
 	oldNotBonded := app.BankKeeper.GetBalance(ctx, notBondedPool.GetAddress(), bondDenom).Amount

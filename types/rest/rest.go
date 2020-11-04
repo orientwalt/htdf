@@ -3,7 +3,6 @@
 package rest
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,10 +14,9 @@ import (
 
 	"github.com/tendermint/tendermint/types"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/codec/legacy"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -43,17 +41,6 @@ func NewResponseWithHeight(height int64, result json.RawMessage) ResponseWithHei
 	}
 }
 
-// ParseResponseWithHeight returns the raw result from a JSON-encoded
-// ResponseWithHeight object.
-func ParseResponseWithHeight(cdc *codec.LegacyAmino, bz []byte) ([]byte, error) {
-	r := ResponseWithHeight{}
-	if err := cdc.UnmarshalJSON(bz, &r); err != nil {
-		return nil, err
-	}
-
-	return r.Result, nil
-}
-
 // GasEstimateResponse defines a response definition for tx gas estimation.
 type GasEstimateResponse struct {
 	GasEstimate uint64 `json:"gas_estimate"`
@@ -67,7 +54,6 @@ type BaseReq struct {
 	ChainID       string       `json:"chain_id"`
 	AccountNumber uint64       `json:"account_number"`
 	Sequence      uint64       `json:"sequence"`
-	TimeoutHeight uint64       `json:"timeout_height"`
 	Fees          sdk.Coins    `json:"fees"`
 	GasPrices     sdk.DecCoins `json:"gas_prices"`
 	Gas           string       `json:"gas"`
@@ -80,6 +66,7 @@ func NewBaseReq(
 	from, memo, chainID string, gas, gasAdjustment string, accNumber, seq uint64,
 	fees sdk.Coins, gasPrices sdk.DecCoins, simulate bool,
 ) BaseReq {
+
 	return BaseReq{
 		From:          strings.TrimSpace(from),
 		Memo:          strings.TrimSpace(memo),
@@ -134,13 +121,13 @@ func (br BaseReq) ValidateBasic(w http.ResponseWriter) bool {
 
 // ReadRESTReq reads and unmarshals a Request's body to the the BaseReq struct.
 // Writes an error response to ResponseWriter and returns true if errors occurred.
-func ReadRESTReq(w http.ResponseWriter, r *http.Request, cdc *codec.LegacyAmino, req interface{}) bool {
+func ReadRESTReq(w http.ResponseWriter, r *http.Request, m codec.JSONMarshaler, req interface{}) bool {
 	body, err := ioutil.ReadAll(r.Body)
 	if CheckBadRequestError(w, err) {
 		return false
 	}
 
-	err = cdc.UnmarshalJSON(body, req)
+	err = m.UnmarshalJSON(body, req)
 	if err != nil {
 		WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("failed to decode JSON payload: %s", err))
 		return false
@@ -167,7 +154,6 @@ func CheckError(w http.ResponseWriter, status int, err error) bool {
 		WriteErrorResponse(w, status, err.Error())
 		return true
 	}
-
 	return false
 }
 
@@ -194,15 +180,15 @@ func CheckNotFoundError(w http.ResponseWriter, err error) bool {
 func WriteErrorResponse(w http.ResponseWriter, status int, err string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_, _ = w.Write(legacy.Cdc.MustMarshalJSON(NewErrorResponse(0, err)))
+	_, _ = w.Write(codec.Cdc.MustMarshalJSON(NewErrorResponse(0, err)))
 }
 
 // WriteSimulationResponse prepares and writes an HTTP
 // response for transactions simulations.
-func WriteSimulationResponse(w http.ResponseWriter, cdc *codec.LegacyAmino, gas uint64) {
+func WriteSimulationResponse(w http.ResponseWriter, m codec.JSONMarshaler, gas uint64) {
 	gasEst := GasEstimateResponse{GasEstimate: gas}
 
-	resp, err := cdc.MarshalJSON(gasEst)
+	resp, err := m.MarshalJSON(gasEst)
 	if CheckInternalServerError(w, err) {
 		return
 	}
@@ -218,8 +204,8 @@ func ParseUint64OrReturnBadRequest(w http.ResponseWriter, s string) (n uint64, o
 
 	n, err = strconv.ParseUint(s, 10, 64)
 	if err != nil {
-		WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("'%s' is not a valid uint64", s))
-
+		err := fmt.Errorf("'%s' is not a valid uint64", s)
+		WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return n, false
 	}
 
@@ -243,43 +229,58 @@ func ParseFloat64OrReturnBadRequest(w http.ResponseWriter, s string, defaultIfEm
 
 // ParseQueryHeightOrReturnBadRequest sets the height to execute a query if set by the http request.
 // It returns false if there was an error parsing the height.
-func ParseQueryHeightOrReturnBadRequest(w http.ResponseWriter, clientCtx client.Context, r *http.Request) (client.Context, bool) {
+func ParseQueryHeightOrReturnBadRequest(w http.ResponseWriter, cliCtx context.CLIContext, r *http.Request) (context.CLIContext, bool) {
 	heightStr := r.FormValue("height")
 	if heightStr != "" {
 		height, err := strconv.ParseInt(heightStr, 10, 64)
 		if CheckBadRequestError(w, err) {
-			return clientCtx, false
+			return cliCtx, false
 		}
 
 		if height < 0 {
 			WriteErrorResponse(w, http.StatusBadRequest, "height must be equal or greater than zero")
-			return clientCtx, false
+			return cliCtx, false
 		}
 
 		if height > 0 {
-			clientCtx = clientCtx.WithHeight(height)
+			cliCtx = cliCtx.WithHeight(height)
 		}
 	} else {
-		clientCtx = clientCtx.WithHeight(0)
+		cliCtx = cliCtx.WithHeight(0)
 	}
 
-	return clientCtx, true
+	return cliCtx, true
 }
 
 // PostProcessResponseBare post processes a body similar to PostProcessResponse
 // except it does not wrap the body and inject the height.
-func PostProcessResponseBare(w http.ResponseWriter, ctx client.Context, body interface{}) {
+func PostProcessResponseBare(w http.ResponseWriter, ctx context.CLIContext, body interface{}) {
 	var (
 		resp []byte
 		err  error
 	)
+
+	// TODO: Remove once client-side Protobuf migration has been completed.
+	// ref: https://github.com/cosmos/cosmos-sdk/issues/5864
+	var marshaler codec.JSONMarshaler
+
+	if ctx.Marshaler != nil {
+		marshaler = ctx.Marshaler
+	} else {
+		marshaler = ctx.Codec
+	}
 
 	switch b := body.(type) {
 	case []byte:
 		resp = b
 
 	default:
-		resp, err = ctx.LegacyAmino.MarshalJSON(body)
+		resp, err = marshaler.MarshalJSON(body)
+
+		if ctx.Indent && err == nil {
+			resp, err = codec.MarshalIndentFromJSON(resp)
+		}
+
 		if CheckInternalServerError(w, err) {
 			return
 		}
@@ -292,7 +293,7 @@ func PostProcessResponseBare(w http.ResponseWriter, ctx client.Context, body int
 // PostProcessResponse performs post processing for a REST response. The result
 // returned to clients will contain two fields, the height at which the resource
 // was queried at and the original result.
-func PostProcessResponse(w http.ResponseWriter, ctx client.Context, resp interface{}) {
+func PostProcessResponse(w http.ResponseWriter, ctx context.CLIContext, resp interface{}) {
 	var (
 		result []byte
 		err    error
@@ -303,8 +304,15 @@ func PostProcessResponse(w http.ResponseWriter, ctx client.Context, resp interfa
 		return
 	}
 
-	// LegacyAmino used intentionally for REST
-	marshaler := ctx.LegacyAmino
+	// TODO: Remove once client-side Protobuf migration has been completed.
+	// ref: https://github.com/cosmos/cosmos-sdk/issues/5864
+	var marshaler codec.JSONMarshaler
+
+	if ctx.Marshaler != nil {
+		marshaler = ctx.Marshaler
+	} else {
+		marshaler = ctx.Codec
+	}
 
 	switch res := resp.(type) {
 	case []byte:
@@ -312,6 +320,11 @@ func PostProcessResponse(w http.ResponseWriter, ctx client.Context, resp interfa
 
 	default:
 		result, err = marshaler.MarshalJSON(resp)
+
+		if ctx.Indent && err == nil {
+			result, err = codec.MarshalIndentFromJSON(result)
+		}
+
 		if CheckInternalServerError(w, err) {
 			return
 		}
@@ -320,6 +333,10 @@ func PostProcessResponse(w http.ResponseWriter, ctx client.Context, resp interfa
 	wrappedResp := NewResponseWithHeight(ctx.Height, result)
 
 	output, err := marshaler.MarshalJSON(wrappedResp)
+	if ctx.Indent && err == nil {
+		output, err = codec.MarshalIndentFromJSON(output)
+	}
+
 	if CheckInternalServerError(w, err) {
 		return
 	}
@@ -341,13 +358,11 @@ func ParseHTTPArgsWithLimit(r *http.Request, defaultLimit int) (tags []string, p
 
 		var value string
 		value, err = url.QueryUnescape(values[0])
-
 		if err != nil {
 			return tags, page, limit, err
 		}
 
 		var tag string
-
 		switch key {
 		case types.TxHeightKey:
 			tag = fmt.Sprintf("%s=%s", key, value)
@@ -404,46 +419,5 @@ func ParseQueryParamBool(r *http.Request, param string) bool {
 	if value, err := strconv.ParseBool(r.FormValue(param)); err == nil {
 		return value
 	}
-
 	return false
-}
-
-// GetRequest defines a wrapper around an HTTP GET request with a provided URL.
-// An error is returned if the request or reading the body fails.
-func GetRequest(url string) ([]byte, error) {
-	res, err := http.Get(url) // nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = res.Body.Close(); err != nil {
-		return nil, err
-	}
-
-	return body, nil
-}
-
-// PostRequest defines a wrapper around an HTTP POST request with a provided URL and data.
-// An error is returned if the request or reading the body fails.
-func PostRequest(url string, contentType string, data []byte) ([]byte, error) {
-	res, err := http.Post(url, contentType, bytes.NewBuffer(data)) // nolint:gosec
-	if err != nil {
-		return nil, fmt.Errorf("error while sending post request: %w", err)
-	}
-
-	bz, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
-
-	if err = res.Body.Close(); err != nil {
-		return nil, err
-	}
-
-	return bz, nil
 }

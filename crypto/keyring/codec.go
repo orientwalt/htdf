@@ -1,23 +1,24 @@
 package keyring
 
 import (
-	"github.com/orientwalt/htdf/codec"
-	cryptocodec "github.com/orientwalt/htdf/crypto/codec"
-	"github.com/orientwalt/htdf/crypto/hd"
+	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/hd"
 )
 
 // CryptoCdc defines the codec required for keys and info
-var CryptoCdc *codec.LegacyAmino
+var CryptoCdc *codec.Codec
 
 func init() {
-	CryptoCdc = codec.NewLegacyAmino()
-	cryptocodec.RegisterCrypto(CryptoCdc)
-	RegisterLegacyAminoCodec(CryptoCdc)
+	CryptoCdc = codec.New()
+	cryptoAmino.RegisterAmino(CryptoCdc)
+	RegisterCodec(CryptoCdc)
 	CryptoCdc.Seal()
 }
 
-// RegisterLegacyAminoCodec registers concrete types and interfaces on the given codec.
-func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
+// RegisterCodec registers concrete types and interfaces on the given codec.
+func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*Info)(nil), nil)
 	cdc.RegisterConcrete(hd.BIP44Params{}, "crypto/keys/hd/BIP44Params", nil)
 	cdc.RegisterConcrete(localInfo{}, "crypto/keys/localInfo", nil)

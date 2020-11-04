@@ -7,13 +7,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	banktypes "github.com/orientwalt/htdf/x/bank/types"
-	"github.com/orientwalt/htdf/x/staking/keeper"
-	"github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 )
 
 func bootstrapValidatorTest(t *testing.T, power int64, numAddrs int) (*simapp.SimApp, sdk.Context, []sdk.AccAddress, []sdk.ValAddress) {
@@ -27,9 +27,9 @@ func bootstrapValidatorTest(t *testing.T, power int64, numAddrs int) (*simapp.Si
 	notBondedPool := app.StakingKeeper.GetNotBondedPool(ctx)
 	err := app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), totalSupply)
 	require.NoError(t, err)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
-	app.BankKeeper.SetSupply(ctx, banktypes.NewSupply(totalSupply))
+	app.SupplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	return app, ctx, addrDels, addrVals
 }
@@ -93,15 +93,12 @@ func TestUpdateValidatorByPowerIndex(t *testing.T) {
 
 	bondedPool := app.StakingKeeper.GetBondedPool(ctx)
 	notBondedPool := app.StakingKeeper.GetNotBondedPool(ctx)
-
 	err := app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), sdk.TokensFromConsensusPower(1234))))
 	require.NoError(t, err)
-
 	err = app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), sdk.TokensFromConsensusPower(10000))))
 	require.NoError(t, err)
-
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	// add a validator
 	validator := types.NewValidator(addrVals[0], PKs[0], types.Description{})
@@ -148,12 +145,10 @@ func TestUpdateBondedValidatorsDecreaseCliff(t *testing.T) {
 	// create a random pool
 	err := app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), sdk.TokensFromConsensusPower(1234))))
 	require.NoError(t, err)
-
 	err = app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), sdk.TokensFromConsensusPower(10000))))
 	require.NoError(t, err)
-
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	validators := make([]types.Validator, numVals)
 	for i := 0; i < len(validators); i++ {
@@ -183,9 +178,7 @@ func TestUpdateBondedValidatorsDecreaseCliff(t *testing.T) {
 	// require all the validators have their respective statuses
 	for valIdx, status := range expectedValStatus {
 		valAddr := validators[valIdx].OperatorAddress
-		addr, err := sdk.ValAddressFromBech32(valAddr)
-		assert.NoError(t, err)
-		val, _ := app.StakingKeeper.GetValidator(ctx, addr)
+		val, _ := app.StakingKeeper.GetValidator(ctx, valAddr)
 
 		assert.Equal(
 			t, status, val.GetStatus(),
@@ -203,11 +196,9 @@ func TestSlashToZeroPowerRemoved(t *testing.T) {
 	valTokens := sdk.TokensFromConsensusPower(100)
 
 	bondedPool := app.StakingKeeper.GetBondedPool(ctx)
-
 	err := app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), valTokens)))
 	require.NoError(t, err)
-
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
 
 	validator, _ = validator.AddTokensFromDel(valTokens)
 	require.Equal(t, sdk.Unbonded, validator.Status)
@@ -308,18 +299,18 @@ func TestValidatorBasics(t *testing.T) {
 	// shouldn't be able to remove if status is not unbonded
 	assert.PanicsWithValue(t,
 		"cannot call RemoveValidator on bonded or unbonding validators",
-		func() { app.StakingKeeper.RemoveValidator(ctx, validators[1].GetOperator()) })
+		func() { app.StakingKeeper.RemoveValidator(ctx, validators[1].OperatorAddress) })
 
 	// shouldn't be able to remove if there are still tokens left
 	validators[1].Status = sdk.Unbonded
 	app.StakingKeeper.SetValidator(ctx, validators[1])
 	assert.PanicsWithValue(t,
 		"attempting to remove a validator which still contains tokens",
-		func() { app.StakingKeeper.RemoveValidator(ctx, validators[1].GetOperator()) })
+		func() { app.StakingKeeper.RemoveValidator(ctx, validators[1].OperatorAddress) })
 
-	validators[1].Tokens = sdk.ZeroInt()                                // ...remove all tokens
-	app.StakingKeeper.SetValidator(ctx, validators[1])                  // ...set the validator
-	app.StakingKeeper.RemoveValidator(ctx, validators[1].GetOperator()) // Now it can be removed.
+	validators[1].Tokens = sdk.ZeroInt()                                  // ...remove all tokens
+	app.StakingKeeper.SetValidator(ctx, validators[1])                    // ...set the validator
+	app.StakingKeeper.RemoveValidator(ctx, validators[1].OperatorAddress) // Now it can be removed.
 	_, found = app.StakingKeeper.GetValidator(ctx, addrVals[1])
 	require.False(t, found)
 }
@@ -412,12 +403,10 @@ func TestGetValidatorSortingMixed(t *testing.T) {
 
 	err := app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), sdk.TokensFromConsensusPower(501))))
 	require.NoError(t, err)
-
 	err = app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), sdk.TokensFromConsensusPower(0))))
 	require.NoError(t, err)
-
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
 
 	// now 2 max resValidators
 	params := app.StakingKeeper.GetParams(ctx)
@@ -491,7 +480,7 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 		balances := app.BankKeeper.GetAllBalances(ctx, notBondedPool.GetAddress())
 		require.NoError(t, app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), balances.Add(sdk.NewCoin(params.BondDenom, tokens))))
 
-		app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+		app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 		validators[i] = keeper.TestingUpdateValidator(app.StakingKeeper, ctx, validators[i], true)
 	}
 
@@ -509,9 +498,8 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 
 	newTokens := sdk.NewCoins()
 	balances := app.BankKeeper.GetAllBalances(ctx, notBondedPool.GetAddress())
-
 	require.NoError(t, app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), balances.Add(newTokens...)))
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	// test that the two largest validators are
 	//   a) validator 0 with 500 tokens
@@ -535,7 +523,7 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	ctx = ctx.WithBlockHeight(40)
 
 	var found bool
-	validators[3], found = app.StakingKeeper.GetValidator(ctx, validators[3].GetOperator())
+	validators[3], found = app.StakingKeeper.GetValidator(ctx, validators[3].OperatorAddress)
 	assert.True(t, found)
 	app.StakingKeeper.DeleteValidatorByPowerIndex(ctx, validators[3])
 	validators[3], _ = validators[3].AddTokensFromDel(sdk.TokensFromConsensusPower(1))
@@ -544,7 +532,7 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	newTokens = sdk.NewCoins(sdk.NewCoin(params.BondDenom, sdk.TokensFromConsensusPower(1)))
 	balances = app.BankKeeper.GetAllBalances(ctx, notBondedPool.GetAddress())
 	require.NoError(t, app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), balances.Add(newTokens...)))
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	validators[3] = keeper.TestingUpdateValidator(app.StakingKeeper, ctx, validators[3], true)
 	resValidators = app.StakingKeeper.GetBondedValidatorsByPower(ctx)
@@ -560,7 +548,7 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	bondedPool := app.StakingKeeper.GetBondedPool(ctx)
 	balances = app.BankKeeper.GetAllBalances(ctx, bondedPool.GetAddress())
 	require.NoError(t, app.BankKeeper.SetBalances(ctx, bondedPool.GetAddress(), balances.Add(sdk.NewCoin(params.BondDenom, rmTokens))))
-	app.AccountKeeper.SetModuleAccount(ctx, bondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, bondedPool)
 
 	validators[3] = keeper.TestingUpdateValidator(app.StakingKeeper, ctx, validators[3], true)
 	resValidators = app.StakingKeeper.GetBondedValidatorsByPower(ctx)
@@ -575,14 +563,14 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	notBondedPool = app.StakingKeeper.GetNotBondedPool(ctx)
 	balances = app.BankKeeper.GetAllBalances(ctx, notBondedPool.GetAddress())
 	require.NoError(t, app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), balances.Add(sdk.NewCoin(params.BondDenom, sdk.NewInt(200)))))
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
 	validators[3] = keeper.TestingUpdateValidator(app.StakingKeeper, ctx, validators[3], true)
 	resValidators = app.StakingKeeper.GetBondedValidatorsByPower(ctx)
 	require.Equal(t, nMax, uint32(len(resValidators)))
 	assert.True(ValEq(t, validators[0], resValidators[0]))
 	assert.True(ValEq(t, validators[2], resValidators[1]))
-	_, exists := app.StakingKeeper.GetValidator(ctx, validators[3].GetOperator())
+	_, exists := app.StakingKeeper.GetValidator(ctx, validators[3].OperatorAddress)
 	require.True(t, exists)
 }
 
@@ -651,7 +639,7 @@ func TestFullValidatorSetPowerChange(t *testing.T) {
 	}
 	for i := range powers {
 		var found bool
-		validators[i], found = app.StakingKeeper.GetValidator(ctx, validators[i].GetOperator())
+		validators[i], found = app.StakingKeeper.GetValidator(ctx, validators[i].OperatorAddress)
 		require.True(t, found)
 	}
 	assert.Equal(t, sdk.Unbonded, validators[0].Status)
@@ -699,8 +687,8 @@ func TestApplyAndReturnValidatorSetUpdatesAllNone(t *testing.T) {
 
 	updates := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	assert.Equal(t, 2, len(updates))
-	validators[0], _ = app.StakingKeeper.GetValidator(ctx, validators[0].GetOperator())
-	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].GetOperator())
+	validators[0], _ = app.StakingKeeper.GetValidator(ctx, validators[0].OperatorAddress)
+	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].OperatorAddress)
 	assert.Equal(t, validators[0].ABCIValidatorUpdate(), updates[1])
 	assert.Equal(t, validators[1].ABCIValidatorUpdate(), updates[0])
 }
@@ -812,7 +800,7 @@ func TestApplyAndReturnValidatorSetUpdatesInserted(t *testing.T) {
 	app.StakingKeeper.SetValidator(ctx, validators[2])
 	app.StakingKeeper.SetValidatorByPowerIndex(ctx, validators[2])
 	updates := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	validators[2], _ = app.StakingKeeper.GetValidator(ctx, validators[2].GetOperator())
+	validators[2], _ = app.StakingKeeper.GetValidator(ctx, validators[2].OperatorAddress)
 	require.Equal(t, 1, len(updates))
 	require.Equal(t, validators[2].ABCIValidatorUpdate(), updates[0])
 
@@ -821,7 +809,7 @@ func TestApplyAndReturnValidatorSetUpdatesInserted(t *testing.T) {
 	app.StakingKeeper.SetValidator(ctx, validators[3])
 	app.StakingKeeper.SetValidatorByPowerIndex(ctx, validators[3])
 	updates = app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	validators[3], _ = app.StakingKeeper.GetValidator(ctx, validators[3].GetOperator())
+	validators[3], _ = app.StakingKeeper.GetValidator(ctx, validators[3].OperatorAddress)
 	require.Equal(t, 1, len(updates))
 	require.Equal(t, validators[3].ABCIValidatorUpdate(), updates[0])
 
@@ -830,7 +818,7 @@ func TestApplyAndReturnValidatorSetUpdatesInserted(t *testing.T) {
 	app.StakingKeeper.SetValidator(ctx, validators[4])
 	app.StakingKeeper.SetValidatorByPowerIndex(ctx, validators[4])
 	updates = app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	validators[4], _ = app.StakingKeeper.GetValidator(ctx, validators[4].GetOperator())
+	validators[4], _ = app.StakingKeeper.GetValidator(ctx, validators[4].OperatorAddress)
 	require.Equal(t, 1, len(updates))
 	require.Equal(t, validators[4].ABCIValidatorUpdate(), updates[0])
 }
@@ -870,7 +858,7 @@ func TestApplyAndReturnValidatorSetUpdatesWithCliffValidator(t *testing.T) {
 	app.StakingKeeper.SetValidator(ctx, validators[2])
 	app.StakingKeeper.SetValidatorByPowerIndex(ctx, validators[2])
 	updates = app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	validators[2], _ = app.StakingKeeper.GetValidator(ctx, validators[2].GetOperator())
+	validators[2], _ = app.StakingKeeper.GetValidator(ctx, validators[2].OperatorAddress)
 	require.Equal(t, 2, len(updates), "%v", updates)
 	require.Equal(t, validators[0].ABCIValidatorUpdateZero(), updates[1])
 	require.Equal(t, validators[2].ABCIValidatorUpdate(), updates[0])
@@ -944,8 +932,8 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 	// verify initial Tendermint updates are correct
 	updates := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, len(validators), len(updates))
-	validators[0], _ = app.StakingKeeper.GetValidator(ctx, validators[0].GetOperator())
-	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].GetOperator())
+	validators[0], _ = app.StakingKeeper.GetValidator(ctx, validators[0].OperatorAddress)
+	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].OperatorAddress)
 	require.Equal(t, validators[0].ABCIValidatorUpdate(), updates[0])
 	require.Equal(t, validators[1].ABCIValidatorUpdate(), updates[1])
 
@@ -989,9 +977,9 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 
 	// verify initial Tendermint updates are correct
 	updates = app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
-	validator, _ = app.StakingKeeper.GetValidator(ctx, validator.GetOperator())
-	validators[0], _ = app.StakingKeeper.GetValidator(ctx, validators[0].GetOperator())
-	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].GetOperator())
+	validator, _ = app.StakingKeeper.GetValidator(ctx, validator.OperatorAddress)
+	validators[0], _ = app.StakingKeeper.GetValidator(ctx, validators[0].OperatorAddress)
+	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].OperatorAddress)
 	require.Equal(t, len(validators)+1, len(updates))
 	require.Equal(t, validator.ABCIValidatorUpdate(), updates[0])
 	require.Equal(t, validators[0].ABCIValidatorUpdate(), updates[1])
@@ -1024,8 +1012,8 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 	// verify initial Tendermint updates are correct
 	updates := app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 	require.Equal(t, 2, len(updates))
-	validators[2], _ = app.StakingKeeper.GetValidator(ctx, validators[2].GetOperator())
-	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].GetOperator())
+	validators[2], _ = app.StakingKeeper.GetValidator(ctx, validators[2].OperatorAddress)
+	validators[1], _ = app.StakingKeeper.GetValidator(ctx, validators[1].OperatorAddress)
 	require.Equal(t, validators[2].ABCIValidatorUpdate(), updates[0])
 	require.Equal(t, validators[1].ABCIValidatorUpdate(), updates[1])
 
@@ -1035,7 +1023,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 	ctx = ctx.WithBlockHeight(1)
 
 	var found bool
-	validators[0], found = app.StakingKeeper.GetValidator(ctx, validators[0].GetOperator())
+	validators[0], found = app.StakingKeeper.GetValidator(ctx, validators[0].OperatorAddress)
 	require.True(t, found)
 
 	app.StakingKeeper.DeleteValidatorByPowerIndex(ctx, validators[0])
@@ -1051,7 +1039,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 	// lowest power in a single block context (height)
 	ctx = ctx.WithBlockHeight(2)
 
-	validators[1], found = app.StakingKeeper.GetValidator(ctx, validators[1].GetOperator())
+	validators[1], found = app.StakingKeeper.GetValidator(ctx, validators[1].OperatorAddress)
 	require.True(t, found)
 
 	app.StakingKeeper.DeleteValidatorByPowerIndex(ctx, validators[0])
@@ -1077,7 +1065,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 
 func TestUpdateValidatorCommission(t *testing.T) {
 	app, ctx, _, addrVals := bootstrapValidatorTest(t, 1000, 20)
-	ctx = ctx.WithBlockHeader(tmproto.Header{Time: time.Now().UTC()})
+	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Now().UTC()})
 
 	commission1 := types.NewCommissionWithTime(
 		sdk.NewDecWithPrec(1, 1), sdk.NewDecWithPrec(3, 1),
@@ -1114,7 +1102,7 @@ func TestUpdateValidatorCommission(t *testing.T) {
 		} else {
 			tc.validator.Commission = commission
 			app.StakingKeeper.SetValidator(ctx, tc.validator)
-			val, found := app.StakingKeeper.GetValidator(ctx, tc.validator.GetOperator())
+			val, found := app.StakingKeeper.GetValidator(ctx, tc.validator.OperatorAddress)
 
 			require.True(t, found,
 				"expected to find validator for test case #%d with rate: %s", i, tc.newRate,

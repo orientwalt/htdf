@@ -6,10 +6,10 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	paramtypes "github.com/orientwalt/htdf/x/params/types"
-	"github.com/orientwalt/htdf/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 const aminoCacheSize = 500
@@ -23,9 +23,9 @@ var _ types.DelegationSet = Keeper{}
 // keeper of the staking store
 type Keeper struct {
 	storeKey           sdk.StoreKey
-	cdc                codec.BinaryMarshaler
-	authKeeper         types.AccountKeeper
+	cdc                codec.Marshaler
 	bankKeeper         types.BankKeeper
+	supplyKeeper       types.SupplyKeeper
 	hooks              types.StakingHooks
 	paramstore         paramtypes.Subspace
 	validatorCache     map[string]cachedValidator
@@ -34,28 +34,27 @@ type Keeper struct {
 
 // NewKeeper creates a new staking Keeper instance
 func NewKeeper(
-	cdc codec.BinaryMarshaler, key sdk.StoreKey, ak types.AccountKeeper, bk types.BankKeeper,
-	ps paramtypes.Subspace,
+	cdc codec.Marshaler, key sdk.StoreKey, bk types.BankKeeper, sk types.SupplyKeeper, ps paramtypes.Subspace,
 ) Keeper {
-	// set KeyTable if it has not already been set
+
 	if !ps.HasKeyTable() {
-		ps = ps.WithKeyTable(types.ParamKeyTable())
+		ps = ps.WithKeyTable(ParamKeyTable())
 	}
 
 	// ensure bonded and not bonded module accounts are set
-	if addr := ak.GetModuleAddress(types.BondedPoolName); addr == nil {
+	if addr := sk.GetModuleAddress(types.BondedPoolName); addr == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.BondedPoolName))
 	}
 
-	if addr := ak.GetModuleAddress(types.NotBondedPoolName); addr == nil {
+	if addr := sk.GetModuleAddress(types.NotBondedPoolName); addr == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.NotBondedPoolName))
 	}
 
 	return Keeper{
 		storeKey:           key,
 		cdc:                cdc,
-		authKeeper:         ak,
 		bankKeeper:         bk,
+		supplyKeeper:       sk,
 		paramstore:         ps,
 		hooks:              nil,
 		validatorCache:     make(map[string]cachedValidator, aminoCacheSize),
@@ -73,9 +72,7 @@ func (k *Keeper) SetHooks(sh types.StakingHooks) *Keeper {
 	if k.hooks != nil {
 		panic("cannot set validator hooks twice")
 	}
-
 	k.hooks = sh
-
 	return k
 }
 
@@ -83,14 +80,12 @@ func (k *Keeper) SetHooks(sh types.StakingHooks) *Keeper {
 func (k Keeper) GetLastTotalPower(ctx sdk.Context) sdk.Int {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.LastTotalPowerKey)
-
 	if bz == nil {
 		return sdk.ZeroInt()
 	}
 
 	ip := sdk.IntProto{}
 	k.cdc.MustUnmarshalBinaryBare(bz, &ip)
-
 	return ip.Int
 }
 

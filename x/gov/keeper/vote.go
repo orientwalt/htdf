@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/gov/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // AddVote adds a vote on a specific proposal
@@ -70,11 +70,7 @@ func (keeper Keeper) GetVote(ctx sdk.Context, proposalID uint64, voterAddr sdk.A
 func (keeper Keeper) SetVote(ctx sdk.Context, vote types.Vote) {
 	store := ctx.KVStore(keeper.storeKey)
 	bz := keeper.cdc.MustMarshalBinaryBare(&vote)
-	addr, err := sdk.AccAddressFromBech32(vote.Voter)
-	if err != nil {
-		panic(err)
-	}
-	store.Set(types.VoteKey(vote.ProposalId, addr), bz)
+	store.Set(types.VoteKey(vote.ProposalID, vote.Voter), bz)
 }
 
 // IterateAllVotes iterates over the all the stored votes and performs a callback function

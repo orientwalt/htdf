@@ -3,12 +3,12 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/orientwalt/htdf/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
 )
 
-// HandleEquivocationEvidence implements an equivocation evidence handler. Assuming the
+// HandleDoubleSign implements an equivocation evidence handler. Assuming the
 // evidence is valid, the validator committing the misbehavior will be slashed,
 // jailed and tombstoned. Once tombstoned, the validator will not be able to
 // recover. Note, the evidence contains the block time and height at the time of
@@ -22,9 +22,14 @@ import (
 //
 // TODO: Some of the invalid constraints listed above may need to be reconsidered
 // in the case of a lunatic attack.
-func (k Keeper) HandleEquivocationEvidence(ctx sdk.Context, evidence *types.Equivocation) {
+func (k Keeper) HandleDoubleSign(ctx sdk.Context, evidence types.Equivocation) {
 	logger := k.Logger(ctx)
 	consAddr := evidence.GetConsensusAddress()
+	infractionHeight := evidence.GetHeight()
+
+	// calculate the age of the evidence
+	blockTime := ctx.BlockHeader().Time
+	age := blockTime.Sub(evidence.GetTime())
 
 	if _, err := k.slashingKeeper.GetPubkey(ctx, consAddr.Bytes()); err != nil {
 		// Ignore evidence that cannot be handled.
@@ -39,28 +44,15 @@ func (k Keeper) HandleEquivocationEvidence(ctx sdk.Context, evidence *types.Equi
 		return
 	}
 
-	// calculate the age of the evidence
-	infractionHeight := evidence.GetHeight()
-	infractionTime := evidence.GetTime()
-	ageDuration := ctx.BlockHeader().Time.Sub(infractionTime)
-	ageBlocks := ctx.BlockHeader().Height - infractionHeight
-
-	// Reject evidence if the double-sign is too old. Evidence is considered stale
-	// if the difference in time and number of blocks is greater than the allowed
-	// parameters defined.
-	cp := ctx.ConsensusParams()
-	if cp != nil && cp.Evidence != nil {
-		if ageDuration > cp.Evidence.MaxAgeDuration && ageBlocks > cp.Evidence.MaxAgeNumBlocks {
-			logger.Info(
-				"ignored equivocation; evidence too old",
-				"validator", consAddr,
-				"infraction_height", infractionHeight,
-				"max_age_num_blocks", cp.Evidence.MaxAgeNumBlocks,
-				"infraction_time", infractionTime,
-				"max_age_duration", cp.Evidence.MaxAgeDuration,
-			)
-			return
-		}
+	// reject evidence if the double-sign is too old
+	if age > k.MaxEvidenceAge(ctx) {
+		logger.Info(
+			fmt.Sprintf(
+				"ignored double sign from %s at height %d, age of %d past max age of %d",
+				consAddr, infractionHeight, age, k.MaxEvidenceAge(ctx),
+			),
+		)
+		return
 	}
 
 	validator := k.stakingKeeper.ValidatorByConsAddr(ctx, consAddr)
@@ -77,20 +69,15 @@ func (k Keeper) HandleEquivocationEvidence(ctx sdk.Context, evidence *types.Equi
 	// ignore if the validator is already tombstoned
 	if k.slashingKeeper.IsTombstoned(ctx, consAddr) {
 		logger.Info(
-			"ignored equivocation; validator already tombstoned",
-			"validator", consAddr,
-			"infraction_height", infractionHeight,
-			"infraction_time", infractionTime,
+			fmt.Sprintf(
+				"ignored double sign from %s at height %d, validator already tombstoned",
+				consAddr, infractionHeight,
+			),
 		)
 		return
 	}
 
-	logger.Info(
-		"confirmed equivocation",
-		"validator", consAddr,
-		"infraction_height", infractionHeight,
-		"infraction_time", infractionTime,
-	)
+	logger.Info(fmt.Sprintf("confirmed double sign from %s at height %d, age of %d", consAddr, infractionHeight, age))
 
 	// We need to retrieve the stake distribution which signed the block, so we
 	// subtract ValidatorUpdateDelay from the evidence height.

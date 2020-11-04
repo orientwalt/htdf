@@ -3,10 +3,11 @@ package mock
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	"github.com/tendermint/tendermint/types"
+
+	"github.com/stretchr/testify/require"
+
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // TestInitApp makes sure we can initialize this thing without an error
@@ -56,7 +57,7 @@ func TestDeliverTx(t *testing.T) {
 	tx := NewTx(key, value)
 	txBytes := tx.GetSignBytes()
 
-	header := tmproto.Header{
+	header := abci.Header{
 		AppHash: []byte("apphash"),
 		Height:  1,
 	}

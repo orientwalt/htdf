@@ -4,50 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 
-	"github.com/orientwalt/htdf/baseapp"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/auth/keeper"
-	"github.com/orientwalt/htdf/x/auth/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
-
-const (
-	holder     = "holder"
-	multiPerm  = "multiple permissions account"
-	randomPerm = "random permission"
-)
-
-var (
-	multiPermAcc  = types.NewEmptyModuleAccount(multiPerm, types.Burner, types.Minter, types.Staking)
-	randomPermAcc = types.NewEmptyModuleAccount(randomPerm, "random")
-)
-
-type KeeperTestSuite struct {
-	suite.Suite
-
-	app *simapp.SimApp
-	ctx sdk.Context
-
-	queryClient types.QueryClient
-}
-
-func (suite *KeeperTestSuite) SetupTest() {
-	suite.app, suite.ctx = createTestApp(true)
-
-	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.app.InterfaceRegistry())
-	types.RegisterQueryServer(queryHelper, suite.app.AccountKeeper)
-	suite.queryClient = types.NewQueryClient(queryHelper)
-}
-
-func TestKeeperTestSuite(t *testing.T) {
-	suite.Run(t, new(KeeperTestSuite))
-}
 
 func TestAccountMapperGetSet(t *testing.T) {
 	app, ctx := createTestApp(true)
-	addr := sdk.AccAddress([]byte("some---------address"))
+	addr := sdk.AccAddress([]byte("some-address"))
 
 	// no account before its created
 	acc := app.AccountKeeper.GetAccount(ctx, addr)
@@ -77,8 +41,8 @@ func TestAccountMapperGetSet(t *testing.T) {
 
 func TestAccountMapperRemoveAccount(t *testing.T) {
 	app, ctx := createTestApp(true)
-	addr1 := sdk.AccAddress([]byte("addr1---------------"))
-	addr2 := sdk.AccAddress([]byte("addr2---------------"))
+	addr1 := sdk.AccAddress([]byte("addr1"))
+	addr2 := sdk.AccAddress([]byte("addr2"))
 
 	// create accounts
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
@@ -116,33 +80,4 @@ func TestGetSetParams(t *testing.T) {
 
 	actualParams := app.AccountKeeper.GetParams(ctx)
 	require.Equal(t, params, actualParams)
-}
-
-func TestSupply_ValidatePermissions(t *testing.T) {
-	app, _ := createTestApp(true)
-
-	// add module accounts to supply keeper
-	maccPerms := simapp.GetMaccPerms()
-	maccPerms[holder] = nil
-	maccPerms[types.Burner] = []string{types.Burner}
-	maccPerms[types.Minter] = []string{types.Minter}
-	maccPerms[multiPerm] = []string{types.Burner, types.Minter, types.Staking}
-	maccPerms[randomPerm] = []string{"random"}
-
-	cdc, _ := simapp.MakeCodecs()
-	keeper := keeper.NewAccountKeeper(
-		cdc, app.GetKey(types.StoreKey), app.GetSubspace(types.ModuleName),
-		types.ProtoBaseAccount, maccPerms,
-	)
-
-	err := keeper.ValidatePermissions(multiPermAcc)
-	require.NoError(t, err)
-
-	err = keeper.ValidatePermissions(randomPermAcc)
-	require.NoError(t, err)
-
-	// unregistered permissions
-	otherAcc := types.NewEmptyModuleAccount("other", "other")
-	err = app.AccountKeeper.ValidatePermissions(otherAcc)
-	require.Error(t, err)
 }

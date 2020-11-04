@@ -1,13 +1,13 @@
 package keeper
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
 // GetParams returns the total set of distribution parameters.
-func (k Keeper) GetParams(clientCtx sdk.Context) (params types.Params) {
-	k.paramSpace.GetParamSet(clientCtx, &params)
+func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
+	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
 

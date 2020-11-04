@@ -3,8 +3,8 @@ package cli
 import (
 	"errors"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/staking/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 func buildCommissionRates(rateStr, maxRateStr, maxChangeRateStr string) (commission types.CommissionRates, err error) {
@@ -28,6 +28,5 @@ func buildCommissionRates(rateStr, maxRateStr, maxChangeRateStr string) (commiss
 	}
 
 	commission = types.NewCommissionRates(rate, maxRate, maxChangeRate)
-
 	return commission, nil
 }

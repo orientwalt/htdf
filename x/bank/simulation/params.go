@@ -3,32 +3,24 @@ package simulation
 // DONTCOVER
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 
-	"github.com/orientwalt/htdf/x/simulation"
+	"github.com/cosmos/cosmos-sdk/x/simulation"
 
-	simtypes "github.com/orientwalt/htdf/types/simulation"
-	"github.com/orientwalt/htdf/x/bank/types"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
+
+const keySendEnabled = "sendenabled"
 
 // ParamChanges defines the parameters that can be modified by param change proposals
 // on the simulation
 func ParamChanges(r *rand.Rand) []simtypes.ParamChange {
 	return []simtypes.ParamChange{
-		simulation.NewSimParamChange(types.ModuleName, string(types.KeySendEnabled),
+		simulation.NewSimParamChange(types.ModuleName, keySendEnabled,
 			func(r *rand.Rand) string {
-				paramsBytes, err := json.Marshal(RandomGenesisSendParams(r))
-				if err != nil {
-					panic(err)
-				}
-				return fmt.Sprintf("%s", paramsBytes)
-			},
-		),
-		simulation.NewSimParamChange(types.ModuleName, string(types.KeyDefaultSendEnabled),
-			func(r *rand.Rand) string {
-				return fmt.Sprintf("%v", RandomGenesisDefaultSendParam(r))
+				return fmt.Sprintf("%v", GenSendEnabled(r))
 			},
 		),
 	}

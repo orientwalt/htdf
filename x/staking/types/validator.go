@@ -9,17 +9,16 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/encoding"
 	tmtypes "github.com/tendermint/tendermint/types"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
-	"github.com/orientwalt/htdf/codec"
-	cryptotypes "github.com/orientwalt/htdf/crypto/types"
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/staking/exported"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/staking/exported"
 )
 
+// nolint
 const (
 	// TODO: Why can't we just have one string description which can be JSON by convention
 	MaxMonikerLength         = 70
@@ -31,8 +30,6 @@ const (
 
 var _ exported.ValidatorI = Validator{}
 
-// NewValidator constructs a new Validator
-//nolint:interfacer
 func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description) Validator {
 	var pkStr string
 	if pubKey != nil {
@@ -40,7 +37,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 	}
 
 	return Validator{
-		OperatorAddress:   operator.String(),
+		OperatorAddress:   operator,
 		ConsensusPubkey:   pkStr,
 		Jailed:            false,
 		Status:            sdk.Unbonded,
@@ -67,7 +64,6 @@ func (v Validators) String() (out string) {
 	for _, val := range v {
 		out += val.String() + "\n"
 	}
-
 	return strings.TrimSpace(out)
 }
 
@@ -76,7 +72,6 @@ func (v Validators) ToSDKValidators() (validators []exported.ValidatorI) {
 	for _, val := range v {
 		validators = append(validators, val)
 	}
-
 	return validators
 }
 
@@ -86,7 +81,6 @@ func (v Validators) ToTmValidators() []*tmtypes.Validator {
 	for i, val := range v {
 		validators[i] = val.ToTmValidator()
 	}
-
 	return validators
 }
 
@@ -102,7 +96,7 @@ func (v Validators) Len() int {
 
 // Implements sort interface
 func (v Validators) Less(i, j int) bool {
-	return bytes.Compare(v[i].GetOperator().Bytes(), v[j].GetOperator().Bytes()) == -1
+	return bytes.Compare(v[i].OperatorAddress, v[j].OperatorAddress) == -1
 }
 
 // Implements sort interface
@@ -113,22 +107,21 @@ func (v Validators) Swap(i, j int) {
 }
 
 // return the redelegation
-func MustMarshalValidator(cdc codec.BinaryMarshaler, validator Validator) []byte {
+func MustMarshalValidator(cdc codec.Marshaler, validator Validator) []byte {
 	return cdc.MustMarshalBinaryBare(&validator)
 }
 
 // unmarshal a redelegation from a store value
-func MustUnmarshalValidator(cdc codec.BinaryMarshaler, value []byte) Validator {
+func MustUnmarshalValidator(cdc codec.Marshaler, value []byte) Validator {
 	validator, err := UnmarshalValidator(cdc, value)
 	if err != nil {
 		panic(err)
 	}
-
 	return validator
 }
 
 // unmarshal a redelegation from a store value
-func UnmarshalValidator(cdc codec.BinaryMarshaler, value []byte) (v Validator, err error) {
+func UnmarshalValidator(cdc codec.Marshaler, value []byte) (v Validator, err error) {
 	err = cdc.UnmarshalBinaryBare(value, &v)
 	return v, err
 }
@@ -173,19 +166,15 @@ func (d Description) UpdateDescription(d2 Description) (Description, error) {
 	if d2.Moniker == DoNotModifyDesc {
 		d2.Moniker = d.Moniker
 	}
-
 	if d2.Identity == DoNotModifyDesc {
 		d2.Identity = d.Identity
 	}
-
 	if d2.Website == DoNotModifyDesc {
 		d2.Website = d.Website
 	}
-
 	if d2.SecurityContact == DoNotModifyDesc {
 		d2.SecurityContact = d.SecurityContact
 	}
-
 	if d2.Details == DoNotModifyDesc {
 		d2.Details = d.Details
 	}
@@ -204,19 +193,15 @@ func (d Description) EnsureLength() (Description, error) {
 	if len(d.Moniker) > MaxMonikerLength {
 		return d, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid moniker length; got: %d, max: %d", len(d.Moniker), MaxMonikerLength)
 	}
-
 	if len(d.Identity) > MaxIdentityLength {
 		return d, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid identity length; got: %d, max: %d", len(d.Identity), MaxIdentityLength)
 	}
-
 	if len(d.Website) > MaxWebsiteLength {
 		return d, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid website length; got: %d, max: %d", len(d.Website), MaxWebsiteLength)
 	}
-
 	if len(d.SecurityContact) > MaxSecurityContactLength {
 		return d, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid security contact length; got: %d, max: %d", len(d.SecurityContact), MaxSecurityContactLength)
 	}
-
 	if len(d.Details) > MaxDetailsLength {
 		return d, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid details length; got: %d, max: %d", len(d.Details), MaxDetailsLength)
 	}
@@ -227,13 +212,8 @@ func (d Description) EnsureLength() (Description, error) {
 // ABCIValidatorUpdate returns an abci.ValidatorUpdate from a staking validator type
 // with the full validator power
 func (v Validator) ABCIValidatorUpdate() abci.ValidatorUpdate {
-	pk, err := encoding.PubKeyToProto(v.GetConsPubKey())
-	if err != nil {
-		panic(err)
-	}
-
 	return abci.ValidatorUpdate{
-		PubKey: pk,
+		PubKey: tmtypes.TM2PB.PubKey(v.GetConsPubKey()),
 		Power:  v.ConsensusPower(),
 	}
 }
@@ -241,13 +221,8 @@ func (v Validator) ABCIValidatorUpdate() abci.ValidatorUpdate {
 // ABCIValidatorUpdateZero returns an abci.ValidatorUpdate from a staking validator type
 // with zero power used for validator updates.
 func (v Validator) ABCIValidatorUpdateZero() abci.ValidatorUpdate {
-	pk, err := encoding.PubKeyToProto(v.GetConsPubKey())
-	if err != nil {
-		panic(err)
-	}
-
 	return abci.ValidatorUpdate{
-		PubKey: pk,
+		PubKey: tmtypes.TM2PB.PubKey(v.GetConsPubKey()),
 		Power:  0,
 	}
 }
@@ -265,7 +240,6 @@ func (v Validator) SetInitialCommission(commission Commission) (Validator, error
 	}
 
 	v.Commission = commission
-
 	return v, nil
 }
 
@@ -317,7 +291,6 @@ func (v Validator) BondedTokens() sdk.Int {
 	if v.IsBonded() {
 		return v.Tokens
 	}
-
 	return sdk.ZeroInt()
 }
 
@@ -327,7 +300,6 @@ func (v Validator) ConsensusPower() int64 {
 	if v.IsBonded() {
 		return v.PotentialConsensusPower()
 	}
-
 	return 0
 }
 
@@ -345,6 +317,7 @@ func (v Validator) UpdateStatus(newStatus sdk.BondStatus) Validator {
 
 // AddTokensFromDel adds tokens to a validator
 func (v Validator) AddTokensFromDel(amount sdk.Int) (Validator, sdk.Dec) {
+
 	// calculate the shares to issue
 	var issuedShares sdk.Dec
 	if v.DelegatorShares.IsZero() {
@@ -370,13 +343,10 @@ func (v Validator) RemoveTokens(tokens sdk.Int) Validator {
 	if tokens.IsNegative() {
 		panic(fmt.Sprintf("should not happen: trying to remove negative tokens %v", tokens))
 	}
-
 	if v.Tokens.LT(tokens) {
 		panic(fmt.Sprintf("should not happen: only have %v tokens, trying to remove %v", v.Tokens, tokens))
 	}
-
 	v.Tokens = v.Tokens.Sub(tokens)
-
 	return v
 }
 
@@ -403,7 +373,6 @@ func (v Validator) RemoveDelShares(delShares sdk.Dec) (Validator, sdk.Int) {
 	}
 
 	v.DelegatorShares = remainingShares
-
 	return v, issuedTokens
 }
 
@@ -411,7 +380,7 @@ func (v Validator) RemoveDelShares(delShares sdk.Dec) (Validator, sdk.Int) {
 // validators.
 func (v Validator) MinEqual(other Validator) bool {
 	return v.ConsensusPubkey == other.ConsensusPubkey &&
-		(v.OperatorAddress == other.OperatorAddress) &&
+		bytes.Equal(v.OperatorAddress, other.OperatorAddress) &&
 		v.Status.Equal(other.Status) &&
 		v.Tokens.Equal(other.Tokens) &&
 		v.DelegatorShares.Equal(other.DelegatorShares) &&
@@ -419,32 +388,13 @@ func (v Validator) MinEqual(other Validator) bool {
 		v.Commission.Equal(other.Commission)
 }
 
-func (v Validator) IsJailed() bool            { return v.Jailed }
-func (v Validator) GetMoniker() string        { return v.Description.Moniker }
-func (v Validator) GetStatus() sdk.BondStatus { return v.Status }
-func (v Validator) GetOperator() sdk.ValAddress {
-	if v.OperatorAddress == "" {
-		return nil
-	}
-	addr, err := sdk.ValAddressFromBech32(v.OperatorAddress)
-	if err != nil {
-		panic(err)
-	}
-	return addr
-}
+// nolint - for ValidatorI
+func (v Validator) IsJailed() bool              { return v.Jailed }
+func (v Validator) GetMoniker() string          { return v.Description.Moniker }
+func (v Validator) GetStatus() sdk.BondStatus   { return v.Status }
+func (v Validator) GetOperator() sdk.ValAddress { return v.OperatorAddress }
 func (v Validator) GetConsPubKey() crypto.PubKey {
-	// The way things are refactored now, v.ConsensusPubkey is sometimes a TM
-	// ed25519 pubkey, sometimes our own ed25519 pubkey. This is very ugly and
-	// inconsistent.
-	// Luckily, here we coerce it into a TM ed25519 pubkey always, as this
-	// pubkey will be passed into TM (eg calling encoding.PubKeyToProto).
-	pk := sdk.MustGetPubKeyFromBech32(sdk.Bech32PubKeyTypeConsPub, v.ConsensusPubkey)
-
-	if intoTmPk, ok := pk.(cryptotypes.IntoTmPubKey); ok {
-		return intoTmPk.AsTmPubKey()
-	}
-
-	return pk
+	return sdk.MustGetPubKeyFromBech32(sdk.Bech32PubKeyTypeConsPub, v.ConsensusPubkey)
 }
 func (v Validator) GetConsAddr() sdk.ConsAddress  { return sdk.ConsAddress(v.GetConsPubKey().Address()) }
 func (v Validator) GetTokens() sdk.Int            { return v.Tokens }

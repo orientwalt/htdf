@@ -11,9 +11,9 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 
-	bam "github.com/orientwalt/htdf/baseapp"
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
+	bam "github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // NewApp creates a simple mock kvstore app for testing. It should work
@@ -26,7 +26,7 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 	}
 
 	// Capabilities key to access the main KVStore.
-	capKeyMainStore := sdk.NewKVStoreKey("main")
+	capKeyMainStore := sdk.NewKVStoreKey(bam.MainStoreKey)
 
 	// Create BaseApp.
 	baseApp := bam.NewBaseApp("kvstore", logger, db, decodeTx)
@@ -36,11 +36,11 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 
 	baseApp.SetInitChainer(InitChainer(capKeyMainStore))
 
-	// Set a Route.
-	baseApp.Router().AddRoute(sdk.NewRoute("kvstore", KVStoreHandler(capKeyMainStore)))
+	// Set a handler Route.
+	baseApp.Router().AddRoute("kvstore", KVStoreHandler(capKeyMainStore))
 
 	// Load latest version.
-	if err := baseApp.LoadLatestVersion(); err != nil {
+	if err := baseApp.LoadLatestVersion(capKeyMainStore); err != nil {
 		return nil, err
 	}
 
@@ -89,7 +89,7 @@ func InitChainer(key sdk.StoreKey) func(sdk.Context, abci.RequestInitChain) abci
 		genesisState := new(GenesisJSON)
 		err := json.Unmarshal(stateJSON, genesisState)
 		if err != nil {
-			panic(err) // TODO https://github.com/orientwalt/htdf/issues/468
+			panic(err) // TODO https://github.com/cosmos/cosmos-sdk/issues/468
 			// return sdk.ErrGenesisParse("").TraceCause(err, "")
 		}
 
@@ -103,7 +103,7 @@ func InitChainer(key sdk.StoreKey) func(sdk.Context, abci.RequestInitChain) abci
 
 // AppGenState can be passed into InitCmd, returns a static string of a few
 // key-values that can be parsed by InitChainer
-func AppGenState(_ *codec.LegacyAmino, _ types.GenesisDoc, _ []json.RawMessage) (appState json.
+func AppGenState(_ *codec.Codec, _ types.GenesisDoc, _ []json.RawMessage) (appState json.
 	RawMessage, err error) {
 	appState = json.RawMessage(`{
   "values": [
@@ -121,7 +121,7 @@ func AppGenState(_ *codec.LegacyAmino, _ types.GenesisDoc, _ []json.RawMessage) 
 }
 
 // AppGenStateEmpty returns an empty transaction state for mocking.
-func AppGenStateEmpty(_ *codec.LegacyAmino, _ types.GenesisDoc, _ []json.RawMessage) (
+func AppGenStateEmpty(_ *codec.Codec, _ types.GenesisDoc, _ []json.RawMessage) (
 	appState json.RawMessage, err error) {
 	appState = json.RawMessage(``)
 	return

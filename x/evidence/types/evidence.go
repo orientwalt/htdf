@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	"gopkg.in/yaml.v2"
-
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/evidence/exported"
 )
 
 // Evidence type constants
@@ -19,30 +19,26 @@ const (
 	TypeEquivocation  = "equivocation"
 )
 
-var _ exported.Evidence = &Equivocation{}
+var _ exported.Evidence = (*Equivocation)(nil)
 
 // Route returns the Evidence Handler route for an Equivocation type.
-func (e *Equivocation) Route() string { return RouteEquivocation }
+func (e Equivocation) Route() string { return RouteEquivocation }
 
 // Type returns the Evidence Handler type for an Equivocation type.
-func (e *Equivocation) Type() string { return TypeEquivocation }
+func (e Equivocation) Type() string { return TypeEquivocation }
 
-func (e *Equivocation) String() string {
+func (e Equivocation) String() string {
 	bz, _ := yaml.Marshal(e)
 	return string(bz)
 }
 
 // Hash returns the hash of an Equivocation object.
-func (e *Equivocation) Hash() tmbytes.HexBytes {
-	bz, err := e.Marshal()
-	if err != nil {
-		panic(err)
-	}
-	return tmhash.Sum(bz)
+func (e Equivocation) Hash() tmbytes.HexBytes {
+	return tmhash.Sum(ModuleCdc.MustMarshalBinaryBare(&e))
 }
 
 // ValidateBasic performs basic stateless validation checks on an Equivocation object.
-func (e *Equivocation) ValidateBasic() error {
+func (e Equivocation) ValidateBasic() error {
 	if e.Time.IsZero() {
 		return fmt.Errorf("invalid equivocation time: %s", e.Time)
 	}
@@ -52,7 +48,7 @@ func (e *Equivocation) ValidateBasic() error {
 	if e.Power < 1 {
 		return fmt.Errorf("invalid equivocation validator power: %d", e.Power)
 	}
-	if e.ConsensusAddress == "" {
+	if e.ConsensusAddress.Empty() {
 		return fmt.Errorf("invalid equivocation validator consensus address: %s", e.ConsensusAddress)
 	}
 
@@ -62,8 +58,7 @@ func (e *Equivocation) ValidateBasic() error {
 // GetConsensusAddress returns the validator's consensus address at time of the
 // Equivocation infraction.
 func (e Equivocation) GetConsensusAddress() sdk.ConsAddress {
-	addr, _ := sdk.ConsAddressFromBech32(e.ConsensusAddress)
-	return addr
+	return e.ConsensusAddress
 }
 
 // GetHeight returns the height at time of the Equivocation infraction.
@@ -85,18 +80,13 @@ func (e Equivocation) GetValidatorPower() int64 {
 // GetTotalPower is a no-op for the Equivocation type.
 func (e Equivocation) GetTotalPower() int64 { return 0 }
 
-// FromABCIEvidence converts a Tendermint concrete Evidence type to
+// ConvertDuplicateVoteEvidence converts a Tendermint concrete Evidence type to
 // SDK Evidence using Equivocation as the concrete type.
-func FromABCIEvidence(e abci.Evidence) exported.Evidence {
-	consAddr, err := sdk.Bech32ifyAddressBytes(sdk.Bech32PrefixConsAddr, e.Validator.Address)
-	if err != nil {
-		panic(err)
-	}
-
-	return &Equivocation{
-		Height:           e.Height,
-		Power:            e.Validator.Power,
-		ConsensusAddress: consAddr,
-		Time:             e.Time,
+func ConvertDuplicateVoteEvidence(dupVote abci.Evidence) exported.Evidence {
+	return Equivocation{
+		Height:           dupVote.Height,
+		Power:            dupVote.Validator.Power,
+		ConsensusAddress: sdk.ConsAddress(dupVote.Validator.Address),
+		Time:             dupVote.Time,
 	}
 }

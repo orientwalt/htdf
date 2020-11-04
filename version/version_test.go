@@ -6,11 +6,12 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/orientwalt/htdf/testutil"
+	"github.com/cosmos/cosmos-sdk/tests"
 )
 
 func TestNewInfo(t *testing.T) {
@@ -24,12 +25,13 @@ build tags:
 
 func TestInfo_String(t *testing.T) {
 	info := Info{
-		Name:      "testapp",
-		AppName:   "testappd",
-		Version:   "1.0.0",
-		GitCommit: "1b78457135a4104bc3af97f20654d49e2ea87454",
-		BuildTags: "netgo,ledger",
-		GoVersion: "go version go1.14 linux/amd64",
+		Name:       "testapp",
+		ServerName: "testappd",
+		ClientName: "testappcli",
+		Version:    "1.0.0",
+		GitCommit:  "1b78457135a4104bc3af97f20654d49e2ea87454",
+		BuildTags:  "netgo,ledger",
+		GoVersion:  "go version go1.14 linux/amd64",
 	}
 	want := `testapp: 1.0.0
 git commit: 1b78457135a4104bc3af97f20654d49e2ea87454
@@ -39,26 +41,20 @@ go version go1.14 linux/amd64`
 }
 
 func Test_runVersionCmd(t *testing.T) {
-	cmd := NewVersionCommand()
-	_, mockOut := testutil.ApplyMockIO(cmd)
+	require.NotNil(t, Cmd)
+	_, mockOut, _ := tests.ApplyMockIO(Cmd)
 
-	cmd.SetArgs([]string{
-		fmt.Sprintf("--%s=''", cli.OutputFlag),
-		fmt.Sprintf("--%s=false", flagLong),
-	})
-
-	require.NoError(t, cmd.Execute())
+	viper.Set(cli.OutputFlag, "")
+	viper.Set(flagLong, false)
+	require.NoError(t, runVersionCmd(Cmd, nil))
 	assert.Equal(t, "\n", mockOut.String())
 	mockOut.Reset()
 
-	cmd.SetArgs([]string{
-		fmt.Sprintf("--%s=json", cli.OutputFlag),
-		fmt.Sprintf("--%s=true", flagLong),
-	})
-
+	viper.Set(cli.OutputFlag, "json")
+	viper.Set(flagLong, true)
 	info := NewInfo()
 	stringInfo, err := json.Marshal(info)
 	require.NoError(t, err)
-	require.NoError(t, cmd.Execute())
+	require.NoError(t, runVersionCmd(Cmd, nil))
 	assert.Equal(t, string(stringInfo)+"\n", mockOut.String())
 }

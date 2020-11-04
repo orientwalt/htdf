@@ -1,17 +1,19 @@
 package keeper
 
 import (
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/codec"
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/evidence/exported"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	"encoding/hex"
+
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
+func NewQuerier(k Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
 		var (
 			res []byte
@@ -19,11 +21,14 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 		)
 
 		switch path[0] {
+		case types.QueryParameters:
+			res, err = queryParams(ctx, k)
+
 		case types.QueryEvidence:
-			res, err = queryEvidence(ctx, req, k, legacyQuerierCdc)
+			res, err = queryEvidence(ctx, req, k)
 
 		case types.QueryAllEvidence:
-			res, err = queryAllEvidence(ctx, req, k, legacyQuerierCdc)
+			res, err = queryAllEvidence(ctx, req, k)
 
 		default:
 			err = sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown %s query endpoint: %s", types.ModuleName, path[0])
@@ -33,20 +38,10 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 	}
 }
 
-func queryEvidence(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	var params types.QueryEvidenceRequest
+func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
+	params := k.GetParams(ctx)
 
-	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
-	}
-
-	evidence, ok := k.GetEvidence(ctx, params.EvidenceHash)
-	if !ok {
-		return nil, sdkerrors.Wrap(types.ErrNoEvidenceExists, params.EvidenceHash.String())
-	}
-
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, evidence)
+	res, err := codec.MarshalJSONIndent(k.cdc, params)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
@@ -54,10 +49,36 @@ func queryEvidence(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQueri
 	return res, nil
 }
 
-func queryAllEvidence(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func queryEvidence(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryEvidenceParams
+
+	err := k.cdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	hash, err := hex.DecodeString(params.EvidenceHash)
+	if err != nil {
+		return nil, sdkerrors.Wrap(err, "failed to decode evidence hash string query")
+	}
+
+	evidence, ok := k.GetEvidence(ctx, hash)
+	if !ok {
+		return nil, sdkerrors.Wrap(types.ErrNoEvidenceExists, params.EvidenceHash)
+	}
+
+	res, err := codec.MarshalJSONIndent(k.cdc, evidence)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
+func queryAllEvidence(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	var params types.QueryAllEvidenceParams
 
-	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -71,7 +92,7 @@ func queryAllEvidence(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQu
 		evidence = evidence[start:end]
 	}
 
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, evidence)
+	res, err := codec.MarshalJSONIndent(k.cdc, evidence)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

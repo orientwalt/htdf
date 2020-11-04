@@ -1,27 +1,25 @@
 package keeper_test
 
 import (
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/simapp"
-
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/store"
-	sdk "github.com/orientwalt/htdf/types"
-	paramskeeper "github.com/orientwalt/htdf/x/params/keeper"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 )
 
-func testComponents() (*codec.LegacyAmino, sdk.Context, sdk.StoreKey, sdk.StoreKey, paramskeeper.Keeper) {
-	marshaler := simapp.MakeEncodingConfig().Marshaler
-	legacyAmino := createTestCodec()
+func testComponents() (codec.Marshaler, sdk.Context, sdk.StoreKey, sdk.StoreKey, paramskeeper.Keeper) {
+	cdc := createTestCodec()
 	mkey := sdk.NewKVStoreKey("test")
 	tkey := sdk.NewTransientStoreKey("transient_test")
 	ctx := defaultContext(mkey, tkey)
-	keeper := paramskeeper.NewKeeper(marshaler, legacyAmino, mkey, tkey)
+	keeper := paramskeeper.NewKeeper(cdc, mkey, tkey)
 
-	return legacyAmino, ctx, mkey, tkey, keeper
+	return cdc, ctx, mkey, tkey, keeper
 }
 
 type invalid struct{}
@@ -30,12 +28,12 @@ type s struct {
 	I int
 }
 
-func createTestCodec() *codec.LegacyAmino {
-	cdc := codec.NewLegacyAmino()
-	sdk.RegisterLegacyAminoCodec(cdc)
+func createTestCodec() codec.Marshaler {
+	cdc := codec.New()
+	sdk.RegisterCodec(cdc)
 	cdc.RegisterConcrete(s{}, "test/s", nil)
 	cdc.RegisterConcrete(invalid{}, "test/invalid", nil)
-	return cdc
+	return proposal.NewCodec(cdc)
 }
 
 func defaultContext(key sdk.StoreKey, tkey sdk.StoreKey) sdk.Context {
@@ -47,6 +45,6 @@ func defaultContext(key sdk.StoreKey, tkey sdk.StoreKey) sdk.Context {
 	if err != nil {
 		panic(err)
 	}
-	ctx := sdk.NewContext(cms, tmproto.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
 	return ctx
 }

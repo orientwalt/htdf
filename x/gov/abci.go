@@ -2,36 +2,31 @@ package gov
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/orientwalt/htdf/telemetry"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/gov/keeper"
-	"github.com/orientwalt/htdf/x/gov/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // EndBlocker called every block, process inflation, update validator set.
-func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
-	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
-
+func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	logger := keeper.Logger(ctx)
 
 	// delete inactive proposal from store and its deposits
-	keeper.IterateInactiveProposalsQueue(ctx, ctx.BlockHeader().Time, func(proposal types.Proposal) bool {
-		keeper.DeleteProposal(ctx, proposal.ProposalId)
-		keeper.DeleteDeposits(ctx, proposal.ProposalId)
+	keeper.IterateInactiveProposalsQueue(ctx, ctx.BlockHeader().Time, func(proposal Proposal) bool {
+		keeper.DeleteProposal(ctx, proposal.ProposalID)
+		keeper.DeleteDeposits(ctx, proposal.ProposalID)
 
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeInactiveProposal,
-				sdk.NewAttribute(types.AttributeKeyProposalID, fmt.Sprintf("%d", proposal.ProposalId)),
+				sdk.NewAttribute(types.AttributeKeyProposalID, fmt.Sprintf("%d", proposal.ProposalID)),
 				sdk.NewAttribute(types.AttributeKeyProposalResult, types.AttributeValueProposalDropped),
 			),
 		)
 
 		logger.Info(
 			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %s (had only %s); deleted",
-				proposal.ProposalId,
+				proposal.ProposalID,
 				proposal.GetTitle(),
 				keeper.GetDepositParams(ctx).MinDeposit,
 				proposal.TotalDeposit,
@@ -41,15 +36,15 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 	})
 
 	// fetch active proposals whose voting periods have ended (are passed the block time)
-	keeper.IterateActiveProposalsQueue(ctx, ctx.BlockHeader().Time, func(proposal types.Proposal) bool {
+	keeper.IterateActiveProposalsQueue(ctx, ctx.BlockHeader().Time, func(proposal Proposal) bool {
 		var tagValue, logMsg string
 
 		passes, burnDeposits, tallyResults := keeper.Tally(ctx, proposal)
 
 		if burnDeposits {
-			keeper.DeleteDeposits(ctx, proposal.ProposalId)
+			keeper.DeleteDeposits(ctx, proposal.ProposalID)
 		} else {
-			keeper.RefundDeposits(ctx, proposal.ProposalId)
+			keeper.RefundDeposits(ctx, proposal.ProposalID)
 		}
 
 		if passes {
@@ -59,9 +54,9 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 			// The proposal handler may execute state mutating logic depending
 			// on the proposal content. If the handler fails, no state mutation
 			// is written and the error message is logged.
-			err := handler(cacheCtx, proposal.GetContent())
+			err := handler(cacheCtx, proposal.Content)
 			if err == nil {
-				proposal.Status = types.StatusPassed
+				proposal.Status = StatusPassed
 				tagValue = types.AttributeValueProposalPassed
 				logMsg = "passed"
 
@@ -74,12 +69,12 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 				// write state to the underlying multi-store
 				writeCache()
 			} else {
-				proposal.Status = types.StatusFailed
+				proposal.Status = StatusFailed
 				tagValue = types.AttributeValueProposalFailed
 				logMsg = fmt.Sprintf("passed, but failed on execution: %s", err)
 			}
 		} else {
-			proposal.Status = types.StatusRejected
+			proposal.Status = StatusRejected
 			tagValue = types.AttributeValueProposalRejected
 			logMsg = "rejected"
 		}
@@ -87,19 +82,19 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 		proposal.FinalTallyResult = tallyResults
 
 		keeper.SetProposal(ctx, proposal)
-		keeper.RemoveFromActiveProposalQueue(ctx, proposal.ProposalId, proposal.VotingEndTime)
+		keeper.RemoveFromActiveProposalQueue(ctx, proposal.ProposalID, proposal.VotingEndTime)
 
 		logger.Info(
 			fmt.Sprintf(
 				"proposal %d (%s) tallied; result: %s",
-				proposal.ProposalId, proposal.GetTitle(), logMsg,
+				proposal.ProposalID, proposal.GetTitle(), logMsg,
 			),
 		)
 
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeActiveProposal,
-				sdk.NewAttribute(types.AttributeKeyProposalID, fmt.Sprintf("%d", proposal.ProposalId)),
+				sdk.NewAttribute(types.AttributeKeyProposalID, fmt.Sprintf("%d", proposal.ProposalID)),
 				sdk.NewAttribute(types.AttributeKeyProposalResult, tagValue),
 			),
 		)

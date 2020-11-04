@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/simulation"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/simulation"
 )
 
 func TestRandSubsetCoins(t *testing.T) {
@@ -43,7 +43,7 @@ func TestRandStringOfLength(t *testing.T) {
 	}{
 		{"0-size", 0, 0},
 		{"10-size", 10, 10},
-		{"1_000_000-size", 1_000_000, 1_000_000},
+		{"10-size", 1_000_000_000, 1_000_000_000},
 	}
 	for _, tt := range tests {
 		tt := tt

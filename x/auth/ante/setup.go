@@ -3,13 +3,13 @@ package ante
 import (
 	"fmt"
 
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/auth/legacy/legacytx"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 var (
-	_ GasTx = (*legacytx.StdTx)(nil) // assert StdTx implements GasTx
+	_ GasTx = (*types.StdTx)(nil) // assert StdTx implements GasTx
 )
 
 // GasTx defines a Tx with a GetGas() method which is needed to use SetUpContextDecorator

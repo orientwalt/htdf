@@ -6,20 +6,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/orientwalt/htdf/crypto/keys/ed25519"
-	"github.com/orientwalt/htdf/simapp"
-	sdk "github.com/orientwalt/htdf/types"
-	banktypes "github.com/orientwalt/htdf/x/bank/types"
-	"github.com/orientwalt/htdf/x/staking"
-	"github.com/orientwalt/htdf/x/staking/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/cosmos/cosmos-sdk/x/supply"
 )
 
-func bootstrapGenesisTest(t *testing.T, power int64, numAddrs int) (*simapp.SimApp, sdk.Context, []sdk.AccAddress) {
+func bootstrapGenesisTest(t *testing.T, power int64, numAddrs int) (*simapp.SimApp, sdk.Context, []sdk.AccAddress, []sdk.ValAddress) {
 	_, app, ctx := getBaseSimappWithCustomKeeper()
 
-	addrDels, _ := generateAddresses(app, ctx, numAddrs, 10000)
+	addrDels, addrVals := generateAddresses(app, ctx, numAddrs, 10000)
 
 	amt := sdk.TokensFromConsensusPower(power)
 	totalSupply := sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), amt.MulRaw(int64(len(addrDels)))))
@@ -27,15 +28,15 @@ func bootstrapGenesisTest(t *testing.T, power int64, numAddrs int) (*simapp.SimA
 	notBondedPool := app.StakingKeeper.GetNotBondedPool(ctx)
 	err := app.BankKeeper.SetBalances(ctx, notBondedPool.GetAddress(), totalSupply)
 	require.NoError(t, err)
+	app.SupplyKeeper.SetModuleAccount(ctx, notBondedPool)
 
-	app.AccountKeeper.SetModuleAccount(ctx, notBondedPool)
-	app.BankKeeper.SetSupply(ctx, banktypes.NewSupply(totalSupply))
+	app.SupplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
-	return app, ctx, addrDels
+	return app, ctx, addrDels, addrVals
 }
 
 func TestInitGenesis(t *testing.T) {
-	app, ctx, addrs := bootstrapGenesisTest(t, 1000, 10)
+	app, ctx, addrs, _ := bootstrapGenesisTest(t, 1000, 10)
 
 	valTokens := sdk.TokensFromConsensusPower(1)
 
@@ -50,13 +51,13 @@ func TestInitGenesis(t *testing.T) {
 	require.NoError(t, err)
 
 	// initialize the validators
-	validators[0].OperatorAddress = sdk.ValAddress(addrs[0]).String()
+	validators[0].OperatorAddress = sdk.ValAddress(addrs[0])
 	validators[0].ConsensusPubkey = pk0
 	validators[0].Description = types.NewDescription("hoop", "", "", "", "")
 	validators[0].Status = sdk.Bonded
 	validators[0].Tokens = valTokens
 	validators[0].DelegatorShares = valTokens.ToDec()
-	validators[1].OperatorAddress = sdk.ValAddress(addrs[1]).String()
+	validators[1].OperatorAddress = sdk.ValAddress(addrs[1])
 	validators[1].ConsensusPubkey = pk1
 	validators[1].Description = types.NewDescription("bloop", "", "", "", "")
 	validators[1].Status = sdk.Bonded
@@ -64,17 +65,12 @@ func TestInitGenesis(t *testing.T) {
 	validators[1].DelegatorShares = valTokens.ToDec()
 
 	genesisState := types.NewGenesisState(params, validators, delegations)
-	vals := staking.InitGenesis(ctx, app.StakingKeeper, app.AccountKeeper, app.BankKeeper, genesisState)
+	vals := staking.InitGenesis(ctx, app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, genesisState)
 
 	actualGenesis := staking.ExportGenesis(ctx, app.StakingKeeper)
 	require.Equal(t, genesisState.Params, actualGenesis.Params)
 	require.Equal(t, genesisState.Delegations, actualGenesis.Delegations)
 	require.EqualValues(t, app.StakingKeeper.GetAllValidators(ctx), actualGenesis.Validators)
-
-	// Ensure validators have addresses.
-	for _, val := range staking.WriteValidators(ctx, app.StakingKeeper) {
-		require.NotEmpty(t, val.Address)
-	}
 
 	// now make sure the validators are bonded and intra-tx counters are correct
 	resVal, found := app.StakingKeeper.GetValidator(ctx, sdk.ValAddress(addrs[0]))
@@ -97,7 +93,7 @@ func TestInitGenesisLargeValidatorSet(t *testing.T) {
 	size := 200
 	require.True(t, size > 100)
 
-	app, ctx, addrs := bootstrapGenesisTest(t, 1000, 200)
+	app, ctx, addrs, _ := bootstrapGenesisTest(t, 1000, 200)
 
 	params := app.StakingKeeper.GetParams(ctx)
 	delegations := []types.Delegation{}
@@ -118,7 +114,7 @@ func TestInitGenesisLargeValidatorSet(t *testing.T) {
 	}
 
 	genesisState := types.NewGenesisState(params, validators, delegations)
-	vals := staking.InitGenesis(ctx, app.StakingKeeper, app.AccountKeeper, app.BankKeeper, genesisState)
+	vals := staking.InitGenesis(ctx, app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.SupplyKeeper, genesisState)
 
 	abcivals := make([]abci.ValidatorUpdate, 100)
 	for i, val := range validators[:100] {
@@ -161,7 +157,7 @@ func TestValidateGenesis(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			genesisState := types.DefaultGenesisState()
-			tt.mutate(genesisState)
+			tt.mutate(&genesisState)
 			if tt.wantErr {
 				assert.Error(t, staking.ValidateGenesis(genesisState))
 			} else {

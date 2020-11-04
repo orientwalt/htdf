@@ -5,13 +5,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store/types"
 )
 
 func TestAssertValidKey(t *testing.T) {
 	t.Parallel()
+	require.NotPanics(t, func() { types.AssertValidKey([]byte{}) })
 	require.NotPanics(t, func() { types.AssertValidKey([]byte{0x01}) })
-	require.Panics(t, func() { types.AssertValidKey([]byte{}) })
 	require.Panics(t, func() { types.AssertValidKey(nil) })
 }
 

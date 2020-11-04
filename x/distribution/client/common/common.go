@@ -3,14 +3,14 @@ package common
 import (
 	"fmt"
 
-	"github.com/orientwalt/htdf/client"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
 // QueryDelegationRewards queries a delegation rewards between a delegator and a
 // validator.
-func QueryDelegationRewards(clientCtx client.Context, delAddr, valAddr string) ([]byte, int64, error) {
+func QueryDelegationRewards(cliCtx context.CLIContext, queryRoute, delAddr, valAddr string) ([]byte, int64, error) {
 	delegatorAddr, err := sdk.AccAddressFromBech32(delAddr)
 	if err != nil {
 		return nil, 0, err
@@ -22,46 +22,46 @@ func QueryDelegationRewards(clientCtx client.Context, delAddr, valAddr string) (
 	}
 
 	params := types.NewQueryDelegationRewardsParams(delegatorAddr, validatorAddr)
-	bz, err := clientCtx.LegacyAmino.MarshalJSON(params)
+	bz, err := cliCtx.Codec.MarshalJSON(params)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to marshal params: %w", err)
 	}
 
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegationRewards)
-	return clientCtx.QueryWithData(route, bz)
+	route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryDelegationRewards)
+	return cliCtx.QueryWithData(route, bz)
 }
 
 // QueryDelegatorValidators returns delegator's list of validators
 // it submitted delegations to.
-func QueryDelegatorValidators(clientCtx client.Context, delegatorAddr sdk.AccAddress) ([]byte, error) {
-	res, _, err := clientCtx.QueryWithData(
-		fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegatorValidators),
-		clientCtx.LegacyAmino.MustMarshalJSON(types.NewQueryDelegatorParams(delegatorAddr)),
+func QueryDelegatorValidators(cliCtx context.CLIContext, queryRoute string, delegatorAddr sdk.AccAddress) ([]byte, error) {
+	res, _, err := cliCtx.QueryWithData(
+		fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryDelegatorValidators),
+		cliCtx.Codec.MustMarshalJSON(types.NewQueryDelegatorParams(delegatorAddr)),
 	)
 	return res, err
 }
 
 // QueryValidatorCommission returns a validator's commission.
-func QueryValidatorCommission(clientCtx client.Context, validatorAddr sdk.ValAddress) ([]byte, error) {
-	res, _, err := clientCtx.QueryWithData(
-		fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidatorCommission),
-		clientCtx.LegacyAmino.MustMarshalJSON(types.NewQueryValidatorCommissionParams(validatorAddr)),
+func QueryValidatorCommission(cliCtx context.CLIContext, queryRoute string, validatorAddr sdk.ValAddress) ([]byte, error) {
+	res, _, err := cliCtx.QueryWithData(
+		fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryValidatorCommission),
+		cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorCommissionParams(validatorAddr)),
 	)
 	return res, err
 }
 
 // WithdrawAllDelegatorRewards builds a multi-message slice to be used
 // to withdraw all delegations rewards for the given delegator.
-func WithdrawAllDelegatorRewards(clientCtx client.Context, delegatorAddr sdk.AccAddress) ([]sdk.Msg, error) {
+func WithdrawAllDelegatorRewards(cliCtx context.CLIContext, queryRoute string, delegatorAddr sdk.AccAddress) ([]sdk.Msg, error) {
 	// retrieve the comprehensive list of all validators which the
 	// delegator had submitted delegations to
-	bz, err := QueryDelegatorValidators(clientCtx, delegatorAddr)
+	bz, err := QueryDelegatorValidators(cliCtx, queryRoute, delegatorAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	var validators []sdk.ValAddress
-	if err := clientCtx.LegacyAmino.UnmarshalJSON(bz, &validators); err != nil {
+	if err := cliCtx.Codec.UnmarshalJSON(bz, &validators); err != nil {
 		return nil, err
 	}
 

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
-	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/abci/server"
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -16,71 +16,51 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
-	"github.com/tendermint/tendermint/rpc/client/local"
-	"google.golang.org/grpc"
-
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/client/flags"
-	"github.com/orientwalt/htdf/server/api"
-	"github.com/orientwalt/htdf/server/config"
-	servergrpc "github.com/orientwalt/htdf/server/grpc"
-	"github.com/orientwalt/htdf/server/types"
-	storetypes "github.com/orientwalt/htdf/store/types"
 )
 
 // Tendermint full-node start flags
 const (
-	flagWithTendermint     = "with-tendermint"
-	flagAddress            = "address"
-	flagTransport          = "transport"
-	flagTraceStore         = "trace-store"
-	flagCPUProfile         = "cpu-profile"
-	FlagMinGasPrices       = "minimum-gas-prices"
-	FlagHaltHeight         = "halt-height"
-	FlagHaltTime           = "halt-time"
-	FlagInterBlockCache    = "inter-block-cache"
-	FlagUnsafeSkipUpgrades = "unsafe-skip-upgrades"
-	FlagTrace              = "trace"
-	FlagInvCheckPeriod     = "inv-check-period"
-
-	FlagPruning           = "pruning"
-	FlagPruningKeepRecent = "pruning-keep-recent"
-	FlagPruningKeepEvery  = "pruning-keep-every"
-	FlagPruningInterval   = "pruning-interval"
-	FlagIndexEvents       = "index-events"
-	FlagMinRetainBlocks   = "min-retain-blocks"
+	flagWithTendermint       = "with-tendermint"
+	flagAddress              = "address"
+	flagTraceStore           = "trace-store"
+	flagPruning              = "pruning"
+	flagPruningKeepEvery     = "pruning-keep-every"
+	flagPruningSnapshotEvery = "pruning-snapshot-every"
+	flagCPUProfile           = "cpu-profile"
+	FlagMinGasPrices         = "minimum-gas-prices"
+	FlagHaltHeight           = "halt-height"
+	FlagHaltTime             = "halt-time"
+	FlagInterBlockCache      = "inter-block-cache"
+	FlagUnsafeSkipUpgrades   = "unsafe-skip-upgrades"
 )
 
-// GRPC-related flags.
-const (
-	flagGRPCEnable  = "grpc.enable"
-	flagGRPCAddress = "grpc.address"
-)
-
-// State sync-related flags.
-const (
-	FlagStateSyncSnapshotInterval   = "state-sync.snapshot-interval"
-	FlagStateSyncSnapshotKeepRecent = "state-sync.snapshot-keep-recent"
+var (
+	errPruningWithGranularOptions = fmt.Errorf(
+		"'--%s' flag is not compatible with granular options  '--%s' or '--%s'",
+		flagPruning, flagPruningKeepEvery, flagPruningSnapshotEvery,
+	)
+	errPruningGranularOptions = fmt.Errorf(
+		"'--%s' and '--%s' must be set together",
+		flagPruningSnapshotEvery, flagPruningKeepEvery,
+	)
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
-func StartCmd(appCreator types.AppCreator, defaultNodeHome string) *cobra.Command {
+func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run the full node",
 		Long: `Run the full node application with Tendermint in or out of process. By
 default, the application will run with Tendermint in process.
 
-Pruning options can be provided via the '--pruning' flag or alternatively with '--pruning-keep-recent',
-'pruning-keep-every', and 'pruning-interval' together.
+Pruning options can be provided via the '--pruning' flag or alternatively with '--pruning-snapshot-every' and 'pruning-keep-every' together.
 
 For '--pruning' the options are as follows:
 
-default: the last 100 states are kept in addition to every 500th state; pruning at 10 block intervals
+syncable: only those states not needed for state syncing will be deleted (flushes every 100th to disk and keeps every 10000th)
 nothing: all historic states will be saved, nothing will be deleted (i.e. archiving node)
-everything: all saved states will be deleted, storing only the current state; pruning at 10 block intervals
-custom: allow pruning options to be manually specified through 'pruning-keep-recent', 'pruning-keep-every', and 'pruning-interval'
+everything: all saved states will be deleted, storing only the current state
 
 Node halting configurations exist in the form of two flags: '--halt-height' and '--halt-time'. During
 the ABCI Commit phase, the node will check if the current block height is greater than or equal to
@@ -91,83 +71,82 @@ will not be able to commit subsequent blocks.
 For profiling and benchmarking purposes, CPU profiling can be enabled via the '--cpu-profile' flag
 which accepts a path for the resulting pprof file.
 `,
-		PreRunE: func(cmd *cobra.Command, _ []string) error {
-			serverCtx := GetServerContextFromCmd(cmd)
-
-			// Bind flags to the Context's Viper so the app construction can set
-			// options accordingly.
-			serverCtx.Viper.BindPFlags(cmd.Flags())
-
-			_, err := GetPruningOptionsFromFlags(serverCtx.Viper)
-			return err
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return checkPruningParams()
 		},
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			serverCtx := GetServerContextFromCmd(cmd)
-			clientCtx := client.GetClientContextFromCmd(cmd)
-
-			withTM, _ := cmd.Flags().GetBool(flagWithTendermint)
-			if !withTM {
-				serverCtx.Logger.Info("starting ABCI without Tendermint")
-				return startStandAlone(serverCtx, appCreator)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !viper.GetBool(flagWithTendermint) {
+				ctx.Logger.Info("starting ABCI without Tendermint")
+				return startStandAlone(ctx, appCreator)
 			}
 
-			serverCtx.Logger.Info("starting ABCI with Tendermint")
+			ctx.Logger.Info("starting ABCI with Tendermint")
 
-			// amino is needed here for backwards compatibility of REST routes
-			err := startInProcess(serverCtx, clientCtx, appCreator)
+			_, err := startInProcess(ctx, appCreator)
 			return err
 		},
 	}
 
-	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
+	// core flags for the ABCI application
 	cmd.Flags().Bool(flagWithTendermint, true, "Run abci app embedded in-process with tendermint")
 	cmd.Flags().String(flagAddress, "tcp://0.0.0.0:26658", "Listen address")
-	cmd.Flags().String(flagTransport, "socket", "Transport protocol: socket, grpc")
 	cmd.Flags().String(flagTraceStore, "", "Enable KVStore tracing to an output file")
-	cmd.Flags().String(FlagMinGasPrices, "", "Minimum gas prices to accept for transactions; Any fee in a tx must meet this minimum (e.g. 0.01photino;0.0001stake)")
+	cmd.Flags().String(flagPruning, "syncable", "Pruning strategy: syncable, nothing, everything")
+	cmd.Flags().Int64(flagPruningKeepEvery, 0, "Define the state number that will be kept")
+	cmd.Flags().Int64(flagPruningSnapshotEvery, 0, "Defines the state that will be snapshot for pruning")
+	cmd.Flags().String(
+		FlagMinGasPrices, "",
+		"Minimum gas prices to accept for transactions; Any fee in a tx must meet this minimum (e.g. 0.01photino;0.0001stake)",
+	)
 	cmd.Flags().IntSlice(FlagUnsafeSkipUpgrades, []int{}, "Skip a set of upgrade heights to continue the old binary")
 	cmd.Flags().Uint64(FlagHaltHeight, 0, "Block height at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Uint64(FlagHaltTime, 0, "Minimum block time (in Unix seconds) at which to gracefully halt the chain and shutdown the node")
 	cmd.Flags().Bool(FlagInterBlockCache, true, "Enable inter-block caching")
 	cmd.Flags().String(flagCPUProfile, "", "Enable CPU profiling and write to the provided file")
-	cmd.Flags().Bool(FlagTrace, false, "Provide full stack traces for errors in ABCI Log")
-	cmd.Flags().String(FlagPruning, storetypes.PruningOptionDefault, "Pruning strategy (default|nothing|everything|custom)")
-	cmd.Flags().Uint64(FlagPruningKeepRecent, 0, "Number of recent heights to keep on disk (ignored if pruning is not 'custom')")
-	cmd.Flags().Uint64(FlagPruningKeepEvery, 0, "Offset heights to keep on disk after 'keep-every' (ignored if pruning is not 'custom')")
-	cmd.Flags().Uint64(FlagPruningInterval, 0, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom')")
-	cmd.Flags().Uint(FlagInvCheckPeriod, 0, "Assert registered invariants every N blocks")
-	cmd.Flags().Uint64(FlagMinRetainBlocks, 0, "Minimum block height offset during ABCI commit to prune Tendermint blocks")
-
-	cmd.Flags().Bool(flagGRPCEnable, true, "Define if the gRPC server should be enabled")
-	cmd.Flags().String(flagGRPCAddress, config.DefaultGRPCAddress, "the gRPC server address to listen on")
-
-	cmd.Flags().Uint64(FlagStateSyncSnapshotInterval, 0, "State sync snapshot interval")
-	cmd.Flags().Uint32(FlagStateSyncSnapshotKeepRecent, 2, "State sync snapshot to keep")
 
 	// add support for all Tendermint-specific command line options
 	tcmd.AddNodeFlags(cmd)
 	return cmd
 }
 
-func startStandAlone(ctx *Context, appCreator types.AppCreator) error {
-	addr := ctx.Viper.GetString(flagAddress)
-	transport := ctx.Viper.GetString(flagTransport)
-	home := ctx.Viper.GetString(flags.FlagHome)
+// checkPruningParams checks that the provided pruning params are correct
+func checkPruningParams() error {
+	if !viper.IsSet(flagPruning) && !viper.IsSet(flagPruningKeepEvery) && !viper.IsSet(flagPruningSnapshotEvery) {
+		return nil
+	}
+
+	if viper.IsSet(flagPruning) {
+		if viper.IsSet(flagPruningKeepEvery) || viper.IsSet(flagPruningSnapshotEvery) {
+			return errPruningWithGranularOptions
+		}
+
+		return nil
+	}
+
+	if !(viper.IsSet(flagPruningKeepEvery) && viper.IsSet(flagPruningSnapshotEvery)) {
+		return errPruningGranularOptions
+	}
+
+	return nil
+}
+
+func startStandAlone(ctx *Context, appCreator AppCreator) error {
+	addr := viper.GetString(flagAddress)
+	home := viper.GetString("home")
+	traceWriterFile := viper.GetString(flagTraceStore)
 
 	db, err := openDB(home)
 	if err != nil {
 		return err
 	}
-
-	traceWriterFile := ctx.Viper.GetString(flagTraceStore)
 	traceWriter, err := openTraceWriter(traceWriterFile)
 	if err != nil {
 		return err
 	}
 
-	app := appCreator(ctx.Logger, db, traceWriter, ctx.Viper)
+	app := appCreator(ctx.Logger, db, traceWriter)
 
-	svr, err := server.NewServer(addr, transport, app)
+	svr, err := server.NewServer(addr, "socket", app)
 	if err != nil {
 		return fmt.Errorf("error creating listener: %v", err)
 	}
@@ -179,8 +158,10 @@ func startStandAlone(ctx *Context, appCreator types.AppCreator) error {
 		tmos.Exit(err.Error())
 	}
 
-	TrapSignal(func() {
-		if err = svr.Stop(); err != nil {
+	tmos.TrapSignal(ctx.Logger, func() {
+		// cleanup
+		err = svr.Stop()
+		if err != nil {
 			tmos.Exit(err.Error())
 		}
 	})
@@ -189,98 +170,60 @@ func startStandAlone(ctx *Context, appCreator types.AppCreator) error {
 	select {}
 }
 
-// legacyAminoCdc is used for the legacy REST API
-func startInProcess(ctx *Context, clientCtx client.Context, appCreator types.AppCreator) error {
+func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	cfg := ctx.Config
 	home := cfg.RootDir
 
-	traceWriterFile := ctx.Viper.GetString(flagTraceStore)
+	traceWriterFile := viper.GetString(flagTraceStore)
 	db, err := openDB(home)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	traceWriter, err := openTraceWriter(traceWriterFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	app := appCreator(ctx.Logger, db, traceWriter, ctx.Viper)
+	app := appCreator(ctx.Logger, db, traceWriter)
 
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	genDocProvider := node.DefaultGenesisDocProviderFunc(cfg)
+	UpgradeOldPrivValFile(cfg)
+
+	// create & start tendermint node
 	tmNode, err := node.NewNode(
 		cfg,
 		pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
 		nodeKey,
 		proxy.NewLocalClientCreator(app),
-		genDocProvider,
+		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(cfg.Instrumentation),
 		ctx.Logger.With("module", "node"),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := tmNode.Start(); err != nil {
-		return err
-	}
-
-	var apiSrv *api.Server
-
-	config := config.GetConfig(ctx.Viper)
-	if config.API.Enable {
-		genDoc, err := genDocProvider()
-		if err != nil {
-			return err
-		}
-
-		clientCtx := clientCtx.
-			WithHomeDir(home).
-			WithChainID(genDoc.ChainID).
-			WithClient(local.New(tmNode))
-
-		apiSrv = api.New(clientCtx, ctx.Logger.With("module", "api-server"))
-		app.RegisterAPIRoutes(apiSrv, config.API)
-		errCh := make(chan error)
-
-		go func() {
-			if err := apiSrv.Start(config); err != nil {
-				errCh <- err
-			}
-		}()
-
-		select {
-		case err := <-errCh:
-			return err
-		case <-time.After(5 * time.Second): // assume server started successfully
-		}
-	}
-
-	var grpcSrv *grpc.Server
-	if config.GRPC.Enable {
-		grpcSrv, err = servergrpc.StartGRPCServer(app, config.GRPC.Address)
-		if err != nil {
-			return err
-		}
+		return nil, err
 	}
 
 	var cpuProfileCleanup func()
 
-	if cpuProfile := ctx.Viper.GetString(flagCPUProfile); cpuProfile != "" {
+	if cpuProfile := viper.GetString(flagCPUProfile); cpuProfile != "" {
 		f, err := os.Create(cpuProfile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		ctx.Logger.Info("starting CPU profiler", "profile", cpuProfile)
 		if err := pprof.StartCPUProfile(f); err != nil {
-			return err
+			return nil, err
 		}
 
 		cpuProfileCleanup = func() {
@@ -297,14 +240,6 @@ func startInProcess(ctx *Context, clientCtx client.Context, appCreator types.App
 
 		if cpuProfileCleanup != nil {
 			cpuProfileCleanup()
-		}
-
-		if apiSrv != nil {
-			_ = apiSrv.Close()
-		}
-
-		if grpcSrv != nil {
-			grpcSrv.Stop()
 		}
 
 		ctx.Logger.Info("exiting...")

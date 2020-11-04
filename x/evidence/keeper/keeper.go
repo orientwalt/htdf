@@ -6,33 +6,40 @@ import (
 	tmbytes "github.com/tendermint/tendermint/libs/bytes"
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/store/prefix"
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/evidence/exported"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/store/prefix"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/evidence/exported"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // Keeper defines the evidence module's keeper. The keeper is responsible for
 // managing persistence, state transitions and query handling for the evidence
 // module.
 type Keeper struct {
-	cdc            codec.BinaryMarshaler
+	cdc            types.Codec
 	storeKey       sdk.StoreKey
+	paramSpace     paramtypes.Subspace
 	router         types.Router
 	stakingKeeper  types.StakingKeeper
 	slashingKeeper types.SlashingKeeper
 }
 
 func NewKeeper(
-	cdc codec.BinaryMarshaler, storeKey sdk.StoreKey, stakingKeeper types.StakingKeeper,
-	slashingKeeper types.SlashingKeeper,
+	cdc types.Codec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace,
+	stakingKeeper types.StakingKeeper, slashingKeeper types.SlashingKeeper,
 ) *Keeper {
+
+	// set KeyTable if it has not already been set
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
 
 	return &Keeper{
 		cdc:            cdc,
 		storeKey:       storeKey,
+		paramSpace:     paramSpace,
 		stakingKeeper:  stakingKeeper,
 		slashingKeeper: slashingKeeper,
 	}
@@ -148,7 +155,7 @@ func (k Keeper) GetAllEvidence(ctx sdk.Context) (evidence []exported.Evidence) {
 // MustUnmarshalEvidence attempts to decode and return an Evidence object from
 // raw encoded bytes. It panics on error.
 func (k Keeper) MustUnmarshalEvidence(bz []byte) exported.Evidence {
-	evidence, err := k.UnmarshalEvidence(bz)
+	evidence, err := k.cdc.UnmarshalEvidence(bz)
 	if err != nil {
 		panic(fmt.Errorf("failed to decode evidence: %w", err))
 	}
@@ -159,29 +166,10 @@ func (k Keeper) MustUnmarshalEvidence(bz []byte) exported.Evidence {
 // MustMarshalEvidence attempts to encode an Evidence object and returns the
 // raw encoded bytes. It panics on error.
 func (k Keeper) MustMarshalEvidence(evidence exported.Evidence) []byte {
-	bz, err := k.MarshalEvidence(evidence)
+	bz, err := k.cdc.MarshalEvidence(evidence)
 	if err != nil {
 		panic(fmt.Errorf("failed to encode evidence: %w", err))
 	}
 
 	return bz
-}
-
-// MarshalEvidence marshals an Evidence interface. If the given type implements
-// the Marshaler interface, it is treated as a Proto-defined message and
-// serialized that way. Otherwise, it falls back on the internal Amino codec.
-func (k Keeper) MarshalEvidence(evidenceI exported.Evidence) ([]byte, error) {
-	return codec.MarshalAny(k.cdc, evidenceI)
-}
-
-// UnmarshalEvidence returns an Evidence interface from raw encoded evidence
-// bytes of a Proto-based Evidence type. An error is returned upon decoding
-// failure.
-func (k Keeper) UnmarshalEvidence(bz []byte) (exported.Evidence, error) {
-	var evi exported.Evidence
-	if err := codec.UnmarshalAny(k.cdc, &evi, bz); err != nil {
-		return nil, err
-	}
-
-	return evi, nil
 }

@@ -3,8 +3,8 @@ package cache
 import (
 	"fmt"
 
-	"github.com/orientwalt/htdf/store/cachekv"
-	"github.com/orientwalt/htdf/store/types"
+	"github.com/cosmos/cosmos-sdk/store/cachekv"
+	"github.com/cosmos/cosmos-sdk/store/types"
 
 	lru "github.com/hashicorp/golang-lru"
 )
@@ -81,12 +81,7 @@ func (cmgr *CommitKVStoreCacheManager) Unwrap(key types.StoreKey) types.CommitKV
 
 // Reset resets in the internal caches.
 func (cmgr *CommitKVStoreCacheManager) Reset() {
-	// Clear the map.
-	// Please note that we are purposefully using the map clearing idiom.
-	// See https://github.com/orientwalt/htdf/issues/6681.
-	for key := range cmgr.caches {
-		delete(cmgr.caches, key)
-	}
+	cmgr.caches = make(map[string]types.CommitKVStore)
 }
 
 // CacheWrap returns the inter-block cache as a cache-wrapped CommitKVStore.

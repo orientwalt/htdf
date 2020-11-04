@@ -1,53 +1,73 @@
-version: '3'
+version: "3"
 
 services:
-  irisnode0:
-    container_name: irisnode0
-    image: ubuntu:16.04
+  emintdnode0:
+    container_name: emintdnode0
+    image: "emintd/node"
     ports:
-    - "26656-26657:26656-26657"
+      - "26656-26657:26656-26657"
+      - "1317:1317"
+      - "8545:8545"
+    environment:
+      - ID=0
+      - LOG=${LOG:-emintd.log}
     volumes:
-    - ./build:/home
-    command: /bin/bash -c 'cd /home/nodecluster/node0 && ../../iris start --home iris'
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.2
+    entrypoint: "bash start.sh"
 
-  irisnode1:
-    container_name: irisnode1
-    image: ubuntu:16.04
+  emintdnode1:
+    container_name: emintdnode1
+    image: "emintd/node"
     ports:
-    - "26659-26660:26656-26657"
+      - "26659-26660:26656-26657"
+      - "1318:1317"
+      - "8546:8545"
+    environment:
+      - ID=1
+      - LOG=${LOG:-emintd.log}
     volumes:
-    - ./build:/home
-    command: /bin/bash -c 'cd /home/nodecluster/node1 && ../../iris start --home iris'
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.3
+    entrypoint: "bash start.sh"
 
-  irisnode2:
-    container_name: irisnode2
-    image: ubuntu:16.04
+  emintdnode2:
+    container_name: emintdnode2
+    image: "emintd/node"
+    environment:
+      - ID=2
+      - LOG=${LOG:-emintd.log}
     ports:
-    - "26661-26662:26656-26657"
+      - "26661-26662:26656-26657"
+      - "1319:1317"
+      - "8547:8545"
     volumes:
-    - ./build:/home
-    command: /bin/bash -c 'cd /home/nodecluster/node2 && ../../iris start --home iris'
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.4
+    entrypoint: "bash start.sh"
 
-  irisnode3:
-    container_name: irisnode3
-    image: ubuntu:16.04
+  emintdnode3:
+    container_name: emintdnode3
+    image: "emintd/node"
+    environment:
+      - ID=3
+      - LOG=${LOG:-emintd.log}
     ports:
-    - "26663-26664:26656-26657"
+      - "26663-26664:26656-26657"
+      - "1320:1317"
+      - "8548:8545"
     volumes:
-    - ./build:/home
-    command: /bin/bash -c 'cd /home/nodecluster/node3 && ../../iris start --home iris'
+      - ./build:/ethermint:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.5
+    entrypoint: "bash start.sh"
 
 networks:
   localnet:
@@ -55,5 +75,4 @@ networks:
     ipam:
       driver: default
       config:
-      -
-        subnet: 192.168.10.0/16
+        - subnet: 192.168.10.0/16

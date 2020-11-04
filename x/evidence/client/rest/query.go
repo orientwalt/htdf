@@ -1,31 +1,35 @@
 package rest
 
 import (
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/types/rest"
+	"github.com/cosmos/cosmos-sdk/x/evidence/types"
 
 	"github.com/gorilla/mux"
 )
 
-func registerQueryRoutes(clientCtx client.Context, r *mux.Router) {
+func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
 		fmt.Sprintf("/evidence/{%s}", RestParamEvidenceHash),
-		queryEvidenceHandler(clientCtx),
+		queryEvidenceHandler(cliCtx),
 	).Methods(MethodGet)
 
 	r.HandleFunc(
 		"/evidence",
-		queryAllEvidenceHandler(clientCtx),
+		queryAllEvidenceHandler(cliCtx),
+	).Methods(MethodGet)
+
+	r.HandleFunc(
+		"/evidence/params",
+		queryParamsHandler(cliCtx),
 	).Methods(MethodGet)
 }
 
-func queryEvidenceHandler(clientCtx client.Context) http.HandlerFunc {
+func queryEvidenceHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		evidenceHash := vars[RestParamEvidenceHash]
@@ -35,61 +39,73 @@ func queryEvidenceHandler(clientCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		decodedHash, err := hex.DecodeString(evidenceHash)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusBadRequest, "invalid evidence hash")
-			return
-		}
-
-		params := types.NewQueryEvidenceRequest(decodedHash)
-		bz, err := clientCtx.JSONMarshaler.MarshalJSON(params)
+		params := types.NewQueryEvidenceParams(evidenceHash)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("failed to marshal query params: %s", err))
 			return
 		}
 
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryEvidence)
-		res, height, err := clientCtx.QueryWithData(route, bz)
+		res, height, err := cliCtx.QueryWithData(route, bz)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
-func queryAllEvidenceHandler(clientCtx client.Context) http.HandlerFunc {
+func queryAllEvidenceHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
 		if rest.CheckBadRequestError(w, err) {
 			return
 		}
 
-		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, clientCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
 		params := types.NewQueryAllEvidenceParams(page, limit)
-		bz, err := clientCtx.LegacyAmino.MarshalJSON(params)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("failed to marshal query params: %s", err))
 			return
 		}
 
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAllEvidence)
-		res, height, err := clientCtx.QueryWithData(route, bz)
+		res, height, err := cliCtx.QueryWithData(route, bz)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 
-		clientCtx = clientCtx.WithHeight(height)
-		rest.PostProcessResponse(w, clientCtx, res)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func queryParamsHandler(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
+		res, height, err := cliCtx.QueryWithData(route, nil)
+		if rest.CheckInternalServerError(w, err) {
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }

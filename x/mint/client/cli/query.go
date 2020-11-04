@@ -1,18 +1,20 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/client/flags"
-	"github.com/orientwalt/htdf/x/mint/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
 // GetQueryCmd returns the cli query commands for the minting module.
-func GetQueryCmd() *cobra.Command {
+func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	mintingQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the minting module",
@@ -22,9 +24,11 @@ func GetQueryCmd() *cobra.Command {
 	}
 
 	mintingQueryCmd.AddCommand(
-		GetCmdQueryParams(),
-		GetCmdQueryInflation(),
-		GetCmdQueryAnnualProvisions(),
+		flags.GetCommands(
+			GetCmdQueryParams(cdc),
+			GetCmdQueryInflation(cdc),
+			GetCmdQueryAnnualProvisions(cdc),
+		)...,
 	)
 
 	return mintingQueryCmd
@@ -32,96 +36,78 @@ func GetQueryCmd() *cobra.Command {
 
 // GetCmdQueryParams implements a command to return the current minting
 // parameters.
-func GetCmdQueryParams() *cobra.Command {
-	cmd := &cobra.Command{
+func GetCmdQueryParams(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
 		Use:   "params",
 		Short: "Query the current minting parameters",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
+			res, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
 			}
 
-			queryClient := types.NewQueryClient(clientCtx)
-
-			params := &types.QueryParamsRequest{}
-			res, err := queryClient.Params(context.Background(), params)
-
-			if err != nil {
+			var params types.Params
+			if err := cdc.UnmarshalJSON(res, &params); err != nil {
 				return err
 			}
 
-			return clientCtx.PrintOutput(&res.Params)
+			return cliCtx.PrintOutput(params)
 		},
 	}
-
-	flags.AddQueryFlagsToCmd(cmd)
-
-	return cmd
 }
 
 // GetCmdQueryInflation implements a command to return the current minting
 // inflation value.
-func GetCmdQueryInflation() *cobra.Command {
-	cmd := &cobra.Command{
+func GetCmdQueryInflation(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
 		Use:   "inflation",
 		Short: "Query the current minting inflation value",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryInflation)
+			res, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
 			}
 
-			queryClient := types.NewQueryClient(clientCtx)
-
-			params := &types.QueryInflationRequest{}
-			res, err := queryClient.Inflation(context.Background(), params)
-
-			if err != nil {
+			var inflation sdk.Dec
+			if err := cdc.UnmarshalJSON(res, &inflation); err != nil {
 				return err
 			}
 
-			return clientCtx.PrintString(fmt.Sprintf("%s\n", res.Inflation))
+			return cliCtx.PrintOutput(inflation)
 		},
 	}
-
-	flags.AddQueryFlagsToCmd(cmd)
-
-	return cmd
 }
 
 // GetCmdQueryAnnualProvisions implements a command to return the current minting
 // annual provisions value.
-func GetCmdQueryAnnualProvisions() *cobra.Command {
-	cmd := &cobra.Command{
+func GetCmdQueryAnnualProvisions(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
 		Use:   "annual-provisions",
 		Short: "Query the current minting annual provisions value",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx := client.GetClientContextFromCmd(cmd)
-			clientCtx, err := client.ReadQueryCommandFlags(clientCtx, cmd.Flags())
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAnnualProvisions)
+			res, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
 			}
 
-			queryClient := types.NewQueryClient(clientCtx)
-
-			params := &types.QueryAnnualProvisionsRequest{}
-			res, err := queryClient.AnnualProvisions(context.Background(), params)
-
-			if err != nil {
+			var inflation sdk.Dec
+			if err := cdc.UnmarshalJSON(res, &inflation); err != nil {
 				return err
 			}
 
-			return clientCtx.PrintString(fmt.Sprintf("%s\n", res.AnnualProvisions))
+			return cliCtx.PrintOutput(inflation)
 		},
 	}
-
-	flags.AddQueryFlagsToCmd(cmd)
-
-	return cmd
 }

@@ -1,31 +1,30 @@
-#
-# Build mainnet image: docker build -t irisnet/irishub .
-# Build testnet image: docker build -t irisnet/irishub --build-arg NetworkType=testnet .
-#
-FROM golang:1.14.4-alpine3.11 as builder
+FROM golang:alpine AS build-env
 
 # Set up dependencies
-ENV PACKAGES make gcc git libc-dev bash linux-headers eudev-dev
+ENV PACKAGES git build-base
 
-WORKDIR /irishub
+# Set working directory for the build
+WORKDIR /go/src/github.com/Chainsafe/ethermint
+
+# Install dependencies
+RUN apk add --update $PACKAGES
 
 # Add source files
 COPY . .
 
-# Install minimum necessary dependencies, run unit tests
-RUN apk add --no-cache $PACKAGES && make test-unit
-
+# Make the binary
 RUN make build
 
-# ----------------------------
+# Final image
+FROM alpine
 
-FROM alpine:3.11
+# Install ca-certificates
+RUN apk add --update ca-certificates
+WORKDIR /root
 
-# p2p port
-EXPOSE 26656
-# rpc port
-EXPOSE 26657
-# metrics port
-EXPOSE 26660
+# Copy over binaries from the build-env
+COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintd /usr/bin/emintd
+COPY --from=build-env /go/src/github.com/Chainsafe/ethermint/build/emintcli /usr/bin/emintcli
 
-COPY --from=builder /irishub/build/ /usr/local/bin/
+# Run emintd by default
+CMD ["emintd"]

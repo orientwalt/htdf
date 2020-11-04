@@ -8,36 +8,30 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	tmjson "github.com/tendermint/tendermint/libs/json"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/spf13/viper"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/orientwalt/htdf/client/flags"
-	"github.com/orientwalt/htdf/server/types"
-	sdk "github.com/orientwalt/htdf/types"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
-	FlagHeight           = "height"
-	FlagForZeroHeight    = "for-zero-height"
-	FlagJailAllowedAddrs = "jail-allowed-addrs"
+	flagHeight        = "height"
+	flagForZeroHeight = "for-zero-height"
+	flagJailWhitelist = "jail-whitelist"
 )
 
 // ExportCmd dumps app state to JSON.
-func ExportCmd(appExporter types.AppExporter, defaultNodeHome string) *cobra.Command {
+func ExportCmd(ctx *Context, cdc codec.JSONMarshaler, appExporter AppExporter) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export state to JSON",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			serverCtx := GetServerContextFromCmd(cmd)
-			config := serverCtx.Config
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
 
-			homeDir, _ := cmd.Flags().GetString(flags.FlagHome)
-			config.SetRoot(homeDir)
-
-			if _, err := os.Stat(config.GenesisFile()); os.IsNotExist(err) {
-				return err
-			}
+			traceWriterFile := viper.GetString(flagTraceStore)
 
 			db, err := openDB(config.RootDir)
 			if err != nil {
@@ -58,62 +52,41 @@ func ExportCmd(appExporter types.AppExporter, defaultNodeHome string) *cobra.Com
 				return nil
 			}
 
-			traceWriterFile, _ := cmd.Flags().GetString(flagTraceStore)
 			traceWriter, err := openTraceWriter(traceWriterFile)
 			if err != nil {
 				return err
 			}
 
-			height, _ := cmd.Flags().GetInt64(FlagHeight)
-			forZeroHeight, _ := cmd.Flags().GetBool(FlagForZeroHeight)
-			jailAllowedAddrs, _ := cmd.Flags().GetStringSlice(FlagJailAllowedAddrs)
+			height := viper.GetInt64(flagHeight)
+			forZeroHeight := viper.GetBool(flagForZeroHeight)
+			jailWhiteList := viper.GetStringSlice(flagJailWhitelist)
 
-			exported, err := appExporter(serverCtx.Logger, db, traceWriter, height, forZeroHeight, jailAllowedAddrs)
+			appState, validators, err := appExporter(ctx.Logger, db, traceWriter, height, forZeroHeight, jailWhiteList)
 			if err != nil {
 				return fmt.Errorf("error exporting state: %v", err)
 			}
 
-			doc, err := tmtypes.GenesisDocFromFile(serverCtx.Config.GenesisFile())
+			doc, err := tmtypes.GenesisDocFromFile(ctx.Config.GenesisFile())
 			if err != nil {
 				return err
 			}
 
-			doc.AppState = exported.AppState
-			doc.Validators = exported.Validators
-			doc.InitialHeight = exported.Height
-			doc.ConsensusParams = &tmproto.ConsensusParams{
-				Block: tmproto.BlockParams{
-					MaxBytes:   exported.ConsensusParams.Block.MaxBytes,
-					MaxGas:     exported.ConsensusParams.Block.MaxGas,
-					TimeIotaMs: doc.ConsensusParams.Block.TimeIotaMs,
-				},
-				Evidence: tmproto.EvidenceParams{
-					MaxAgeNumBlocks: exported.ConsensusParams.Evidence.MaxAgeNumBlocks,
-					MaxAgeDuration:  exported.ConsensusParams.Evidence.MaxAgeDuration,
-					MaxNum:          exported.ConsensusParams.Evidence.MaxNum,
-				},
-				Validator: tmproto.ValidatorParams{
-					PubKeyTypes: exported.ConsensusParams.Validator.PubKeyTypes,
-				},
-			}
+			doc.AppState = appState
+			doc.Validators = validators
 
-			// NOTE: Tendermint uses a custom JSON decoder for GenesisDoc
-			// (except for stuff inside AppState). Inside AppState, we're free
-			// to encode as protobuf or amino.
-			encoded, err := tmjson.Marshal(doc)
+			encoded, err := codec.MarshalJSONIndent(cdc, doc)
 			if err != nil {
 				return err
 			}
 
-			cmd.Println(string(sdk.MustSortJSON(encoded)))
+			fmt.Println(string(sdk.MustSortJSON(encoded)))
 			return nil
 		},
 	}
 
-	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
-	cmd.Flags().Int64(FlagHeight, -1, "Export state from a particular height (-1 means latest height)")
-	cmd.Flags().Bool(FlagForZeroHeight, false, "Export state to start at height zero (perform preproccessing)")
-	cmd.Flags().StringSlice(FlagJailAllowedAddrs, []string{}, "List of validators to not jail state export")
+	cmd.Flags().Int64(flagHeight, -1, "Export state from a particular height (-1 means latest height)")
+	cmd.Flags().Bool(flagForZeroHeight, false, "Export state to start at height zero (perform preproccessing)")
+	cmd.Flags().StringSlice(flagJailWhitelist, []string{}, "List of validators to not jail state export")
 
 	return cmd
 }

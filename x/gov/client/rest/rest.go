@@ -5,9 +5,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/orientwalt/htdf/client"
-	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/types/rest"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/rest"
 )
 
 // REST Variable names
@@ -28,9 +28,10 @@ type ProposalRESTHandler struct {
 	Handler  func(http.ResponseWriter, *http.Request)
 }
 
-func RegisterHandlers(clientCtx client.Context, r *mux.Router, phs []ProposalRESTHandler) {
-	registerQueryRoutes(clientCtx, r)
-	registerTxHandlers(clientCtx, r, phs)
+// RegisterRoutes - Central function to define routes that get registered by the main application
+func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, phs []ProposalRESTHandler) {
+	registerQueryRoutes(cliCtx, r)
+	registerTxRoutes(cliCtx, r, phs)
 }
 
 // PostProposalReq defines the properties of a proposal request's body.

@@ -1,10 +1,10 @@
 package crisis
 
 import (
-	sdk "github.com/orientwalt/htdf/types"
-	sdkerrors "github.com/orientwalt/htdf/types/errors"
-	"github.com/orientwalt/htdf/x/crisis/keeper"
-	"github.com/orientwalt/htdf/x/crisis/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/x/crisis/keeper"
+	"github.com/cosmos/cosmos-sdk/x/crisis/types"
 )
 
 // RouterKey
@@ -15,7 +15,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
-		case *types.MsgVerifyInvariant:
+		case types.MsgVerifyInvariant:
 			return handleMsgVerifyInvariant(ctx, msg, k)
 
 		default:
@@ -24,14 +24,10 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgVerifyInvariant(ctx sdk.Context, msg *types.MsgVerifyInvariant, k keeper.Keeper) (*sdk.Result, error) {
+func handleMsgVerifyInvariant(ctx sdk.Context, msg types.MsgVerifyInvariant, k keeper.Keeper) (*sdk.Result, error) {
 	constantFee := sdk.NewCoins(k.GetConstantFee(ctx))
 
-	sender, err := sdk.AccAddressFromBech32(msg.Sender)
-	if err != nil {
-		return nil, err
-	}
-	if err := k.SendCoinsFromAccountToFeeCollector(ctx, sender, constantFee); err != nil {
+	if err := k.SendCoinsFromAccountToFeeCollector(ctx, msg.Sender, constantFee); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +43,6 @@ func handleMsgVerifyInvariant(ctx sdk.Context, msg *types.MsgVerifyInvariant, k 
 		if invarRoute.FullRoute() == msgFullRoute {
 			res, stop = invarRoute.Invar(cacheCtx)
 			found = true
-
 			break
 		}
 	}
@@ -84,7 +79,7 @@ func handleMsgVerifyInvariant(ctx sdk.Context, msg *types.MsgVerifyInvariant, k 
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCrisis),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender.String()),
 		),
 	})
 
