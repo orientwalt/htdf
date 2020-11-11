@@ -159,11 +159,14 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val sdk.Validator, de
 		}
 
 		// add by yqq 2020-11-09
-		// todo: use more excelent way to return informations about reward
+		// use `withdrawAddr` for the situation where a delegator set withdrawAddr
+		// with other address by `MsgSetWithdrawAddress`
 		ctx.CoinFlowTags().AppendCoinFlowTag(ctx, 
-			del.GetDelegatorAddr().String(),
 			del.GetValidatorAddr().String(),
-			coins.String(), sdk.TagAction ,tags.Rewards)
+			del.GetDelegatorAddr().String(),
+			withdrawAddr.String(), 
+			coins.String(), 
+			tags.Rewards)
 		ctx.CoinFlowTags().TagWrite()
 	}
 
