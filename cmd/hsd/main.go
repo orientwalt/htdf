@@ -22,7 +22,7 @@ import (
 	guardian "github.com/orientwalt/htdf/x/guardian/client/cli"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cfg "github.com/tendermint/tendermint/config"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 

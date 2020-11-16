@@ -7,25 +7,25 @@ import (
 	"os"
 	"path"
 
+	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/spf13/cobra"
 
 	"github.com/orientwalt/htdf/store"
-	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
+	cmn "github.com/tendermint/tendermint/libs/os"
+	dbm "github.com/tendermint/tm-db"
 
 	bam "github.com/orientwalt/htdf/app"
 	"github.com/orientwalt/htdf/app/protocol"
-	"github.com/orientwalt/htdf/app/v0"
+	v0 "github.com/orientwalt/htdf/app/v0"
 
 	"encoding/json"
 
 	sdk "github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/x/auth"
 	cfg "github.com/tendermint/tendermint/config"
 	tmtypes "github.com/tendermint/tendermint/types"
-	"github.com/orientwalt/htdf/x/auth"
 )
 
 func runHackCmd(cmd *cobra.Command, args []string) error {
@@ -148,7 +148,7 @@ func NewHtdfApp(logger log.Logger, db dbm.DB, baseAppOptions ...func(*bam.BaseAp
 // export the state of htdf for a genesis file
 func (app *HtdfApp) ExportAppStateAndValidators(forZeroHeight bool) (appState json.RawMessage, validators []tmtypes.GenesisValidator, err error) {
 	ctx := app.NewContext(true, abci.Header{})
-	return app.Engine.GetCurrentProtocol().ExportAppStateAndValidators(ctx, forZeroHeight,nil)
+	return app.Engine.GetCurrentProtocol().ExportAppStateAndValidators(ctx, forZeroHeight, nil)
 }
 
 func (app *HtdfApp) LoadHeight(height int64) error {

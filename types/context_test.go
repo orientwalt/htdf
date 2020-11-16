@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
 
 	abci "github.com/tendermint/tendermint/abci/types"

@@ -5,11 +5,11 @@ import (
 	"io"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	tmkv "github.com/tendermint/tendermint/libs/kv"
+	dbm "github.com/tendermint/tm-db"
 )
 
-type Store interface { //nolint
+type Store interface {
 	GetStoreType() StoreType
 	CacheWrapper
 }
@@ -38,13 +38,66 @@ type Queryable interface {
 //----------------------------------------
 // MultiStore
 
-type MultiStore interface { //nolint
+// StoreUpgrades defines a series of transformations to apply the multistore db upon load
+type StoreUpgrades struct {
+	Renamed []StoreRename `json:"renamed"`
+	Deleted []string      `json:"deleted"`
+}
+
+// UpgradeInfo defines height and name of the upgrade
+// to ensure multistore upgrades happen only at matching height.
+type UpgradeInfo struct {
+	Name   string `json:"name"`
+	Height int64  `json:"height"`
+}
+
+// StoreRename defines a name change of a sub-store.
+// All data previously under a PrefixStore with OldKey will be copied
+// to a PrefixStore with NewKey, then deleted from OldKey store.
+type StoreRename struct {
+	OldKey string `json:"old_key"`
+	NewKey string `json:"new_key"`
+}
+
+// IsDeleted returns true if the given key should be deleted
+func (s *StoreUpgrades) IsDeleted(key string) bool {
+	if s == nil {
+		return false
+	}
+	for _, d := range s.Deleted {
+		if d == key {
+			return true
+		}
+	}
+	return false
+}
+
+// RenamedFrom returns the oldKey if it was renamed
+// Returns "" if it was not renamed
+func (s *StoreUpgrades) RenamedFrom(key string) string {
+	if s == nil {
+		return ""
+	}
+	for _, re := range s.Renamed {
+		if re.NewKey == key {
+			return re.OldKey
+		}
+	}
+	return ""
+
+}
+
+type MultiStore interface {
 	Store
 
 	// Cache wrap MultiStore.
 	// NOTE: Caller should probably not call .Write() on each, but
 	// call CacheMultiStore.Write().
 	CacheMultiStore() CacheMultiStore
+
+	// CacheMultiStoreWithVersion cache-wraps the underlying MultiStore where
+	// each stored is loaded at a specific version (height).
+	CacheMultiStoreWithVersion(version int64) (CacheMultiStore, error)
 
 	// Convenience for fetching substores.
 	// If the store does not exist, panics.
@@ -65,7 +118,7 @@ type MultiStore interface { //nolint
 	SetTracingContext(TraceContext) MultiStore
 
 	// ResetTraceContext resets the current tracing context.
-	ResetTraceContext() MultiStore
+	// ResetTraceContext() MultiStore
 }
 
 // From MultiStore.CacheMultiStore()....
@@ -89,15 +142,29 @@ type CommitMultiStore interface {
 	// Panics on a nil key.
 	GetCommitKVStore(key StoreKey) CommitKVStore
 
-	// Load the latest persisted version.  Called once after all
-	// calls to Mount*Store() are complete.
+	// Load the latest persisted version. Called once after all calls to
+	// Mount*Store() are complete.
 	LoadLatestVersion() error
 
-	// Load a specific persisted version.  When you load an old
-	// version, or when the last commit attempt didn't complete,
-	// the next commit after loading must be idempotent (return the
-	// same commit id).  Otherwise the behavior is undefined.
-	LoadVersion(ver int64, overwrite bool) error
+	// LoadLatestVersionAndUpgrade will load the latest version, but also
+	// rename/delete/create sub-store keys, before registering all the keys
+	// in order to handle breaking formats in migrations
+	LoadLatestVersionAndUpgrade(upgrades *StoreUpgrades) error
+
+	// LoadVersionAndUpgrade will load the named version, but also
+	// rename/delete/create sub-store keys, before registering all the keys
+	// in order to handle breaking formats in migrations
+	LoadVersionAndUpgrade(ver int64, upgrades *StoreUpgrades) error
+
+	// Load a specific persisted version. When you load an old version, or when
+	// the last commit attempt didn't complete, the next commit after loading
+	// must be idempotent (return the same commit id). Otherwise the behavior is
+	// undefined.
+	LoadVersion(ver int64) error
+
+	// Set an inter-block (persistent) cache that maintains a mapping from
+	// StoreKeys to CommitKVStores.
+	SetInterBlockCache(MultiStorePersistentCache)
 }
 
 //---------subsp-------------------------------
@@ -172,7 +239,7 @@ type CacheWrap interface {
 	CacheWrapWithTrace(w io.Writer, tc TraceContext) CacheWrap
 }
 
-type CacheWrapper interface { //nolint
+type CacheWrapper interface {
 	// CacheWrap cache wraps.
 	CacheWrap() CacheWrap
 
@@ -189,7 +256,7 @@ type CommitID struct {
 	Hash    []byte
 }
 
-func (cid CommitID) IsZero() bool { //nolint
+func (cid CommitID) IsZero() bool {
 	return cid.Version == 0 && len(cid.Hash) == 0
 }
 
@@ -209,7 +276,29 @@ const (
 	StoreTypeDB
 	StoreTypeIAVL
 	StoreTypeTransient
+	StoreTypeMemory
 )
+
+func (st StoreType) String() string {
+	switch st {
+	case StoreTypeMulti:
+		return "StoreTypeMulti"
+
+	case StoreTypeDB:
+		return "StoreTypeDB"
+
+	case StoreTypeIAVL:
+		return "StoreTypeIAVL"
+
+	case StoreTypeTransient:
+		return "StoreTypeTransient"
+
+	case StoreTypeMemory:
+		return "StoreTypeMemory"
+	}
+
+	return "unknown store type"
+}
 
 //----------------------------------------
 // Keys for accessing substores
@@ -219,6 +308,10 @@ type StoreKey interface {
 	Name() string
 	String() string
 }
+
+// CapabilityKey represent the Cosmos SDK keys for object-capability
+// generation in the IBC protocol as defined in https://github.com/cosmos/ics/tree/master/spec/ics-005-port-allocation#data-structures
+type CapabilityKey StoreKey
 
 // KVStoreKey is used for accessing substores.
 // Only the pointer value should ever be used - it functions as a capabilities key.
@@ -265,13 +358,46 @@ func (key *TransientStoreKey) String() string {
 	return fmt.Sprintf("TransientStoreKey{%p, %s}", key, key.name)
 }
 
+// MemoryStoreKey defines a typed key to be used with an in-memory KVStore.
+type MemoryStoreKey struct {
+	name string
+}
+
+func NewMemoryStoreKey(name string) *MemoryStoreKey {
+	return &MemoryStoreKey{name: name}
+}
+
+// Name returns the name of the MemoryStoreKey.
+func (key *MemoryStoreKey) Name() string {
+	return key.name
+}
+
+// String returns a stringified representation of the MemoryStoreKey.
+func (key *MemoryStoreKey) String() string {
+	return fmt.Sprintf("MemoryStoreKey{%p, %s}", key, key.name)
+}
+
 //----------------------------------------
 
 // key-value result for iterator queries
-type KVPair cmn.KVPair
+type KVPair tmkv.Pair
 
 //----------------------------------------
 
 // TraceContext contains TraceKVStore context data. It will be written with
 // every trace operation.
 type TraceContext map[string]interface{}
+
+// MultiStorePersistentCache defines an interface which provides inter-block
+// (persistent) caching capabilities for multiple CommitKVStores based on StoreKeys.
+type MultiStorePersistentCache interface {
+	// Wrap and return the provided CommitKVStore with an inter-block (persistent)
+	// cache.
+	GetStoreCache(key StoreKey, store CommitKVStore) CommitKVStore
+
+	// Return the underlying CommitKVStore for a StoreKey.
+	Unwrap(key StoreKey) CommitKVStore
+
+	// Reset the entire set of internal caches.
+	Reset()
+}

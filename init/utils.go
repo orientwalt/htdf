@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"time"
 
+	amino "github.com/tendermint/go-amino"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/libs/common"
+	common "github.com/tendermint/tendermint/libs/os"
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/types"
-	amino "github.com/tendermint/go-amino"
 
-	"github.com/orientwalt/htdf/app/v0"
+	v0 "github.com/orientwalt/htdf/app/v0"
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/server"
 )

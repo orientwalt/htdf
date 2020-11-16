@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/store"
 	sdk "github.com/orientwalt/htdf/types"

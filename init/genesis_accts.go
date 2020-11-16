@@ -3,18 +3,18 @@ package init
 import (
 	"fmt"
 
-	"github.com/tendermint/tendermint/libs/cli"
-	"github.com/tendermint/tendermint/libs/common"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/cli"
+	common "github.com/tendermint/tendermint/libs/os"
 
+	"github.com/orientwalt/htdf/app"
+	v0 "github.com/orientwalt/htdf/app/v0"
 	"github.com/orientwalt/htdf/client/keys"
 	"github.com/orientwalt/htdf/codec"
+	"github.com/orientwalt/htdf/server"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
-	"github.com/orientwalt/htdf/app"
-	"github.com/orientwalt/htdf/app/v0"
-	"github.com/orientwalt/htdf/server"
 )
 
 // AddGenesisAccountCmd returns add-genesis-account cobra Command.

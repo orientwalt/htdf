@@ -9,7 +9,7 @@ import (
 	"github.com/tendermint/tendermint/abci/server"
 
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/os"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"

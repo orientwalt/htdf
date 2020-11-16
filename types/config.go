@@ -1,22 +1,38 @@
 package types
 
 import (
+	"context"
 	"sync"
+
+	"github.com/orientwalt/htdf/version"
 )
+
+// DefaultKeyringServiceName defines a default service name for the keyring.
+const DefaultKeyringServiceName = "htdf"
 
 // Config is the structure that holds the SDK configuration parameters.
 // This could be used to initialize certain configuration parameters for the SDK.
 type Config struct {
-	mtx                 sync.RWMutex
-	sealed              bool
+	fullFundraiserPath  string
 	bech32AddressPrefix map[string]string
 	txEncoder           TxEncoder
+	addressVerifier     func([]byte) error
+	mtx                 sync.RWMutex
+	coinType            uint32
+	sealed              bool
+	sealedch            chan struct{}
 }
 
+// cosmos-sdk wide global singleton
 var (
-	// Initializing an instance of Config
-	sdkConfig = &Config{
-		sealed: false,
+	sdkConfig  *Config
+	initConfig sync.Once
+)
+
+// New returns a new Config with default values.
+func NewConfig() *Config {
+	return &Config{
+		sealedch: make(chan struct{}),
 		bech32AddressPrefix: map[string]string{
 			"account_addr":   Bech32PrefixAccAddr,
 			"validator_addr": Bech32PrefixValAddr,
@@ -25,13 +41,29 @@ var (
 			"validator_pub":  Bech32PrefixValPub,
 			"consensus_pub":  Bech32PrefixConsPub,
 		},
-		txEncoder: nil,
+		coinType:           CoinType,
+		fullFundraiserPath: FullFundraiserPath,
+		txEncoder:          nil,
 	}
-)
+}
 
 // GetConfig returns the config instance for the SDK.
 func GetConfig() *Config {
+	initConfig.Do(func() {
+		sdkConfig = NewConfig()
+	})
 	return sdkConfig
+}
+
+// GetSealedConfig returns the config instance for the SDK if/once it is sealed.
+func GetSealedConfig(ctx context.Context) (*Config, error) {
+	config := GetConfig()
+	select {
+	case <-config.sealedch:
+		return config, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func (config *Config) assertNotSealed() {
@@ -73,12 +105,39 @@ func (config *Config) SetTxEncoder(encoder TxEncoder) {
 	config.txEncoder = encoder
 }
 
+// SetAddressVerifier builds the Config with the provided function for verifying that addresses
+// have the correct format
+func (config *Config) SetAddressVerifier(addressVerifier func([]byte) error) {
+	config.assertNotSealed()
+	config.addressVerifier = addressVerifier
+}
+
+// Set the BIP-0044 CoinType code on the config
+func (config *Config) SetCoinType(coinType uint32) {
+	config.assertNotSealed()
+	config.coinType = coinType
+}
+
+// Set the FullFundraiserPath (BIP44Prefix) on the config
+func (config *Config) SetFullFundraiserPath(fullFundraiserPath string) {
+	config.assertNotSealed()
+	config.fullFundraiserPath = fullFundraiserPath
+}
+
 // Seal seals the config such that the config state could not be modified further
 func (config *Config) Seal() *Config {
 	config.mtx.Lock()
-	defer config.mtx.Unlock()
 
+	if config.sealed {
+		config.mtx.Unlock()
+		return config
+	}
+
+	// signal sealed after state exposed/unlocked
 	config.sealed = true
+	config.mtx.Unlock()
+	close(config.sealedch)
+
 	return config
 }
 
@@ -115,4 +174,26 @@ func (config *Config) GetBech32ConsensusPubPrefix() string {
 // GetTxEncoder return function to encode transactions
 func (config *Config) GetTxEncoder() TxEncoder {
 	return config.txEncoder
+}
+
+// GetAddressVerifier returns the function to verify that addresses have the correct format
+func (config *Config) GetAddressVerifier() func([]byte) error {
+	return config.addressVerifier
+}
+
+// GetCoinType returns the BIP-0044 CoinType code on the config.
+func (config *Config) GetCoinType() uint32 {
+	return config.coinType
+}
+
+// GetFullFundraiserPath returns the BIP44Prefix.
+func (config *Config) GetFullFundraiserPath() string {
+	return config.fullFundraiserPath
+}
+
+func KeyringServiceName() string {
+	if len(version.GetVersion()) == 0 {
+		return DefaultKeyringServiceName
+	}
+	return version.GetVersion()
 }

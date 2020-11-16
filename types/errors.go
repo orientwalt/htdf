@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	cmn "github.com/tendermint/tendermint/libs/common"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -230,7 +229,7 @@ func ErrInvalidLength(codespace CodespaceType, codeType CodeType, descriptor str
 //----------------------------------------
 // Error & sdkError
 
-type cmnError = cmn.Error
+type cmnError = error
 
 // sdk Error type
 type Error interface {
@@ -270,7 +269,7 @@ func newError(codespace CodespaceType, code CodeType, format string, args ...int
 	return &sdkError{
 		codespace: codespace,
 		code:      code,
-		cmnError:  cmn.NewError(format, args...),
+		cmnError:  errors.Errorf(format, args...),
 	}
 }
 
@@ -296,7 +295,7 @@ func (err *sdkError) WithDefaultCodespace(cs CodespaceType) Error {
 // Implements ABCIError.
 // nolint: errcheck
 func (err *sdkError) TraceSDK(format string, args ...interface{}) Error {
-	err.Trace(1, format, args...)
+	// err.Trace(1, format, args...)
 	return err
 }
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tendermint/tendermint/crypto"
-	cmn "github.com/tendermint/tendermint/libs/common"
+	cmn "github.com/tendermint/tendermint/libs/os"
 
 	"github.com/orientwalt/htdf/crypto/keys/hd"
 	sdk "github.com/orientwalt/htdf/types"
