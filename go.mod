@@ -59,6 +59,9 @@ require (
 )
 
 // github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
-replace github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.33.4
+replace (
+	github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.33.4
+	github.com/tendermint/iavl => github.com/tendermint/iavl v0.13.3
+)
 
 go 1.13

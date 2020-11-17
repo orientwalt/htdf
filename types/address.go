@@ -735,6 +735,34 @@ func MustGetPubKeyFromBech32(pkt Bech32PubKeyType, pubkeyStr string) crypto.PubK
 	return res
 }
 
+// GetConsPubKeyBech32 creates a PubKey for a consensus node with a given public
+// key string using the Bech32 Bech32PrefixConsPub prefix.
+func GetConsPubKeyBech32(pubkey string) (pk crypto.PubKey, err error) {
+	bech32PrefixConsPub := GetConfig().GetBech32ConsensusPubPrefix()
+	bz, err := GetFromBech32(pubkey, bech32PrefixConsPub)
+	if err != nil {
+		return nil, err
+	}
+
+	pk, err = tmamino.PubKeyFromBytes(bz)
+	if err != nil {
+		return nil, err
+	}
+
+	return pk, nil
+}
+
+// MustGetConsPubKeyBech32 returns the result of GetConsPubKeyBech32 panicing on
+// failure.
+func MustGetConsPubKeyBech32(pubkey string) (pk crypto.PubKey) {
+	pk, err := GetConsPubKeyBech32(pubkey)
+	if err != nil {
+		panic(err)
+	}
+
+	return pk
+}
+
 // GetFromBech32 decodes a bytestring from a Bech32 encoded string.
 func GetFromBech32(bech32str, prefix string) ([]byte, error) {
 	if len(bech32str) == 0 {

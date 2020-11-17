@@ -22,6 +22,7 @@ import (
 	tmlite "github.com/tendermint/tendermint/lite"
 	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
+	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 
 	sdk "github.com/orientwalt/htdf/types"
 )
@@ -62,10 +63,14 @@ type CLIContext struct {
 // command line using Viper.
 func NewCLIContext() CLIContext {
 	var rpc rpcclient.Client
-
+	var err error
 	nodeURI := viper.GetString(client.FlagNode)
 	if nodeURI != "" {
-		rpc = rpcclient.NewHTTP(nodeURI, "/websocket")
+		rpc, err = rpchttp.New(nodeURI, "/websocket")
+		if err != nil {
+			fmt.Printf("failted to get client: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	from := viper.GetString(client.FlagFrom)
@@ -134,7 +139,12 @@ func createVerifier() tmlite.Verifier {
 		os.Exit(1)
 	}
 
-	node := rpcclient.NewHTTP(nodeURI, "/websocket")
+	node, err := rpchttp.New(nodeURI, "/websocket")
+	if err != nil {
+		fmt.Printf("Create verifier failed: %s\n", err.Error())
+		fmt.Printf("Please check network connection and verify the address of the node to connect to\n")
+		os.Exit(1)
+	}
 	cacheSize := 10 // TODO: determine appropriate cache size
 	verifier, err := tmliteProxy.NewVerifier(
 		chainID, filepath.Join(home, ".gaialite"),
@@ -202,7 +212,12 @@ func (ctx CLIContext) WithTrustNode(trustNode bool) CLIContext {
 // WithNodeURI returns a copy of the context with an updated node URI.
 func (ctx CLIContext) WithNodeURI(nodeURI string) CLIContext {
 	ctx.NodeURI = nodeURI
-	ctx.Client = rpcclient.NewHTTP(nodeURI, "/websocket")
+	client, err := rpchttp.New(nodeURI, "/websocket")
+	if err != nil {
+		panic(err)
+	}
+
+	ctx.Client = client
 	return ctx
 }
 
