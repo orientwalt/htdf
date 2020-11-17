@@ -11,8 +11,9 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	yaml "gopkg.in/yaml.v2"
 
-	
 	"github.com/tendermint/tendermint/libs/bech32"
+
+	tmamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 )
 
 const (

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -267,7 +268,7 @@ func ParseABCILogs(logs string) (res ABCIMessageLogs, err error) {
 	return res, err
 }
 
-var _, _ types.UnpackInterfacesMessage = SearchTxsResult{}, TxResponse{}
+// var _, _ types.UnpackInterfacesMessage = SearchTxsResult{}, TxResponse{}
 
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
 //
