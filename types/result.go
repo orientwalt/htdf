@@ -68,6 +68,7 @@ func (logs ABCIMessageLogs) String() (str string) {
 type TxResponse struct {
 	Height    int64           `json:"height"`
 	TxHash    string          `json:"txhash"`
+	Codespace string          `json:"codespace,omitempty"`
 	Code      uint32          `json:"code,omitempty"`
 	Data      string          `json:"data,omitempty"`
 	RawLog    string          `json:"raw_log,omitempty"`
@@ -75,10 +76,9 @@ type TxResponse struct {
 	Info      string          `json:"info,omitempty"`
 	GasWanted int64           `json:"gas_wanted,omitempty"`
 	GasUsed   int64           `json:"gas_used,omitempty"`
-	Tags      StringTags      `json:"tags,omitempty"`
-	Codespace string          `json:"codespace,omitempty"`
-	Tx        Tx              `json:"tx,omitempty"`
-	Timestamp string          `json:"timestamp,omitempty"`
+	// Tags      StringTags      `json:"tags,omitempty"`
+	Tx        Tx     `json:"tx,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
 }
 
 // NewResponseResultTx returns a TxResponse given a ResultTx from tendermint
@@ -92,6 +92,7 @@ func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxRespon
 	return TxResponse{
 		TxHash:    res.Hash.String(),
 		Height:    res.Height,
+		Codespace: res.TxResult.Codespace,
 		Code:      res.TxResult.Code,
 		Data:      strings.ToUpper(hex.EncodeToString(res.TxResult.Data)),
 		RawLog:    res.TxResult.Log,
@@ -99,7 +100,7 @@ func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxRespon
 		Info:      res.TxResult.Info,
 		GasWanted: res.TxResult.GasWanted,
 		GasUsed:   res.TxResult.GasUsed,
-		Tags:      TagsToStringTags(res.TxResult.Tags),
+		// Tags:      TagsToStringTags(res.TxResult.Tags),
 		Tx:        tx,
 		Timestamp: timestamp,
 	}
@@ -134,6 +135,7 @@ func newTxResponseCheckTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 	return TxResponse{
 		Height:    res.Height,
 		TxHash:    txHash,
+		Codespace: res.CheckTx.Codespace,
 		Code:      res.CheckTx.Code,
 		Data:      strings.ToUpper(hex.EncodeToString(res.CheckTx.Data)),
 		RawLog:    res.CheckTx.Log,
@@ -141,8 +143,7 @@ func newTxResponseCheckTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 		Info:      res.CheckTx.Info,
 		GasWanted: res.CheckTx.GasWanted,
 		GasUsed:   res.CheckTx.GasUsed,
-		Tags:      TagsToStringTags(res.CheckTx.Tags),
-		Codespace: res.CheckTx.Codespace,
+		// Tags:      TagsToStringTags(res.CheckTx.Tags),
 	}
 }
 
@@ -161,6 +162,7 @@ func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 	return TxResponse{
 		Height:    res.Height,
 		TxHash:    txHash,
+		Codespace: res.DeliverTx.Codespace,
 		Code:      res.DeliverTx.Code,
 		Data:      strings.ToUpper(hex.EncodeToString(res.DeliverTx.Data)),
 		RawLog:    res.DeliverTx.Log,
@@ -168,8 +170,7 @@ func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 		Info:      res.DeliverTx.Info,
 		GasWanted: res.DeliverTx.GasWanted,
 		GasUsed:   res.DeliverTx.GasUsed,
-		Tags:      TagsToStringTags(res.DeliverTx.Tags),
-		Codespace: res.DeliverTx.Codespace,
+		// Tags:      TagsToStringTags(res.DeliverTx.Tags),
 	}
 }
 
@@ -221,9 +222,9 @@ func (r TxResponse) String() string {
 	if r.GasUsed != 0 {
 		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
 	}
-	if len(r.Tags) > 0 {
-		sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Tags.String()))
-	}
+	//if len(r.Tags) > 0 {
+	//	sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Tags.String()))
+	//}
 
 	if r.Codespace != "" {
 		sb.WriteString(fmt.Sprintf("  Codespace: %s\n", r.Codespace))
@@ -270,21 +271,21 @@ func ParseABCILogs(logs string) (res ABCIMessageLogs, err error) {
 
 // var _, _ types.UnpackInterfacesMessage = SearchTxsResult{}, TxResponse{}
 
-// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-//
-// types.UnpackInterfaces needs to be called for each nested Tx because
-// there are generally interfaces to unpack in Tx's
-func (s SearchTxsResult) UnpackInterfaces(unpacker types.AnyUnpacker) error {
-	for _, tx := range s.Txs {
-		err := types.UnpackInterfaces(tx, unpacker)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+// //
+// // types.UnpackInterfaces needs to be called for each nested Tx because
+// // there are generally interfaces to unpack in Tx's
+// func (s SearchTxsResult) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+// 	for _, tx := range s.Txs {
+// 		err := types.UnpackInterfaces(tx, unpacker)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
-// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-func (r TxResponse) UnpackInterfaces(unpacker types.AnyUnpacker) error {
-	return types.UnpackInterfaces(r.Tx, unpacker)
-}
+// // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+// func (r TxResponse) UnpackInterfaces(unpacker types.AnyUnpacker) error {
+// 	return types.UnpackInterfaces(r.Tx, unpacker)
+// }

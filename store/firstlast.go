@@ -5,7 +5,7 @@ import (
 
 	tmkv "github.com/tendermint/tendermint/libs/kv"
 
-	sdk "github.com/orientwalt/htdf/store/types"
+	sdk "github.com/orientwalt/htdf/types"
 )
 
 // Gets the first item.
