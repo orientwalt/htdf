@@ -84,9 +84,10 @@ install: buildquick
 # 	@go install ./cmd/hscli
 # 	@go install ./cmd/hsutil
 
+
 # test part
 test:
-	@go test -v --vet=off $(PACKAGES)
+	@go test --vet=off $(PACKAGES)
 	@echo $(PACKAGES)
 
 unittest:

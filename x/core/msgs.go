@@ -128,7 +128,8 @@ func (msg MsgSend) ValidateBasic() sdk.Error {
 
 		// junying-todo, 2019-11-12
 		if msg.GasWanted < params.DefaultMsgGas {
-			return sdk.ErrOutOfGas(fmt.Sprintf("gaswanted must be greather than %d", params.DefaultMsgGas))
+			// return sdk.ErrOutOfGas(fmt.Sprintf("gaswanted must be greather than %d", params.DefaultMsgGas))
+			return sdk.ErrInvalidGas(fmt.Sprintf("gaswanted must be greather than %d", params.DefaultMsgGas))
 		}
 
 	} else {
