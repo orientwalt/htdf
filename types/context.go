@@ -34,6 +34,25 @@ type Context struct {
 	// it's probably not what you want to do.
 }
 
+// Proposed rename, not done to avoid API breakage
+type Request = Context
+
+func (c Context) BlockHeader() abci.Header { return c.Value(contextKeyBlockHeader).(abci.Header) }
+func (c Context) BlockHeight() int64       { return c.Value(contextKeyBlockHeight).(int64) }
+func (c Context) ChainID() string          { return c.Value(contextKeyChainID).(string) }
+func (c Context) TxBytes() []byte          { return c.Value(contextKeyTxBytes).([]byte) }
+func (c Context) Logger() log.Logger       { return c.Value(contextKeyLogger).(log.Logger) }
+func (c Context) VoteInfos() []abci.VoteInfo {
+	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
+}
+func (c Context) GasMeter() GasMeter      { return c.Value(contextKeyGasMeter).(GasMeter) }
+func (c Context) BlockGasMeter() GasMeter { return c.Value(contextKeyBlockGasMeter).(GasMeter) }
+func (c Context) IsCheckTx() bool         { return c.Value(contextKeyIsCheckTx).(bool) }
+func (c Context) MinGasPrices() Coins     { return c.Value(contextKeyMinGasPrices).(Coins) }
+func (c Context) ConsensusParams() *abci.ConsensusParams {
+	return c.Value(contextKeyConsensusParams).(*abci.ConsensusParams)
+}
+
 // create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
 	c := Context{
@@ -58,35 +77,11 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	return c
 }
 
-// is context nil
-func (c Context) IsZero() bool {
-	return c.Context == nil
-}
 
-//----------------------------------------
-// Getting a value
 
-// context value for the provided key
-func (c Context) Value(key interface{}) interface{} {
-	value := c.Context.Value(key)
-	if cloner, ok := value.(cloner); ok {
-		return cloner.Clone()
-	}
-	if message, ok := value.(proto.Message); ok {
-		return proto.Clone(message)
-	}
-	return value
-}
 
-// KVStore fetches a KVStore from the MultiStore.
-func (c Context) KVStore(key StoreKey) KVStore {
-	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
-}
 
-// TransientStore fetches a TransientStore from the MultiStore.
-func (c Context) TransientStore(key StoreKey) KVStore {
-	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.TransientGasConfig())
-}
+
 
 //----------------------------------------
 // With* (setting a value)
@@ -153,36 +148,11 @@ const (
 	contextKeyCheckValidNum
 	contextKeyCoinFlowTrigger
 	contextKeyCoinFlowTags
+	contextEventManager
 )
 
 func (c Context) MultiStore() MultiStore {
 	return c.Value(contextKeyMultiStore).(MultiStore)
-}
-
-func (c Context) BlockHeader() abci.Header { return c.Value(contextKeyBlockHeader).(abci.Header) }
-
-func (c Context) BlockHeight() int64 { return c.Value(contextKeyBlockHeight).(int64) }
-
-func (c Context) ChainID() string { return c.Value(contextKeyChainID).(string) }
-
-func (c Context) TxBytes() []byte { return c.Value(contextKeyTxBytes).([]byte) }
-
-func (c Context) Logger() log.Logger { return c.Value(contextKeyLogger).(log.Logger) }
-
-func (c Context) VoteInfos() []abci.VoteInfo {
-	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
-}
-
-func (c Context) GasMeter() GasMeter { return c.Value(contextKeyGasMeter).(GasMeter) }
-
-func (c Context) BlockGasMeter() GasMeter { return c.Value(contextKeyBlockGasMeter).(GasMeter) }
-
-func (c Context) IsCheckTx() bool { return c.Value(contextKeyIsCheckTx).(bool) }
-
-func (c Context) MinGasPrices() Coins { return c.Value(contextKeyMinGasPrices).(Coins) }
-
-func (c Context) ConsensusParams() *abci.ConsensusParams {
-	return c.Value(contextKeyConsensusParams).(*abci.ConsensusParams)
 }
 
 func (c Context) WithMultiStore(ms MultiStore) Context {
@@ -270,21 +240,47 @@ func (c Context) WithMinimumFees(minFees Coins) Context {
 	return c.withValue(contextKeyMinimumFees, minFees)
 }
 
+// is context nil
+func (c Context) IsZero() bool {
+	return c.Context == nil
+}
+
+
+//----------------------------------------
+// Getting a value
+
+// context value for the provided key
+func (c Context) Value(key interface{}) interface{} {
+	value := c.Context.Value(key)
+	if cloner, ok := value.(cloner); ok {
+		return cloner.Clone()
+	}
+	if message, ok := value.(proto.Message); ok {
+		return proto.Clone(message)
+	}
+	return value
+}
+
+// ----------------------------------------------------------------------------
+// Store / Caching
+// ----------------------------------------------------------------------------
+
+// KVStore fetches a KVStore from the MultiStore.
+func (c Context) KVStore(key StoreKey) KVStore {
+	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+}
+
+// TransientStore fetches a TransientStore from the MultiStore.
+func (c Context) TransientStore(key StoreKey) KVStore {
+	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.TransientGasConfig())
+}
+
 // Cache the multistore and return a new cached context. The cached context is
 // written to the context when writeCache is called.
 func (c Context) CacheContext() (cc Context, writeCache func()) {
 	cms := c.MultiStore().CacheMultiStore()
 	cc = c.WithMultiStore(cms)
 	return cc, cms.Write
-}
-
-//----------------------------------------
-// thePast
-
-// Returns false if ver <= 0 || ver > len(c.pst.ops).
-// The first operation is version 1.
-func (c Context) GetOp(ver int64) (Op, bool) {
-	return c.pst.getOp(ver)
 }
 
 //----------------------------------------
@@ -338,4 +334,13 @@ func (pst *thePast) getOp(ver int64) (Op, bool) {
 		return Op{}, false
 	}
 	return pst.ops[ver-1], true
+}
+
+//----------------------------------------
+// thePast
+
+// Returns false if ver <= 0 || ver > len(c.pst.ops).
+// The first operation is version 1.
+func (c Context) GetOp(ver int64) (Op, bool) {
+	return c.pst.getOp(ver)
 }

@@ -375,9 +375,9 @@ func (p *ProtocolV0) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 	// distribute rewards from previous block
 	distr.BeginBlocker(ctx, req, p.distrKeeper)
 
-	tags := slashing.BeginBlocker(ctx, req, p.slashingKeeper)
+	// tags := slashing.BeginBlocker(ctx, req, p.slashingKeeper)
 	return abci.ResponseBeginBlock{
-		Tags: tags.ToKVPairs(),
+		// Tags: tags.ToKVPairs(),
 	}
 }
 
@@ -395,7 +395,8 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
-		Tags:             tags,
+		// Tags:             tags,
+		Events: ctx.EventManager().ABCIEvents(),
 	}
 }
 

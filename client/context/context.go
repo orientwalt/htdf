@@ -234,7 +234,7 @@ func (ctx CLIContext) WithUseLedger(useLedger bool) CLIContext {
 	return ctx
 }
 
-// WithVerifier - return a copy of the context with an updated Verifier
+// WithVerifier returns a copy of the context with an updated Verifier.
 func (ctx CLIContext) WithVerifier(verifier tmlite.Verifier) CLIContext {
 	ctx.Verifier = verifier
 	return ctx
