@@ -37,18 +37,27 @@ type Context struct {
 // Proposed rename, not done to avoid API breakage
 type Request = Context
 
-func (c Context) BlockHeader() abci.Header { return c.Value(contextKeyBlockHeader).(abci.Header) }
-func (c Context) BlockHeight() int64       { return c.Value(contextKeyBlockHeight).(int64) }
-func (c Context) ChainID() string          { return c.Value(contextKeyChainID).(string) }
-func (c Context) TxBytes() []byte          { return c.Value(contextKeyTxBytes).([]byte) }
-func (c Context) Logger() log.Logger       { return c.Value(contextKeyLogger).(log.Logger) }
+func (c Context) CoinFlowTags() CoinFlowTags { return c.Value(contextKeyCoinFlowTags).(CoinFlowTags) }
+func (c Context) CoinFlowTrigger() string    { return c.Value(contextKeyCoinFlowTrigger).(string) }
+func (c Context) BlockHeight() int64         { return c.Value(contextKeyBlockHeight).(int64) }
+func (c Context) CheckValidNum() uint64      { return c.Value(contextKeyCheckValidNum).(uint64) }
+func (c Context) ChainID() string            { return c.Value(contextKeyChainID).(string) }
+func (c Context) TxBytes() []byte            { return c.Value(contextKeyTxBytes).([]byte) }
+func (c Context) Logger() log.Logger         { return c.Value(contextKeyLogger).(log.Logger) }
 func (c Context) VoteInfos() []abci.VoteInfo {
 	return c.Value(contextKeyVoteInfos).([]abci.VoteInfo)
 }
-func (c Context) GasMeter() GasMeter      { return c.Value(contextKeyGasMeter).(GasMeter) }
-func (c Context) BlockGasMeter() GasMeter { return c.Value(contextKeyBlockGasMeter).(GasMeter) }
-func (c Context) IsCheckTx() bool         { return c.Value(contextKeyIsCheckTx).(bool) }
-func (c Context) MinGasPrices() Coins     { return c.Value(contextKeyMinGasPrices).(Coins) }
+func (c Context) GasMeter() GasMeter          { return c.Value(contextKeyGasMeter).(GasMeter) }
+func (c Context) BlockGasMeter() GasMeter     { return c.Value(contextKeyBlockGasMeter).(GasMeter) }
+func (c Context) IsCheckTx() bool             { return c.Value(contextKeyIsCheckTx).(bool) }
+func (c Context) MinGasPrices() Coins         { return c.Value(contextKeyMinGasPrices).(Coins) }
+func (c Context) MinimumFees() Coins          { return c.Value(contextKeyMinimumFees).(Coins) }
+func (c Context) EventManager() *EventManager { return c.Value(contextEventManager).(*EventManager) }
+
+func (c Context) BlockHeader() abci.Header {
+	return c.Value(contextKeyBlockHeader).(abci.Header)
+}
+
 func (c Context) ConsensusParams() *abci.ConsensusParams {
 	return c.Value(contextKeyConsensusParams).(*abci.ConsensusParams)
 }
@@ -75,55 +84,6 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	c = c.WithCoinFlowTrigger("")
 	c = c.WithCoinFlowTags(NewCoinFlowRecord(false))
 	return c
-}
-
-
-
-
-
-
-
-//----------------------------------------
-// With* (setting a value)
-
-// nolint
-func (c Context) WithValue(key interface{}, value interface{}) Context {
-	return c.withValue(key, value)
-}
-func (c Context) WithCloner(key interface{}, value cloner) Context {
-	return c.withValue(key, value)
-}
-func (c Context) WithCacheWrapper(key interface{}, value CacheWrapper) Context {
-	return c.withValue(key, value)
-}
-func (c Context) WithProtoMsg(key interface{}, value proto.Message) Context {
-	return c.withValue(key, value)
-}
-func (c Context) WithString(key interface{}, value string) Context {
-	return c.withValue(key, value)
-}
-func (c Context) WithInt32(key interface{}, value int32) Context {
-	return c.withValue(key, value)
-}
-func (c Context) WithUint32(key interface{}, value uint32) Context {
-	return c.withValue(key, value)
-}
-func (c Context) WithUint64(key interface{}, value uint64) Context {
-	return c.withValue(key, value)
-}
-
-func (c Context) withValue(key interface{}, value interface{}) Context {
-	c.pst.bump(Op{
-		gen:   c.gen + 1,
-		key:   key,
-		value: value,
-	}) // increment version for all relatives.
-
-	return Context{
-		Context: context.WithValue(c.Context, key, value),
-		pst:     c.pst,
-		gen:     c.gen + 1,
-	}
 }
 
 //----------------------------------------
@@ -182,19 +142,26 @@ func (c Context) WithBlockHeight(height int64) Context {
 	return c.withValue(contextKeyBlockHeight, height).withValue(contextKeyBlockHeader, newHeader)
 }
 
-func (c Context) MinimumFees() Coins { return c.Value(contextKeyMinimumFees).(Coins) }
+func (c Context) WithChainID(chainID string) Context {
+	return c.withValue(contextKeyChainID, chainID)
 
-func (c Context) WithChainID(chainID string) Context { return c.withValue(contextKeyChainID, chainID) }
-
-func (c Context) WithTxBytes(txBytes []byte) Context { return c.withValue(contextKeyTxBytes, txBytes) }
-
-func (c Context) WithLogger(logger log.Logger) Context { return c.withValue(contextKeyLogger, logger) }
-
-func (c Context) WithVoteInfos(VoteInfos []abci.VoteInfo) Context {
-	return c.withValue(contextKeyVoteInfos, VoteInfos)
 }
 
-func (c Context) WithGasMeter(meter GasMeter) Context { return c.withValue(contextKeyGasMeter, meter) }
+func (c Context) WithTxBytes(txBytes []byte) Context {
+	return c.withValue(contextKeyTxBytes, txBytes)
+}
+
+func (c Context) WithLogger(logger log.Logger) Context {
+	return c.withValue(contextKeyLogger, logger)
+}
+
+func (c Context) WithVoteInfos(voteInfo []abci.VoteInfo) Context {
+	return c.withValue(contextKeyVoteInfos, voteInfo)
+}
+
+func (c Context) WithGasMeter(meter GasMeter) Context {
+	return c.withValue(contextKeyGasMeter, meter)
+}
 
 func (c Context) WithBlockGasMeter(meter GasMeter) Context {
 	return c.withValue(contextKeyBlockGasMeter, meter)
@@ -220,18 +187,6 @@ func (c Context) WithCoinFlowTrigger(trigger string) Context {
 	return c.withValue(contextKeyCoinFlowTrigger, trigger)
 }
 
-func (c Context) CoinFlowTrigger() string {
-	return c.Value(contextKeyCoinFlowTrigger).(string)
-}
-
-func (c Context) CoinFlowTags() CoinFlowTags {
-	return c.Value(contextKeyCoinFlowTags).(CoinFlowTags)
-}
-
-func (c Context) CheckValidNum() uint64 {
-	return c.Value(contextKeyCheckValidNum).(uint64)
-}
-
 func (c Context) WithCoinFlowTags(cTag CoinFlowTags) Context {
 	return c.withValue(contextKeyCoinFlowTags, cTag)
 }
@@ -245,6 +200,48 @@ func (c Context) IsZero() bool {
 	return c.Context == nil
 }
 
+//----------------------------------------
+// With* (setting a value)
+
+// nolint
+func (c Context) WithValue(key interface{}, value interface{}) Context {
+	return c.withValue(key, value)
+}
+func (c Context) WithCloner(key interface{}, value cloner) Context {
+	return c.withValue(key, value)
+}
+func (c Context) WithCacheWrapper(key interface{}, value CacheWrapper) Context {
+	return c.withValue(key, value)
+}
+func (c Context) WithProtoMsg(key interface{}, value proto.Message) Context {
+	return c.withValue(key, value)
+}
+func (c Context) WithString(key interface{}, value string) Context {
+	return c.withValue(key, value)
+}
+func (c Context) WithInt32(key interface{}, value int32) Context {
+	return c.withValue(key, value)
+}
+func (c Context) WithUint32(key interface{}, value uint32) Context {
+	return c.withValue(key, value)
+}
+func (c Context) WithUint64(key interface{}, value uint64) Context {
+	return c.withValue(key, value)
+}
+
+func (c Context) withValue(key interface{}, value interface{}) Context {
+	c.pst.bump(Op{
+		gen:   c.gen + 1,
+		key:   key,
+		value: value,
+	}) // increment version for all relatives.
+
+	return Context{
+		Context: context.WithValue(c.Context, key, value),
+		pst:     c.pst,
+		gen:     c.gen + 1,
+	}
+}
 
 //----------------------------------------
 // Getting a value
