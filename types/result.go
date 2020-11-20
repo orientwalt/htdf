@@ -7,6 +7,7 @@ import (
 	"math"
 	"strings"
 
+	types "github.com/tendermint/tendermint/abci/types"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -21,10 +22,10 @@ type Result struct {
 	// Data is any data returned from the app.
 	// Data has to be length prefixed in order to separate
 	// results from multiple msgs executions
-	Data []byte
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 
 	// Log contains the txs log information. NOTE: nondeterministic.
-	Log string
+	Log string `protobuf:"bytes,2,opt,name=log,proto3" json:"log,omitempty"`
 
 	// GasWanted is the maximum units of work we allow this tx to perform.
 	GasWanted uint64
@@ -33,7 +34,9 @@ type Result struct {
 	GasUsed uint64
 
 	// Tags are used for transaction indexing and pubsub.
-	Tags Tags
+	// Tags Tags
+
+	Events []types.Event `protobuf:"bytes,3,rep,name=events,proto3" json:"events"`
 }
 
 // TODO: In the future, more codes may be OK.

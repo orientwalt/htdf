@@ -15,16 +15,21 @@ import (
 
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		// NOTE msg already has validate basic run
 		switch msg := msg.(type) {
 		case types.MsgCreateValidator:
 			return handleMsgCreateValidator(ctx, msg, k)
+
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
+
 		case types.MsgDelegate:
 			return handleMsgDelegate(ctx, msg, k)
+
 		case types.MsgBeginRedelegate:
 			return handleMsgBeginRedelegate(ctx, msg, k)
+
 		case types.MsgUndelegate:
 			return handleMsgUndelegate(ctx, msg, k)
 		case types.MsgSetUndelegateStatus:
@@ -144,15 +149,30 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 		return err.Result()
 	}
 
-	tags := sdk.NewTags(
-		tags.DstValidator, msg.ValidatorAddress.String(),
-		tags.Moniker, msg.Description.Moniker,
-		tags.Identity, msg.Description.Identity,
-	)
+	// tags := sdk.NewTags(
+	// 	tags.DstValidator, msg.ValidatorAddress.String(),
+	// 	tags.Moniker, msg.Description.Moniker,
+	// 	tags.Identity, msg.Description.Identity,
+	// )
 
-	return sdk.Result{
-		Tags: tags,
-	}
+	// return sdk.Result{
+	// 	Tags: tags,
+	// }
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeCreateValidator,
+			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Value.Amount.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
+		),
+	})
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()} //, nil
 }
 
 func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keeper.Keeper) sdk.Result {
@@ -194,15 +214,30 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 
 	k.SetValidator(ctx, validator)
 
-	tags := sdk.NewTags(
-		tags.DstValidator, msg.ValidatorAddress.String(),
-		tags.Moniker, description.Moniker,
-		tags.Identity, description.Identity,
-	)
+	// tags := sdk.NewTags(
+	// 	tags.DstValidator, msg.ValidatorAddress.String(),
+	// 	tags.Moniker, description.Moniker,
+	// 	tags.Identity, description.Identity,
+	// )
 
-	return sdk.Result{
-		Tags: tags,
-	}
+	// return sdk.Result{
+	// 	Tags: tags,
+	// }
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeEditValidator,
+			sdk.NewAttribute(types.AttributeKeyCommissionRate, validator.Commission.String()),
+			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddress.String()),
+		),
+	})
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }
 
 func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) sdk.Result {
@@ -220,14 +255,29 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 		return err.Result()
 	}
 
-	tags := sdk.NewTags(
-		tags.Delegator, msg.DelegatorAddress.String(),
-		tags.DstValidator, msg.ValidatorAddress.String(),
-	)
+	// tags := sdk.NewTags(
+	// 	tags.Delegator, msg.DelegatorAddress.String(),
+	// 	tags.DstValidator, msg.ValidatorAddress.String(),
+	// )
 
-	return sdk.Result{
-		Tags: tags,
-	}
+	// return sdk.Result{
+	// 	Tags: tags,
+	// }
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeDelegate,
+			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.Amount.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
+		),
+	})
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }
 
 func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {
@@ -244,13 +294,29 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 	}
 
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(completionTime)
-	tags := sdk.NewTags(
-		tags.Delegator, msg.DelegatorAddress.String(),
-		tags.SrcValidator, msg.ValidatorAddress.String(),
-		tags.EndTime, completionTime.Format(time.RFC3339),
-	)
+	// tags := sdk.NewTags(
+	// 	tags.Delegator, msg.DelegatorAddress.String(),
+	// 	tags.SrcValidator, msg.ValidatorAddress.String(),
+	// 	tags.EndTime, completionTime.Format(time.RFC3339),
+	// )
 
-	return sdk.Result{Data: finishTime, Tags: tags}
+	// return sdk.Result{Data: finishTime, Tags: tags}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeUnbond,
+			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.Amount.String()),
+			sdk.NewAttribute(types.AttributeKeyCompletionTime, completionTime.Format(time.RFC3339)),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
+		),
+	})
+
+	return sdk.Result{Data: finishTime, Events: ctx.EventManager().ABCIEvents()}
 }
 
 func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k keeper.Keeper) sdk.Result {
@@ -269,14 +335,30 @@ func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k k
 	}
 
 	finishTime := types.MsgCdc.MustMarshalBinaryLengthPrefixed(completionTime)
-	resTags := sdk.NewTags(
-		tags.Delegator, msg.DelegatorAddress.String(),
-		tags.SrcValidator, msg.ValidatorSrcAddress.String(),
-		tags.DstValidator, msg.ValidatorDstAddress.String(),
-		tags.EndTime, completionTime.Format(time.RFC3339),
-	)
+	// resTags := sdk.NewTags(
+	// 	tags.Delegator, msg.DelegatorAddress.String(),
+	// 	tags.SrcValidator, msg.ValidatorSrcAddress.String(),
+	// 	tags.DstValidator, msg.ValidatorDstAddress.String(),
+	// 	tags.EndTime, completionTime.Format(time.RFC3339),
+	// )
 
-	return sdk.Result{Data: finishTime, Tags: resTags}
+	// return sdk.Result{Data: finishTime, Tags: resTags}
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeRedelegate,
+			sdk.NewAttribute(types.AttributeKeySrcValidator, msg.ValidatorSrcAddress.String()),
+			sdk.NewAttribute(types.AttributeKeyDstValidator, msg.ValidatorDstAddress.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.Amount.String()),
+			sdk.NewAttribute(types.AttributeKeyCompletionTime, completionTime.Format(time.RFC3339)),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
+		),
+	})
+
+	return sdk.Result{Data: finishTime, Events: ctx.EventManager().ABCIEvents()}
 }
 
 func handleMsgSetDelegatorStatus(ctx sdk.Context, msg types.MsgSetUndelegateStatus, k keeper.Keeper) sdk.Result {
@@ -295,11 +377,27 @@ func handleMsgSetDelegatorStatus(ctx sdk.Context, msg types.MsgSetUndelegateStat
 	del.Status = true
 	k.UpgradeDelegation(ctx, del)
 
-	tags := sdk.NewTags(
-		tags.Delegator, msg.DelegatorAddress.String(),
-		tags.SrcValidator, msg.ValidatorAddress.String(),
-		tags.ActionCompleteAuthorization, "true",
-	)
+	// tags := sdk.NewTags(
+	// 	tags.Delegator, msg.DelegatorAddress.String(),
+	// 	tags.SrcValidator, msg.ValidatorAddress.String(),
+	// 	tags.ActionCompleteAuthorization, "true",
+	// )
 
-	return sdk.Result{Tags: tags}
+	// return sdk.Result{Tags: tags}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypeSetDelegatorStatus,
+			sdk.NewAttribute(types.AttributeKeyDelegator, msg.DelegatorAddress.String()),
+			sdk.NewAttribute(types.AttributeKeyDstValidator, msg.ValidatorAddress.String()),
+			sdk.NewAttribute(sdk.AttributeKeyStatus, "true"), //msg.Status),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
+		),
+	})
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }

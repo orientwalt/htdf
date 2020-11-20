@@ -672,7 +672,8 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 		Log:       result.Log,
 		GasWanted: int64(result.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(result.GasUsed),   // TODO: Should type accept unsigned ints?
-		Tags:      result.Tags,
+		// Tags:      result.Tags,
+		Events:	result.Events
 	}
 }
 

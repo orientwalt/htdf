@@ -195,6 +195,10 @@ func (c Context) WithMinimumFees(minFees Coins) Context {
 	return c.withValue(contextKeyMinimumFees, minFees)
 }
 
+func (c Context) WithEventManager(em *EventManager) Context {
+	return c.withValue(contextEventManager, em)
+}
+
 // is context nil
 func (c Context) IsZero() bool {
 	return c.Context == nil
