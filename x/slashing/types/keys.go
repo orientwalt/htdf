@@ -1,4 +1,4 @@
-package slashing
+package types
 
 import (
 	"encoding/binary"
@@ -67,6 +67,6 @@ func GetValidatorSlashingPeriodKey(v sdk.ConsAddress, startHeight int64) []byte 
 	return append(GetValidatorSlashingPeriodPrefix(v), b...)
 }
 
-func getAddrPubkeyRelationKey(address []byte) []byte {
+func GetAddrPubkeyRelationKey(address []byte) []byte {
 	return append(AddrPubkeyRelationKey, address...)
 }

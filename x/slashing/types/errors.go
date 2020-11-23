@@ -1,5 +1,5 @@
 //nolint
-package slashing
+package types
 
 import (
 	sdk "github.com/orientwalt/htdf/types"

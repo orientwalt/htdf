@@ -11,8 +11,8 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/store"
@@ -20,6 +20,7 @@ import (
 	"github.com/orientwalt/htdf/x/auth"
 	"github.com/orientwalt/htdf/x/bank"
 	"github.com/orientwalt/htdf/x/params"
+	"github.com/orientwalt/htdf/x/slashing/types"
 	"github.com/orientwalt/htdf/x/staking"
 	stakekeeper "github.com/orientwalt/htdf/x/staking/keeper"
 )
@@ -50,11 +51,11 @@ func createTestCodec() *codec.Codec {
 	return cdc
 }
 
-func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, staking.Keeper, params.Subspace, Keeper) {
+func createTestInput(t *testing.T, defaults types.Params) (sdk.Context, bank.Keeper, staking.Keeper, params.Subspace, Keeper) {
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
 	keyStaking := sdk.NewKVStoreKey(staking.StoreKey)
 	tkeyStaking := sdk.NewTransientStoreKey(staking.TStoreKey)
-	keySlashing := sdk.NewKVStoreKey(StoreKey)
+	keySlashing := sdk.NewKVStoreKey(types.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	db := dbm.NewMemDB()
@@ -87,8 +88,8 @@ func createTestInput(t *testing.T, defaults Params) (sdk.Context, bank.Keeper, s
 		})
 	}
 	require.Nil(t, err)
-	paramstore := paramsKeeper.Subspace(DefaultParamspace)
-	keeper := NewKeeper(cdc, keySlashing, &sk, paramstore, DefaultCodespace, NopMetrics())
+	paramstore := paramsKeeper.Subspace(types.DefaultParamspace)
+	keeper := NewKeeper(cdc, keySlashing, &sk, paramstore, types.DefaultCodespace, NopMetrics())
 	sk.SetHooks(keeper.Hooks())
 
 	require.NotPanics(t, func() {

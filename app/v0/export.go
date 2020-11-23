@@ -15,6 +15,7 @@ import (
 	"github.com/orientwalt/htdf/x/mint"
 	"github.com/orientwalt/htdf/x/service"
 	"github.com/orientwalt/htdf/x/slashing"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/orientwalt/htdf/x/upgrade"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -198,7 +199,7 @@ func (p *ProtocolV0) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList []s
 	// reset start height on signing infos
 	p.slashingKeeper.IterateValidatorSigningInfos(
 		ctx,
-		func(addr sdk.ConsAddress, info slashing.ValidatorSigningInfo) (stop bool) {
+		func(addr sdk.ConsAddress, info slashingtypes.ValidatorSigningInfo) (stop bool) {
 			info.StartHeight = 0
 			p.slashingKeeper.SetValidatorSigningInfo(ctx, addr, info)
 			return false

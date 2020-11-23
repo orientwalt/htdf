@@ -60,9 +60,9 @@ require (
 
 // github.com/tendermint/iavl v0.12.4 => github.com/orientwalt/iavl v0.12.4
 replace (
-	github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.33.4
-	github.com/tendermint/iavl => github.com/tendermint/iavl v0.13.3
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.1
+	github.com/tendermint/iavl => github.com/tendermint/iavl v0.13.3
+	github.com/tendermint/tendermint => github.com/tendermint/tendermint v0.33.4
 )
 
 go 1.13

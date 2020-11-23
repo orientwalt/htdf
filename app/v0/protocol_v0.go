@@ -20,6 +20,7 @@ import (
 	"github.com/orientwalt/htdf/x/params"
 	"github.com/orientwalt/htdf/x/service"
 	"github.com/orientwalt/htdf/x/slashing"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/orientwalt/htdf/x/upgrade"
 	"github.com/sirupsen/logrus"
@@ -261,8 +262,8 @@ func (p *ProtocolV0) configKeepers() {
 	p.slashingKeeper = slashing.NewKeeper(
 		p.cdc,
 		protocol.KeySlashing,
-		&stakeKeeper, p.paramsKeeper.Subspace(slashing.DefaultParamspace),
-		slashing.DefaultCodespace,
+		&stakeKeeper, p.paramsKeeper.Subspace(slashingtypes.DefaultParamspace),
+		slashingtypes.DefaultCodespace,
 		slashing.PrometheusMetrics(p.config),
 	)
 
@@ -363,7 +364,7 @@ func (p *ProtocolV0) GetKVStoreKeyList() []*sdk.KVStoreKey {
 // configure all Stores
 func (p *ProtocolV0) configParams() {
 
-	p.paramsKeeper.RegisterParamSet(&mint.Params{}, &slashing.Params{}, &service.Params{}, &auth.Params{}, &stake.Params{}, &distr.Params{})
+	p.paramsKeeper.RegisterParamSet(&mint.Params{}, &slashingtypes.Params{}, &service.Params{}, &auth.Params{}, &stake.Params{}, &distr.Params{})
 
 }
 

@@ -15,8 +15,8 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/tmhash"
-	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/app/protocol"
 	"github.com/orientwalt/htdf/codec"
@@ -672,8 +672,8 @@ func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
 		Log:       result.Log,
 		GasWanted: int64(result.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(result.GasUsed),   // TODO: Should type accept unsigned ints?
-		// Tags:      result.Tags,
-		Events:	result.Events
+		// Tags:      result.Events,
+		Events: result.Events,
 	}
 }
 
@@ -688,7 +688,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 	} else {
 		result = app.runTx(runTxModeDeliver, txBytes, tx)
 	}
-	logrus.Traceln("DeliverTx1111111111111", result.Data, result.Log, result.Tags)
+	logrus.Traceln("DeliverTx1111111111111", result.Data, result.Log, result.Events)
 	// junying-todo, 2019-10-18
 	// this return value is written to database(blockchain)
 	return abci.ResponseDeliverTx{
@@ -698,7 +698,7 @@ func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
 		Log:       result.Log,
 		GasWanted: int64(result.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(result.GasUsed),   // TODO: Should type accept unsigned ints?
-		Tags:      result.Tags,
+		Events:    result.Events,
 	}
 }
 
@@ -808,7 +808,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 		Data:      data,
 		Log:       strings.TrimSpace(string(logJSON)),
 		GasUsed:   ctx.GasMeter().GasConsumed(),
-		Tags:      tags,
+		Events:    tags,
 	}
 	logrus.Traceln("runMsgs	end~~~~~~~~~~~~~~~~~~~~~~~~")
 	return result
