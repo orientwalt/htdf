@@ -31,9 +31,14 @@ import (
 )
 
 const (
-	//
-	RouterKey   = "htdfservice"
-	TxSizeLimit = 1200000 // tx size is limited to 1200000(bytes)
+	RouterKey = "htdfservice"
+	// TxSizeLimit = 1200000 // tx size is limited to 1200000(bytes)
+
+	// junying-todo, 2020-06-16
+	// fix issue #9
+	// tx size limit shrinked to 35000(bytes) because 4G RAM causes out-of-memory 
+	// crashing for 500tx-airdrop tx with gaswanted of over 10,000,000 gas
+	TxSizeLimit = 100000 
 )
 
 var _ protocol.Protocol = (*ProtocolV2)(nil)

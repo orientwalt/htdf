@@ -133,10 +133,16 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 		if err := tx.ValidateBasic(); err != nil {
 			return newCtx, err.Result(), true
 		}
+
 		// junying-todo, 2019-11-13
 		// check gas,gasprice for non-genesis block
-		if err := stdTx.ValidateFee(); err != nil && ctx.BlockHeight() != 0 {
-			return newCtx, err.Result(), true
+		// if err := stdTx.ValidateFee(); err != nil && ctx.BlockHeight() != 0 {
+		// 
+		// x/auth/stdtx.go:ValidateFee has been moved to app/v2/auth/stdtx.go ,  yqq , 2020-11-24
+		if ctx.BlockHeight() != 0 {
+			if err := ValidateFeeV2(stdTx); err != nil {
+				return newCtx, err.Result(), true
+			}
 		}
 
 		// junying-todo, 2019-08-27

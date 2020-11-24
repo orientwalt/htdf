@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	// "github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -14,6 +15,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	xauth "github.com/orientwalt/htdf/x/auth"
+	txparam "github.com/orientwalt/htdf/params"
 )
 
 // run the tx through the anteHandler and ensure its valid
@@ -27,7 +29,7 @@ func checkValidTx(t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context, tx
 // run the tx through the anteHandler and ensure it fails with the given code
 func checkInvalidTx(t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context, tx sdk.Tx, simulate bool, code sdk.CodeType) {
 	newCtx, result, abort := anteHandler(ctx, tx, simulate)
-	require.True(t, abort)
+	require.True(t, abort, "abort should be true ")
 
 	require.Equal(t, code, result.Code, fmt.Sprintf("Expected %v, got %v", code, result))
 	require.Equal(t, sdk.CodespaceRoot, result.Codespace)
@@ -315,6 +317,41 @@ func TestAnteHandlerFees(t *testing.T) {
 
 	require.True(t, input.fck.GetCollectedFees(ctx).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 600000))))
 	require.True(t, input.ak.GetAccount(ctx, addr1).GetCoins().AmountOf("satoshi").Equal(sdk.NewInt(0)))
+
+
+	// add test case for v2(fix issue #9) by yqq , 2020-11-24 
+	// test critical condition for TxGasLimit
+	{
+		ctx = ctx.WithBlockHeight(100)  // for non-genesis block
+		bigfee := xauth.NewStdFee( txparam.TxGasLimit, 100)
+		seqs[0] = acc1.GetSequence()
+		bigtx :=  newTestTx(ctx, msgs, privs, accnums, seqs, bigfee)
+		acc1.SetCoins(bigfee.Amount())
+		input.ak.SetAccount(ctx, acc1)
+		checkValidTx(t, anteHandler, ctx, bigtx, false)
+	}
+
+	// add test for exceed TxGasLimit,  genesis block
+	{
+		ctx = ctx.WithBlockHeight(0) 
+		bigfee := xauth.NewStdFee( txparam.TxGasLimit + 1, 100)
+		seqs[0] = acc1.GetSequence()
+		bigtx :=  newTestTx(ctx, msgs, privs, accnums, seqs, bigfee)
+		acc1.SetCoins(bigfee.Amount())
+		input.ak.SetAccount(ctx, acc1)
+		checkValidTx(t, anteHandler, ctx, bigtx, false)
+	}
+
+	//add test for exceed TxGasLimit,  non-genesis block
+	{
+		ctx = ctx.WithBlockHeight(100) // for non-genesis block
+		bigfee := xauth.NewStdFee( txparam.TxGasLimit + 1, 100)
+		seqs[0] = acc1.GetSequence()
+		bigtx :=  newTestTx(ctx, msgs, privs, accnums, seqs, bigfee)
+		acc1.SetCoins(bigfee.Amount())
+		input.ak.SetAccount(ctx, acc1)
+		checkInvalidTx(t, anteHandler, ctx, bigtx, false, sdk.CodeInvalidGas)
+	}
 
 }
 
