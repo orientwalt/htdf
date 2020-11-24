@@ -37,7 +37,7 @@ FIRST_ROW_INDEX = 2
 ## chain
 CHAIN_ID = mainchain
 MINIMUM_GAS_PRICES = 100satoshi
-GUARDIAN_ADDRESS = htdf172n2nj7z0purlg8dnc6pkd6xgmljr3c7wt94c5
+GUARDIAN_ADDRESS = htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3
 ISSUER_ADDRESS = htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3
 ISSUER_AMOUNT = $$(python -c "print 1000000*10**8")
 # STAKER_ADDRESS = htdf1t2sdt07ztzf77pj7uheep582l9pn8cn4lapag8
