@@ -6,9 +6,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	v2auth "github.com/orientwalt/htdf/app/v2/auth"
+	"github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
-	v2auth "github.com/orientwalt/htdf/app/v2/auth"
 	"github.com/tendermint/tendermint/crypto"
 )
 
@@ -211,6 +212,41 @@ func TestSendMsg_GenesisBlock(t *testing.T) {
 		checkValidTx(t, anteHandler, ctx, tx, false)
 	}
 
+	// add by yqq 2020-11-24
+	// gasWanted  is  greater than TxGasLimit
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
+	// gasWanted  is  greater than TxGasLimit
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit+1, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
 }
 
 // add by yqq 2020-11-17
@@ -247,9 +283,9 @@ func TestSendMsg_NonGenesisBlock(t *testing.T) {
 		msgSends := []sdk.Msg{msgSend}
 		seqs[0] = acc1.GetSequence()
 		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
-		
-		// auth  be v2 auth , not check balance for fee, so this ok for old version 
-		checkValidTx(t, anteHandler, ctx, tx, false) 
+
+		// auth  be v2 auth , not check balance for fee, so this ok for old version
+		checkValidTx(t, anteHandler, ctx, tx, false)
 	}
 
 	// Data is very long , it will cause Out of gas
@@ -331,10 +367,44 @@ func TestSendMsg_NonGenesisBlock(t *testing.T) {
 		checkInvalidTx(t, anteHandler, ctx, tx, false, sdk.CodeInvalidGas)
 	}
 
+	// add by yqq 2020-11-24
+	// gasWanted  is  greater than TxGasLimit
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
+	// gasWanted  is  greater than TxGasLimit
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit+1, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+
+		// v1 anteHandler
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
 }
-
-
-
 
 // add by yqq 2020-11-17
 func TestSendMsg_GenesisBlock_V2(t *testing.T) {
@@ -427,6 +497,38 @@ func TestSendMsg_GenesisBlock_V2(t *testing.T) {
 		checkValidTx(t, anteHandler, ctx, tx, false)
 	}
 
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit+1, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
 }
 
 // add by yqq 2020-11-17
@@ -491,6 +593,29 @@ func TestSendMsg_NonGenesisBlock_V2(t *testing.T) {
 		checkInvalidTx(t, anteHandler, ctx, tx, false, sdk.CodeOutOfGas)
 	}
 
+	// TxSizeLimit only used in baseapp.ValidateTx, can't test it here directly
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 0))
+
+		// acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 2)))
+		acc1.SetCoins(sendFee.Amount())
+		input.ak.SetAccount(ctx, acc1)
+
+		contractData := ""
+		for i := 0; i < 100000; i++ {
+			contractData += fmt.Sprintf("%02X", 0xff)
+		}
+		t.Logf("contractData' length : %d\n", len(contractData))
+		msgSend := NewMsgSendForData(addr1, addr2, sendAmount, contractData, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
 	//  account's balance is not enough for sendAmount
 	{
 		ctx = ctx.WithBlockHeight(blkNum)
@@ -533,6 +658,38 @@ func TestSendMsg_NonGenesisBlock_V2(t *testing.T) {
 		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
 		_, _, addr2 := keyPubAddr()
 		sendFee := auth.NewStdFee(3000, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkInvalidTx(t, anteHandler, ctx, tx, false, sdk.CodeInvalidGas)
+	}
+
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit, 100)
+		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
+
+		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))
+		input.ak.SetAccount(ctx, acc1)
+
+		msgSend := NewMsgSend(addr1, addr2, sendAmount, sendFee.GasPrice, sendFee.GasWanted)
+		msgSends := []sdk.Msg{msgSend}
+		seqs[0] = acc1.GetSequence()
+		tx = newTestTx(ctx, msgSends, privs, accnums, seqs, sendFee)
+		checkValidTx(t, anteHandler, ctx, tx, false)
+	}
+
+	{
+		ctx = ctx.WithBlockHeight(blkNum) // test for non-genesis
+		_, _, addr2 := keyPubAddr()
+		sendFee := auth.NewStdFee(params.TxGasLimit+1, 100)
 		sendAmount := sdk.NewCoins(sdk.NewInt64Coin("satoshi", 1))
 
 		acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 100000000000000)))

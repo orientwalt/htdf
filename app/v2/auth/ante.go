@@ -188,6 +188,8 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 			// by yqq 2020-11-16
 			// to fix issue #6
 			// only check account's balance whether is enough for fee, NOT modify account's balance
+			// On the other hand, because of ValidateBasic has estimated the gasWanted roughly and check stdTx.Fee.GasWanted.
+			// Therefore, there only check balance of account.
 			fOnlyCheckBalanceEnoughForFee := true
 			maxFee := xauth.NewStdFee(stdTx.Fee.GasWanted, stdTx.Fee.GasPrice)
 			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], maxFee, fOnlyCheckBalanceEnoughForFee)
