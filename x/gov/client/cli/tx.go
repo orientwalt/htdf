@@ -99,7 +99,6 @@ $ hscli gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			}
 
 			if proposalType == gov.ProposalTypeSoftwareUpgrade {
-				fmt.Println("============================1")
 				version_ := viper.GetInt64(flagVersion)
 				if version_ < 0 {
 					return errors.Errorf("Version must greater than or equal to zero")
@@ -125,7 +124,6 @@ $ hscli gov submit-proposal --title="Test Proposal" --description="My awesome pr
 				if err != nil {
 					return err
 				}
-				fmt.Println("============================2")
 				return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
 			}
 			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
