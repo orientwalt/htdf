@@ -16,6 +16,7 @@ import (
 	txparam "github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
 	log "github.com/sirupsen/logrus"
+	xauth "github.com/orientwalt/htdf/x/auth"
 )
 
 var (
@@ -56,19 +57,19 @@ func ExistsMsgSend(tx sdk.Tx) bool {
 }
 
 // Estimate RealFee by calculating real gas consumption
-func EstimateFee(tx StdTx) StdFee {
-	return NewStdFee(txparam.DefaultMsgGas*uint64(len(tx.Msgs)), tx.Fee.GasPrice)
+func EstimateFee(tx xauth.StdTx) xauth.StdFee {
+	return xauth.NewStdFee(txparam.DefaultMsgGas*uint64(len(tx.Msgs)), tx.Fee.GasPrice)
 }
 
 // NewAnteHandler returns an AnteHandler that checks and increments sequence
 // numbers, checks signatures & account numbers, and deducts fees from the first
 // signer.
-func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
+func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, simulate bool,
 	) (newCtx sdk.Context, res sdk.Result, abort bool) {
 		// all transactions must be of type auth.StdTx
-		stdTx, ok := tx.(StdTx)
+		stdTx, ok := tx.(xauth.StdTx)
 		log.Debugln("NewAnteHandler:tx", tx)
 		log.Debugln("NewAnteHandler:tx.GetMsgs()[0].GetSignBytes()", tx.GetMsgs()[0].GetSignBytes())
 		log.Debugln("NewAnteHandler:stdTx.Msgs", stdTx.Msgs)
@@ -156,7 +157,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 		// stdSigs contains the sequence number, account number, and signatures.
 		// When simulating, this would just be a 0-length slice.
 		signerAddrs := stdTx.GetSigners()
-		signerAccs := make([]Account, len(signerAddrs))
+		signerAccs := make([]xauth.Account, len(signerAddrs))
 		isGenesis := ctx.BlockHeight() == 0
 
 		// fetch first signer, who's going to pay the fees
@@ -167,13 +168,27 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 
 		// junying-todo, 2019-11-19
 		// Deduct(DefaultMsgGas * len(Msgs)) for non-htdfservice msgs
-		if !stdTx.Fee.Amount().IsZero() && !ExistsMsgSend(tx) {
+		fExistsMsgSend := ExistsMsgSend(tx)
+		if !stdTx.Fee.Amount().IsZero() && !fExistsMsgSend {
 			estimatedFee := EstimateFee(stdTx)
-			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], estimatedFee)
+			fOnlyCheckBalanceEnoughForFee := false // so we will deduct account's balance
+			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], estimatedFee, fOnlyCheckBalanceEnoughForFee)
 			if !res.IsOK() {
 				return newCtx, res, true
 			}
 			fck.AddCollectedFees(newCtx, estimatedFee.Amount())
+		} else if fExistsMsgSend && !isGenesis {
+			// only for htdfservice/MsgSend
+			// by yqq 2020-11-16
+			// to fix issue #6
+			// only check account's balance whether is enough for fee, NOT modify account's balance
+			fOnlyCheckBalanceEnoughForFee := true
+			maxFee := xauth.NewStdFee(stdTx.Fee.GasWanted, stdTx.Fee.GasPrice)
+			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], maxFee, fOnlyCheckBalanceEnoughForFee)
+			if !res.IsOK() {
+				log.Error("================NewAnteHandler refused=================")
+				return newCtx, res, true
+			}
 		}
 
 		// stdSigs contains the sequence number, account number, and signatures.
@@ -206,7 +221,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 
 // GetSignerAcc returns an account for a given address that is expected to sign
 // a transaction.
-func GetSignerAcc(ctx sdk.Context, ak AccountKeeper, addr sdk.AccAddress) (Account, sdk.Result) {
+func GetSignerAcc(ctx sdk.Context, ak xauth.AccountKeeper, addr sdk.AccAddress) (xauth.Account, sdk.Result) {
 	if acc := ak.GetAccount(ctx, addr); acc != nil {
 		return acc, sdk.Result{}
 	}
@@ -214,7 +229,7 @@ func GetSignerAcc(ctx sdk.Context, ak AccountKeeper, addr sdk.AccAddress) (Accou
 }
 
 // ValidateMemo validates the memo size.
-func ValidateMemo(stdTx StdTx, params Params) sdk.Result {
+func ValidateMemo(stdTx xauth.StdTx, params xauth.Params) sdk.Result {
 	memoLength := len(stdTx.GetMemo())
 	if uint64(memoLength) > params.MaxMemoCharacters {
 		return sdk.ErrMemoTooLarge(
@@ -231,8 +246,8 @@ func ValidateMemo(stdTx StdTx, params Params) sdk.Result {
 // verify the signature and increment the sequence. If the account doesn't have
 // a pubkey, set it.
 func processSig(
-	ctx sdk.Context, acc Account, sig StdSignature, signBytes []byte, simulate bool, params Params,
-) (updatedAcc Account, res sdk.Result) {
+	ctx sdk.Context, acc xauth.Account, sig xauth.StdSignature, signBytes []byte, simulate bool, params xauth.Params,
+) (updatedAcc xauth.Account, res sdk.Result) {
 
 	pubKey, res := ProcessPubKey(acc, sig, simulate)
 	if !res.IsOK() {
@@ -268,8 +283,8 @@ func processSig(
 	return acc, res
 }
 
-func consumeSimSigGas(gasmeter sdk.GasMeter, pubkey crypto.PubKey, sig StdSignature, params Params) {
-	simSig := StdSignature{PubKey: pubkey}
+func consumeSimSigGas(gasmeter sdk.GasMeter, pubkey crypto.PubKey, sig xauth.StdSignature, params xauth.Params) {
+	simSig := xauth.StdSignature{PubKey: pubkey}
 	if len(sig.Signature) == 0 {
 		simSig.Signature = simSecp256k1Sig[:]
 	}
@@ -289,7 +304,7 @@ func consumeSimSigGas(gasmeter sdk.GasMeter, pubkey crypto.PubKey, sig StdSignat
 // ProcessPubKey verifies that the given account address matches that of the
 // StdSignature. In addition, it will set the public key of the account if it
 // has not been set.
-func ProcessPubKey(acc Account, sig StdSignature, simulate bool) (crypto.PubKey, sdk.Result) {
+func ProcessPubKey(acc xauth.Account, sig xauth.StdSignature, simulate bool) (crypto.PubKey, sdk.Result) {
 	// If pubkey is not known for account, set it from the StdSignature.
 	pubKey := acc.GetPubKey()
 	if simulate {
@@ -325,7 +340,7 @@ func ProcessPubKey(acc Account, sig StdSignature, simulate bool) (crypto.PubKey,
 //
 // TODO: Design a cleaner and flexible way to match concrete public key types.
 func consumeSigVerificationGas(
-	meter sdk.GasMeter, sig []byte, pubkey crypto.PubKey, params Params,
+	meter sdk.GasMeter, sig []byte, pubkey crypto.PubKey, params xauth.Params,
 ) sdk.Result {
 
 	pubkeyType := strings.ToLower(fmt.Sprintf("%T", pubkey))
@@ -354,7 +369,7 @@ func consumeSigVerificationGas(
 
 func consumeMultisignatureVerificationGas(meter sdk.GasMeter,
 	sig multisig.Multisignature, pubkey multisig.PubKeyMultisigThreshold,
-	params Params) {
+	params xauth.Params) {
 
 	size := sig.BitArray.Size()
 	sigIndex := 0
@@ -370,7 +385,7 @@ func consumeMultisignatureVerificationGas(meter sdk.GasMeter,
 //
 // NOTE: We could use the CoinKeeper (in addition to the AccountKeeper, because
 // the CoinKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Result) {
+func DeductFees(blockTime time.Time, acc xauth.Account, fee xauth.StdFee, fOnlyCheckBalanceEnoughForFee bool) (xauth.Account, sdk.Result) {
 	coins := acc.GetCoins()
 	feeAmount := fee.Amount()
 
@@ -395,8 +410,13 @@ func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Resu
 		).Result()
 	}
 
-	if err := acc.SetCoins(newCoins); err != nil {
-		return nil, sdk.ErrInternal(err.Error()).Result()
+	// fOnlyCheckBalanceEnoughForFee , by yqq 2020-11-16
+	// for issue #6:
+	// prevent account which has not enough balance for paying fee sending tx unlimitedly,
+	if !fOnlyCheckBalanceEnoughForFee {
+		if err := acc.SetCoins(newCoins); err != nil {
+			return nil, sdk.ErrInternal(err.Error()).Result()
+		}
 	}
 
 	return acc, sdk.Result{}
@@ -408,7 +428,7 @@ func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Resu
 //
 // Contract: This should only be called during CheckTx as it cannot be part of
 // consensus.
-func EnsureSufficientMempoolFees(ctx sdk.Context, stdFee StdFee) sdk.Result {
+func EnsureSufficientMempoolFees(ctx sdk.Context, stdFee xauth.StdFee) sdk.Result {
 	minGasPrices := ctx.MinGasPrices()
 	log.Debugln("EnsureSufficientMempoolFees:minGasPrices", minGasPrices)
 	if !minGasPrices.IsZero() {
@@ -448,13 +468,13 @@ func SetGasMeter(simulate bool, ctx sdk.Context, gasLimit uint64) sdk.Context {
 
 // GetSignBytes returns a slice of bytes to sign over for a given transaction
 // and an account.
-func GetSignBytes(chainID string, stdTx StdTx, acc Account, genesis bool) []byte {
+func GetSignBytes(chainID string, stdTx xauth.StdTx, acc xauth.Account, genesis bool) []byte {
 	var accNum uint64
 	if !genesis {
 		accNum = acc.GetAccountNumber()
 	}
 
-	return StdSignBytes(
+	return xauth.StdSignBytes(
 		chainID, accNum, acc.GetSequence(), stdTx.Fee, stdTx.Msgs, stdTx.Memo,
 	)
 }
