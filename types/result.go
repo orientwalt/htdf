@@ -9,6 +9,7 @@ import (
 
 	types "github.com/tendermint/tendermint/abci/types"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Result is the union of ResponseFormat and ResponseCheckTx.
@@ -42,6 +43,20 @@ type Result struct {
 // TODO: In the future, more codes may be OK.
 func (res Result) IsOK() bool {
 	return res.Code.IsOK()
+}
+
+func (r Result) String() string {
+	bz, _ := yaml.Marshal(r)
+	return string(bz)
+}
+
+func (r Result) GetEvents() Events {
+	events := make(Events, len(r.Events))
+	for i, e := range r.Events {
+		events[i] = Event(e)
+	}
+
+	return events
 }
 
 // ABCIMessageLogs represents a slice of ABCIMessageLog.

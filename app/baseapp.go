@@ -113,7 +113,7 @@ type BaseApp struct {
 	Engine *protocol.ProtocolEngine
 }
 
-var _ abci.Application = (*BaseApp)(nil)
+// var _ abci.Application = (*BaseApp)(nil)
 
 // NewBaseApp returns a reference to an initialized BaseApp. It accepts a
 // variadic number of option functions, which act on the BaseApp to set
@@ -228,9 +228,9 @@ func (app *BaseApp) LoadLatestVersion(baseKey *sdk.KVStoreKey) error {
 // LoadVersion loads the BaseApp application version. It will panic if called
 // more than once on a running baseapp.
 func (app *BaseApp) LoadVersion(version int64, baseKey *sdk.KVStoreKey, overwrite bool) error {
-	err := app.cms.LoadVersion(version, overwrite)
+	err := app.cms.LoadVersion(version) //, overwrite)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load version %d: %w", version, err)
 	}
 	return app.initFromMainStore(baseKey)
 }
@@ -743,7 +743,8 @@ func IsMsgSend(msg sdk.Msg) bool {
 
 // runMsgs iterates through all the messages and executes them.
 func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (result sdk.Result) {
-	idxLogs := make([]sdk.ABCIMessageLog, 0, len(msgs)) // a list of JSON-encoded logs with msg index
+	msgLogs := make([]sdk.ABCIMessageLog, 0, len(msgs)) // a list of JSON-encoded logs with msg index
+	events := sdk.EmptyEvents()
 
 	var data []byte   // NOTE: we just append them all (?!)
 	var tags sdk.Tags // also just append them all
@@ -775,10 +776,15 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 
 		// Result.Data must be length prefixed in order to separate each result
 		data = append(data, msgResult.Data...)
-		tags = append(tags, sdk.MakeTag(sdk.TagAction, msg.Type()))
-		tags = append(tags, msgResult.Tags...)
+		// tags = append(tags, sdk.MakeTag(sdk.TagAction, msg.Type()))
+		// tags = append(tags, msgResult.Tags...)
+		msgEvents := sdk.Events{
+			sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyAction, msg.Type())),
+		}
+		msgEvents = msgEvents.AppendEvents(msgResult.GetEvents())
+		events = events.AppendEvents(msgEvents)
 
-		idxLog := sdk.ABCIMessageLog{MsgIndex: msgIdx, Log: msgResult.Log}
+		msgLog := sdk.ABCIMessageLog{MsgIndex: msgIdx, Log: msgResult.Log}
 
 		// junying-todo, 2019-11-05
 		if IsMsgSend(msg) {
@@ -787,8 +793,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 
 		// stop execution and return on first failed message
 		if !msgResult.IsOK() {
-			idxLog.Success = false
-			idxLogs = append(idxLogs, idxLog)
+			msgLog.Success = false
+			msgLogs = append(msgLogs, msgLog)
 
 			code = msgResult.Code
 			codespace = msgResult.Codespace
@@ -796,11 +802,11 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 			break
 		}
 
-		idxLog.Success = true
-		idxLogs = append(idxLogs, idxLog)
+		msgLog.Success = true
+		msgLogs = append(msgLogs, msgLog)
 
 	}
-	logJSON := codec.Cdc.MustMarshalJSON(idxLogs)
+	logJSON := codec.Cdc.MustMarshalJSON(msgLogs)
 
 	result = sdk.Result{
 		Code:      code,
@@ -808,7 +814,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 		Data:      data,
 		Log:       strings.TrimSpace(string(logJSON)),
 		GasUsed:   ctx.GasMeter().GasConsumed(),
-		Events:    tags,
+		Events:    events.ToABCIEvents(),
 	}
 	logrus.Traceln("runMsgs	end~~~~~~~~~~~~~~~~~~~~~~~~")
 	return result
