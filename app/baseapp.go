@@ -635,11 +635,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter).
+		WithLogger(app.deliverState.ctx.Logger().With("height", app.deliverState.ctx.BlockHeight()))
 
-	// if app.beginBlocker != nil {
-	// 	res = app.beginBlocker(app.deliverState.ctx, req)
-	// }
 	beginBlocker := app.Engine.GetCurrentProtocol().GetBeginBlocker()
 
 	if beginBlocker != nil {
@@ -767,7 +765,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 		if mode != runTxModeCheck {
 			logrus.Traceln("runMsgs/msgResult.IsOK()~~~~~~~~~~~~~~~~~~~~~~~~", msgRoute)
 			msgResult = handler(ctx, msg)
-
 		}
 
 		logrus.Traceln("runMsgs:msgResult.GasUsed=", msgResult.GasUsed)
@@ -1020,7 +1017,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 		gasWanted = result.GasWanted
 
 		if abort {
-
 			return result
 		}
 

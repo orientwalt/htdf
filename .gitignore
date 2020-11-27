@@ -16,3 +16,4 @@ tests/evm/*.template
 
 *.list
 *.tmp
+cmd/hsd/__debug_bin

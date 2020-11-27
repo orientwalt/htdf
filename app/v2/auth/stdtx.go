@@ -50,10 +50,10 @@ func ValidateFeeV2(tx xauth.StdTx) sdk.Error {
 		return sdk.ErrInvalidGas(fmt.Sprintf("Tx[count(msgs)=%d] gaswanted must be greater than %d", len(msgs), minTxGasWanted))
 	}
 
-	// fix issue #9
+	// fix issue #9 and issue #10
 	// Checking maximum gaswanted condition for transactions
 	if tx.Fee.GasWanted > params.TxGasLimit {
-		return sdk.ErrInvalidGas(fmt.Sprintf("Tx's GasWanted Amount[%d] can't excess TxGasLimit[%d]", tx.Fee.GasWanted, params.TxGasLimit))
+		return sdk.ErrInvalidGas(fmt.Sprintf("GasWanted[%d]  of Tx could not excess TxGasLimit[%d]", tx.Fee.GasWanted, params.TxGasLimit))
 	}
 	return nil
 }

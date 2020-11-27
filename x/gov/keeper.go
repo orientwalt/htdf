@@ -123,10 +123,10 @@ func (keeper Keeper) NewSoftwareUpgradeProposal(ctx sdk.Context, msg MsgSubmitSo
 	var proposal ProposalContent = &SoftwareUpgradeProposal{
 		textProposal,
 		sdk.ProtocolDefinition{
-			msg.Version,
-			msg.Software,
-			msg.SwitchHeight,
-			msg.Threshold},
+			Version:   msg.Version,
+			Software:  msg.Software,
+			Height:    msg.SwitchHeight,
+			Threshold: msg.Threshold},
 	}
 	keeper.saveProposal(ctx, proposal)
 	return proposal

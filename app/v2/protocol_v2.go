@@ -205,7 +205,7 @@ func (p *ProtocolV2) ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg)
 		}
 
 		if uint64(len(txBytes)) > TxSizeLimit { //serviceTxSizeLimit {
-			return sdk.ErrExceedsTxSize(fmt.Sprintf("the tx size [%d] exceeds the limitation [%d]", len(txBytes), serviceTxSizeLimit))
+			return sdk.ErrExceedsTxSize(fmt.Sprintf("the tx size [%d] exceeds the limitation [%d]", len(txBytes), TxSizeLimit))
 		}
 
 	}
@@ -384,6 +384,7 @@ func (p *ProtocolV2) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 	// distribute rewards from previous block
 	distr.BeginBlocker(ctx, req, p.distrKeeper)
 
+
 	tags := slashing.BeginBlocker(ctx, req, p.slashingKeeper)
 	return abci.ResponseBeginBlock{
 		Tags: tags.ToKVPairs(),
@@ -496,6 +497,7 @@ func (p *ProtocolV2) InitChainer(ctx sdk.Context, DeliverTx sdk.DeliverTx, req a
 	logrus.Traceln("------------------InitChainer---------------------")
 	return abci.ResponseInitChain{
 		Validators: validators,
+		// ConsensusParams: req.ConsensusParams,
 	}
 }
 
