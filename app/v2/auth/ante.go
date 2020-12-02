@@ -15,8 +15,9 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	txparam "github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
-	log "github.com/sirupsen/logrus"
 	xauth "github.com/orientwalt/htdf/x/auth"
+	hs "github.com/orientwalt/htdf/x/core"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -137,7 +138,7 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 		// junying-todo, 2019-11-13
 		// check gas,gasprice for non-genesis block
 		// if err := stdTx.ValidateFee(); err != nil && ctx.BlockHeight() != 0 {
-		// 
+		//
 		// x/auth/stdtx.go:ValidateFee has been moved to app/v2/auth/stdtx.go ,  yqq , 2020-11-24
 		if ctx.BlockHeight() != 0 {
 			if err := ValidateFeeV2(stdTx); err != nil {
@@ -175,6 +176,8 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 		// junying-todo, 2019-11-19
 		// Deduct(DefaultMsgGas * len(Msgs)) for non-htdfservice msgs
 		fExistsMsgSend := ExistsMsgSend(tx)
+		var retGasWanted uint64 = stdTx.Fee.GasWanted
+
 		if !stdTx.Fee.Amount().IsZero() && !fExistsMsgSend {
 			estimatedFee := EstimateFee(stdTx)
 			fOnlyCheckBalanceEnoughForFee := false // so we will deduct account's balance
@@ -194,8 +197,31 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 			maxFee := xauth.NewStdFee(stdTx.Fee.GasWanted, stdTx.Fee.GasPrice)
 			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], maxFee, fOnlyCheckBalanceEnoughForFee)
 			if !res.IsOK() {
-				log.Error("================NewAnteHandler refused=================")
+				log.Error("================NewAnteHandler refused")
 				return newCtx, res, true
+			}
+
+			// NOTE: htdfservice SendMsg, only inlucde one SendMsg in a Tx
+			if msgs := stdTx.GetMsgs(); len(msgs) == 1 {
+				if msgSend, ok := (msgs[0]).(hs.MsgSend); ok {
+					if len(msgSend.Data) == 0 {
+						if stdTx.Fee.GasWanted > txparam.DefaultTxGas*7 {
+							retGasWanted = txparam.DefaultMsgGas
+							log.Info(fmt.Sprintf("adjusted gasWanted=%d with suggested gasWanted=%d", stdTx.Fee.GasWanted, retGasWanted))
+						}
+					} // else {
+						// TODO: There are two cases :
+						// 1. the contract transaction ,
+						//   create contract : to is empty, create contract transaction, if data is invalid, all gas will be consumed
+						//   call contract function: to isn't empty,(DefaultCreateContractGas + the extra gas) will be consumed
+						// 2. the normal send transaction , with
+						// if msgSend.To.Empty() {
+						// 	// so this situation is safety
+						// } else {
+						// 	// FIX ME
+						// }
+					// }
+				}
 			}
 		}
 
@@ -223,7 +249,7 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 
 		// TODO: tx tags (?)
 		log.Debugln("NewAnteHandler:FINISHED")
-		return newCtx, sdk.Result{GasWanted: stdTx.Fee.GasWanted}, false //, GasUsed: newCtx.GasMeter().GasConsumed()}, false // continue...
+		return newCtx, sdk.Result{GasWanted: retGasWanted}, false //, GasUsed: newCtx.GasMeter().GasConsumed()}, false // continue...
 	}
 }
 
