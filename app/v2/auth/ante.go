@@ -16,7 +16,6 @@ import (
 	txparam "github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
 	xauth "github.com/orientwalt/htdf/x/auth"
-	hs "github.com/orientwalt/htdf/x/core"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,6 +23,7 @@ var (
 	// simulation signature values used to estimate gas consumption
 	simSecp256k1Pubkey secp256k1.PubKeySecp256k1
 	simSecp256k1Sig    [64]byte
+	GetMsgSendDataHandler sdk.GetMsgDataFunc = nil
 )
 
 func init() {
@@ -65,6 +65,7 @@ func EstimateFee(tx xauth.StdTx) xauth.StdFee {
 // NewAnteHandler returns an AnteHandler that checks and increments sequence
 // numbers, checks signatures & account numbers, and deducts fees from the first
 // signer.
+// getDataFunc to get MsgSend.Data
 func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, simulate bool,
@@ -202,24 +203,27 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 			}
 
 			// NOTE: htdfservice SendMsg, only inlucde one SendMsg in a Tx
-			if msgs := stdTx.GetMsgs(); len(msgs) == 1 {
-				if msgSend, ok := (msgs[0]).(hs.MsgSend); ok {
-					if len(msgSend.Data) == 0 {
+			if msgs := stdTx.GetMsgs(); len(msgs) == 1 && GetMsgSendDataHandler != nil{
+				if data, err := GetMsgSendDataHandler(msgs[0]); err != nil {
+					// ONLY log error msg , then continue
+					log.Error(fmt.Sprintf("%v", err.Error()))
+				} else {
+					if len(data) == 0 {
 						if stdTx.Fee.GasWanted > txparam.DefaultTxGas*7 {
 							retGasWanted = txparam.DefaultMsgGas
 							log.Info(fmt.Sprintf("adjusted gasWanted=%d with suggested gasWanted=%d", stdTx.Fee.GasWanted, retGasWanted))
 						}
 					} // else {
-						// TODO: There are two cases :
-						// 1. the contract transaction ,
-						//   create contract : to is empty, create contract transaction, if data is invalid, all gas will be consumed
-						//   call contract function: to isn't empty,(DefaultCreateContractGas + the extra gas) will be consumed
-						// 2. the normal send transaction , with
-						// if msgSend.To.Empty() {
-						// 	// so this situation is safety
-						// } else {
-						// 	// FIX ME
-						// }
+					// TODO: There are two cases :
+					// 1. the contract transaction ,
+					//   create contract : to is empty, create contract transaction, if data is invalid, all gas will be consumed
+					//   call contract function: to isn't empty,(DefaultCreateContractGas + the extra gas) will be consumed
+					// 2. the normal send transaction , with
+					// if msgSend.To.Empty() {
+					// 	// so this situation is safety
+					// } else {
+					// 	// FIX ME
+					// }
 					// }
 				}
 			}

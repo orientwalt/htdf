@@ -343,6 +343,7 @@ func (p *ProtocolV2) configRouters() {
 // configure all Stores
 func (p *ProtocolV2) configFeeHandlers() {
 	// p.anteHandler = auth.NewAnteHandler(p.accountMapper, p.feeCollectionKeeper)
+	v2auth.GetMsgSendDataHandler = htdfservice.GetMsgSendData  // yqq 2020-12-03, for v2/auth/NewAnteHandler 
 	p.anteHandler = v2auth.NewAnteHandler(p.accountMapper, p.feeCollectionKeeper)
 	p.feeRefundHandler = auth.NewFeeRefundHandler(p.accountMapper, p.feeCollectionKeeper)
 	//p.feePreprocessHandler = auth.NewFeePreprocessHandler(p.feeCollectionKeeper)
