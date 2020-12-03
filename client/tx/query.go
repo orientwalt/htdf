@@ -186,12 +186,16 @@ func QueryTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.H
 
 		output, err := queryTx(cdc, cliCtx, hashHexStr)
 		if err != nil {
-			if strings.Contains(err.Error(), hashHexStr) {
-				rest.WriteErrorResponse(w, http.StatusNotFound, err.Error())
+			var mperr error
+			output, mperr = queryTxInMempool(cdc, cliCtx, hashHexStr)
+			if output.Empty() || mperr != nil {
+				if strings.Contains(err.Error(), hashHexStr) {
+					rest.WriteErrorResponse(w, http.StatusNotFound, err.Error())
+					return
+				}
+				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 				return
 			}
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
 		}
 
 		if output.Empty() {

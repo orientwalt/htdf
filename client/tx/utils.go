@@ -1,8 +1,10 @@
 package tx
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -172,4 +174,54 @@ func queryTx(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr string) (sd
 	}
 
 	return out, nil
+}
+
+func queryTxInMempool(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr string) (sdk.TxResponse, error) {
+	hash, err := hex.DecodeString(hashHexStr)
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	httpcli := cliCtx.GetNewHttpClient()
+	if httpcli == nil {
+		return sdk.TxResponse{}, fmt.Errorf("node is empty")
+	}
+
+	// default limit 30, max limit 100
+	// tendermint/mempool ReapMaxTxs  `max` accept negative number as no limit
+	// but a mutex in ReapMaxTxs , if no limit , maybe lock mempool too long time.
+	rst, err := httpcli.UnconfirmedTxs(100)
+	if err != nil || rst == nil{
+		return sdk.TxResponse{}, err
+	}
+	fmt.Printf("num %d\n", rst.Count)
+	// rst.
+	for _, tx := range rst.Txs {
+		if 0 == bytes.Compare(hash, tx.Hash()) {
+			return sdk.TxResponse{TxHash: hashHexStr, Height: 0}, nil
+		}
+	}
+
+	// resTx, err := node.Tx(hash, !cliCtx.TrustNode)
+	// if err != nil {
+	// 	return sdk.TxResponse{}, err
+	// }
+
+	// if !cliCtx.TrustNode {
+	// 	if err = ValidateTxResult(cliCtx, resTx); err != nil {
+	// 		return sdk.TxResponse{}, err
+	// 	}
+	// }
+
+	// resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
+	// if err != nil {
+	// 	return sdk.TxResponse{}, err
+	// }
+
+	// out, err := formatTxResult(cdc, resTx, resBlocks[resTx.Height])
+	// if err != nil {
+	// 	return out, err
+	// }
+
+	return sdk.TxResponse{}, fmt.Errorf("not found tx %s in mempool", hashHexStr)
 }
