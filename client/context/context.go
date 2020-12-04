@@ -283,6 +283,16 @@ func (ctx CLIContext) PrintOutput(toPrint fmt.Stringer) (err error) {
 	return
 }
 
+func (ctx CLIContext)GetNewHttpClient() ( httpcli *rpcclient.HTTP){
+	nodeURI := viper.GetString(client.FlagNode)
+	if nodeURI != "" {
+		httpcli = rpcclient.NewHTTP(nodeURI, "/websocket")
+	}
+	return
+}
+
+
+
 // GetFromFields returns a from account address and Keybase name given either
 // an address or key name. If genOnly is true, only a valid Bech32 cosmos
 // address is returned.
@@ -320,3 +330,5 @@ func GetFromFields(from string, genOnly bool) (sdk.AccAddress, string, error) {
 
 	return info.GetAddress(), info.GetName(), nil
 }
+
+

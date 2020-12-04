@@ -1,8 +1,10 @@
 package tx
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -172,4 +174,77 @@ func queryTx(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr string) (sd
 	}
 
 	return out, nil
+}
+
+func queryTxInMempool(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr string) (sdk.TxResponse, error) {
+	hash, err := hex.DecodeString(hashHexStr)
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	httpcli := cliCtx.GetNewHttpClient()
+	if httpcli == nil {
+		return sdk.TxResponse{}, fmt.Errorf("node is empty")
+	}
+
+	// default limit 30, max limit 100
+	// tendermint/mempool ReapMaxTxs  `max` accept negative number as no limit
+	// but a mutex in ReapMaxTxs , if no limit , maybe lock mempool too long time.
+	rst, err := httpcli.UnconfirmedTxs(100)
+	if err != nil || rst == nil {
+		return sdk.TxResponse{}, err
+	}
+	for _, txBytes := range rst.Txs {
+		if 0 == bytes.Compare(hash, txBytes.Hash()) {
+			sdktx, err := parseTx(cdc, txBytes)
+			if err != nil {
+				return sdk.TxResponse{}, err
+			}
+			return sdk.TxResponse{TxHash: hashHexStr, Height: 0, Tx: sdktx}, nil
+		}
+	}
+
+	return sdk.TxResponse{}, fmt.Errorf("not found tx %s in mempool", hashHexStr)
+}
+
+func queryTxsInMempool(cdc *codec.Codec, cliCtx context.CLIContext) (rettxs MempoolTxsResponse, err error) {
+	httpcli := cliCtx.GetNewHttpClient()
+	if httpcli == nil {
+		return MempoolTxsResponse{}, fmt.Errorf("node is empty")
+	}
+
+	// default limit 30, max limit 100
+	// tendermint/mempool ReapMaxTxs  `max` accept negative number as no limit
+	// but a mutex in ReapMaxTxs , if no limit , maybe lock mempool too long time.
+	rst, err := httpcli.UnconfirmedTxs(100)
+	if err != nil || rst == nil {
+		return MempoolTxsResponse{}, err
+	}
+	if err = rettxs.ParseUnconfirmedTxs(cdc, rst); err != nil {
+		return MempoolTxsResponse{}, err
+	}
+
+	return
+}
+
+func queryTxsNumInMempool(cdc *codec.Codec, cliCtx context.CLIContext) (rsp MempoolTxNumResponse, err error) {
+	httpcli := cliCtx.GetNewHttpClient()
+	if httpcli == nil {
+		err = fmt.Errorf("node is empty")
+		return
+	}
+
+	// default limit 30, max limit 100
+	// tendermint/mempool ReapMaxTxs  `max` accept negative number as no limit
+	// but a mutex in ReapMaxTxs , if no limit , maybe lock mempool too long time.
+	rst, err := httpcli.NumUnconfirmedTxs()
+	if err == nil {
+		if rst != nil {
+			rsp = NewMempoolTxNumResponse(rst.Total, rst.TotalBytes)
+		} else {
+			rsp = NewMempoolTxNumResponse(0, 0)
+		}
+		return
+	}
+	return NewMempoolTxNumResponse(0, 0), err
 }
