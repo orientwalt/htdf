@@ -202,6 +202,11 @@ func QueryTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.H
 	}
 }
 
+// Mempool tx queries REST, do not supply CLI implements.
+// If needed , using Tendermint API `localhost:26657/unconfirmed_txs` or
+// `localhost:26657/num_unconfirmed_txs` as an alternative.
+// But, txs field details of reponse are not readable for user.
+
 // QueryTxRequestHandlerFn implements a REST handler that queries a transaction
 // by hash in mempool, only queries the front 100 txs in mempool because of Tendermint limit.
 func QueryMempoolTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
