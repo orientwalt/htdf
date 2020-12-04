@@ -191,37 +191,60 @@ func queryTxInMempool(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr st
 	// tendermint/mempool ReapMaxTxs  `max` accept negative number as no limit
 	// but a mutex in ReapMaxTxs , if no limit , maybe lock mempool too long time.
 	rst, err := httpcli.UnconfirmedTxs(100)
-	if err != nil || rst == nil{
+	if err != nil || rst == nil {
 		return sdk.TxResponse{}, err
 	}
-	fmt.Printf("num %d\n", rst.Count)
-	// rst.
-	for _, tx := range rst.Txs {
-		if 0 == bytes.Compare(hash, tx.Hash()) {
-			return sdk.TxResponse{TxHash: hashHexStr, Height: 0}, nil
+	for _, txBytes := range rst.Txs {
+		if 0 == bytes.Compare(hash, txBytes.Hash()) {
+			sdktx, err := parseTx(cdc, txBytes)
+			if err != nil {
+				return sdk.TxResponse{}, err
+			}
+			return sdk.TxResponse{TxHash: hashHexStr, Height: 0, Tx: sdktx}, nil
 		}
 	}
 
-	// resTx, err := node.Tx(hash, !cliCtx.TrustNode)
-	// if err != nil {
-	// 	return sdk.TxResponse{}, err
-	// }
-
-	// if !cliCtx.TrustNode {
-	// 	if err = ValidateTxResult(cliCtx, resTx); err != nil {
-	// 		return sdk.TxResponse{}, err
-	// 	}
-	// }
-
-	// resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
-	// if err != nil {
-	// 	return sdk.TxResponse{}, err
-	// }
-
-	// out, err := formatTxResult(cdc, resTx, resBlocks[resTx.Height])
-	// if err != nil {
-	// 	return out, err
-	// }
-
 	return sdk.TxResponse{}, fmt.Errorf("not found tx %s in mempool", hashHexStr)
+}
+
+func queryTxsInMempool(cdc *codec.Codec, cliCtx context.CLIContext) (rettxs MempoolTxsResponse, err error) {
+	httpcli := cliCtx.GetNewHttpClient()
+	if httpcli == nil {
+		return MempoolTxsResponse{}, fmt.Errorf("node is empty")
+	}
+
+	// default limit 30, max limit 100
+	// tendermint/mempool ReapMaxTxs  `max` accept negative number as no limit
+	// but a mutex in ReapMaxTxs , if no limit , maybe lock mempool too long time.
+	rst, err := httpcli.UnconfirmedTxs(100)
+	if err != nil || rst == nil {
+		return MempoolTxsResponse{}, err
+	}
+	if err = rettxs.ParseUnconfirmedTxs(cdc, rst); err != nil {
+		return MempoolTxsResponse{}, err
+	}
+
+	return
+}
+
+func queryTxsNumInMempool(cdc *codec.Codec, cliCtx context.CLIContext) (rsp MempoolTxNumResponse, err error) {
+	httpcli := cliCtx.GetNewHttpClient()
+	if httpcli == nil {
+		err = fmt.Errorf("node is empty")
+		return
+	}
+
+	// default limit 30, max limit 100
+	// tendermint/mempool ReapMaxTxs  `max` accept negative number as no limit
+	// but a mutex in ReapMaxTxs , if no limit , maybe lock mempool too long time.
+	rst, err := httpcli.NumUnconfirmedTxs()
+	if err == nil {
+		if rst != nil {
+			rsp = NewMempoolTxNumResponse(rst.Total, rst.TotalBytes)
+		} else {
+			rsp = NewMempoolTxNumResponse(0, 0)
+		}
+		return
+	}
+	return NewMempoolTxNumResponse(0, 0), err
 }
