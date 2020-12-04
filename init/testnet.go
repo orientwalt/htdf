@@ -192,7 +192,7 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 		if keyPass == "" {
 			keyPass = app.DefaultKeyPass
 		}
-
+		fmt.Println(clientDir)
 		accaddr, secret, err := server.GenerateSaveCoinKeyEx(clientDir, keyPass)
 		if err != nil {
 			_ = os.RemoveAll(outDir)
@@ -212,17 +212,17 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 			return err
 		}
 
-		accTokens := sdk.TokensFromTendermintPower(1000000000)
-		accStakingTokens := sdk.TokensFromTendermintPower(250000000)
+		accTokens := sdk.TokensFromTendermintPower(30000000)
+		// accStakingTokens := sdk.TokensFromTendermintPower(250000000)
 		accs = append(accs, v0.GenesisAccount{
 			Address: accaddr,
 			Coins: sdk.Coins{
 				sdk.NewCoin(DefaultDenom, accTokens),
-				sdk.NewCoin(sdk.DefaultBondDenom, accStakingTokens), //
+				// sdk.NewCoin(sdk.DefaultBondDenom, accStakingTokens), //
 			},
 		})
 
-		valTokens := sdk.TokensFromTendermintPower(100)
+		valTokens := sdk.TokensFromTendermintPower(1)
 		msg := staking.NewMsgCreateValidator(
 			sdk.ValAddress(accaddr),
 			valPubKeys[i],
@@ -236,7 +236,7 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 		txBldr := authtx.NewTxBuilderFromCLI().WithChainID(chainID).WithMemo(memo)
 
 		addr := sdk.AccAddress.String(accaddr)
-		ksw := keystore.NewKeyStoreWallet(keystore.DefaultKeyStoreHome())
+		ksw := keystore.NewKeyStoreWallet(filepath.Join(clientDir, "keystores"))
 		signedTx, err := ksw.SignStdTx(txBldr, unsignedTx, addr, keyPass)
 		if err != nil {
 			_ = os.RemoveAll(outDir)

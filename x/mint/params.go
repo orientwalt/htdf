@@ -80,7 +80,7 @@ func (p *Params) GetParamSpace() string {
 
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{ParamStoreKeyParams, &p.InflationRateChange},
+		{Key: ParamStoreKeyParams, Value: &p.InflationRateChange},
 	}
 }
 

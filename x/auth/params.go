@@ -66,13 +66,13 @@ func ParamKeyTable() params.KeyTable {
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeygasPriceThreshold, &p.GasPriceThreshold},
-		{KeyMaxMemoCharacters, &p.MaxMemoCharacters},
-		{KeyTxSigLimit, &p.TxSigLimit},
+		{Key: KeygasPriceThreshold, Value: &p.GasPriceThreshold},
+		{Key: KeyMaxMemoCharacters, Value: &p.MaxMemoCharacters},
+		{Key: KeyTxSigLimit, Value: &p.TxSigLimit},
 		//{KeyTxSizeLimit, &p.TxSizeLimit},
-		{KeyTxSizeCostPerByte, &p.TxSizeCostPerByte},
-		{KeySigVerifyCostED25519, &p.SigVerifyCostED25519},
-		{KeySigVerifyCostSecp256k1, &p.SigVerifyCostSecp256k1},
+		{Key: KeyTxSizeCostPerByte, Value: &p.TxSizeCostPerByte},
+		{Key: KeySigVerifyCostED25519, Value: &p.SigVerifyCostED25519},
+		{Key: KeySigVerifyCostSecp256k1, Value: &p.SigVerifyCostSecp256k1},
 	}
 }
 

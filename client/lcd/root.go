@@ -67,7 +67,7 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int) (err error) {
 	}
 	rs.log.Info(
 		fmt.Sprintf(
-			"Starting Gaia Lite REST service (chain-id: %q)...",
+			"Starting HTDF Lite REST service (chain-id: %q)...",
 			viper.GetString(client.FlagChainID),
 		),
 	)

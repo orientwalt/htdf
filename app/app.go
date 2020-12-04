@@ -26,6 +26,7 @@ import (
 
 	v0 "github.com/orientwalt/htdf/app/v0"
 	v1 "github.com/orientwalt/htdf/app/v1"
+	v2 "github.com/orientwalt/htdf/app/v2"
 	cfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tendermint/libs/common"
 )
@@ -112,6 +113,7 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	appPrometheusConfig.Namespace = appPrometheusNamespace
 	engine.Add(v0.NewProtocolV0(0, logger, protocolKeeper, app.invCheckPeriod, &appPrometheusConfig))
 	engine.Add(v1.NewProtocolV1(1, logger, protocolKeeper, app.invCheckPeriod, &appPrometheusConfig))
+	engine.Add(v2.NewProtocolV2(2, logger, protocolKeeper, app.invCheckPeriod, &appPrometheusConfig))
 	//engine.Add(v2.NewProtocolV1(2, ...))
 	logrus.Traceln("KeyMain----->	", app.GetKVStore(protocol.KeyMain))
 	loaded, current := engine.LoadCurrentProtocol(app.GetKVStore(protocol.KeyMain))

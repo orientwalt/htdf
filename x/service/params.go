@@ -65,13 +65,13 @@ func (p *Params) GetParamSpace() string {
 
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyMaxRequestTimeout, &p.MaxRequestTimeout},
-		{KeyMinDepositMultiple, &p.MinDepositMultiple},
-		{KeyServiceFeeTax, &p.ServiceFeeTax},
-		{KeySlashFraction, &p.SlashFraction},
-		{KeyComplaintRetrospect, &p.ComplaintRetrospect},
-		{KeyArbitrationTimeLimit, &p.ArbitrationTimeLimit},
-		{KeyTxSizeLimit, &p.TxSizeLimit},
+		{Key: KeyMaxRequestTimeout, Value: &p.MaxRequestTimeout},
+		{Key: KeyMinDepositMultiple, Value: &p.MinDepositMultiple},
+		{Key: KeyServiceFeeTax, Value: &p.ServiceFeeTax},
+		{Key: KeySlashFraction, Value: &p.SlashFraction},
+		{Key: KeyComplaintRetrospect, Value: &p.ComplaintRetrospect},
+		{Key: KeyArbitrationTimeLimit, Value: &p.ArbitrationTimeLimit},
+		{Key: KeyTxSizeLimit, Value: &p.TxSizeLimit},
 	}
 }
 

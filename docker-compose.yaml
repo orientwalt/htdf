@@ -11,6 +11,7 @@ services:
       - LOG=${LOG:-hsd.log}
     volumes:
       - ./build/testnet:/root:Z
+      - ./build/bin:/usr/local/bin:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.2
@@ -25,6 +26,7 @@ services:
       - LOG=${LOG:-hsd.log}
     volumes:
       - ./build/testnet:/root:Z
+      - ./build/bin:/usr/local/bin:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.3
@@ -39,6 +41,7 @@ services:
       - "26661-26662:26656-26657"
     volumes:
       - ./build/testnet:/root:Z
+      - ./build/bin:/usr/local/bin:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.4
@@ -53,6 +56,7 @@ services:
       - "26663-26664:26656-26657"
     volumes:
       - ./build/testnet:/root:Z
+      - ./build/bin:/usr/local/bin:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.5
@@ -69,6 +73,7 @@ services:
       - "26665-26666:26656-26657"
     volumes:
       - ./build/testnet:/root:Z
+      - ./build/bin:/usr/local/bin:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.6
@@ -85,6 +90,7 @@ services:
       - "26667-26668:26656-26657"
     volumes:
       - ./build/testnet:/root:Z
+      - ./build/bin:/usr/local/bin:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.7
