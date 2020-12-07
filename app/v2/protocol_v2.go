@@ -2,12 +2,15 @@ package v2
 
 import (
 	"fmt"
-	v1Staking "github.com/orientwalt/htdf/app/v1/staking"
-	v2auth "github.com/orientwalt/htdf/app/v2/auth"
 	"os"
 	"sort"
 
+	v1Staking "github.com/orientwalt/htdf/app/v1/staking"
+	v2auth "github.com/orientwalt/htdf/app/v2/auth"
+
 	"github.com/orientwalt/htdf/app/protocol"
+	"github.com/orientwalt/htdf/app/v1/slashing"
+	v2htdfservice "github.com/orientwalt/htdf/app/v2/core"
 	"github.com/orientwalt/htdf/codec"
 	newevmtypes "github.com/orientwalt/htdf/evm/types"
 	sdk "github.com/orientwalt/htdf/types"
@@ -21,7 +24,6 @@ import (
 	"github.com/orientwalt/htdf/x/mint"
 	"github.com/orientwalt/htdf/x/params"
 	"github.com/orientwalt/htdf/x/service"
-	"github.com/orientwalt/htdf/app/v1/slashing"
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/orientwalt/htdf/x/upgrade"
 	"github.com/sirupsen/logrus"
@@ -36,9 +38,9 @@ const (
 
 	// junying-todo, 2020-06-16
 	// fix issue #9
-	// tx size limit shrinked to 35000(bytes) because 4G RAM causes out-of-memory 
+	// tx size limit shrinked to 35000(bytes) because 4G RAM causes out-of-memory
 	// crashing for 500tx-airdrop tx with gaswanted of over 10,000,000 gas
-	TxSizeLimit = 100000 
+	TxSizeLimit = 100000
 )
 
 var _ protocol.Protocol = (*ProtocolV2)(nil)
@@ -318,7 +320,7 @@ func (p *ProtocolV2) configRouters() {
 	stake.RegisterInvariants(&p.crisisKeeper, p.StakeKeeper, p.feeCollectionKeeper, p.distrKeeper, p.accountMapper)
 
 	p.router.
-		AddRoute(RouterKey, htdfservice.NewHandler(p.accountMapper, p.feeCollectionKeeper, protocol.KeyStorage, protocol.KeyCode)).
+		AddRoute(RouterKey, v2htdfservice.NewHandler(p.accountMapper, p.feeCollectionKeeper, protocol.KeyStorage, protocol.KeyCode)).
 		// AddRoute(protocol.BankRoute, bank.NewHandler(p.bankKeeper)).
 		AddRoute(protocol.StakeRoute, stake.NewHandler(p.StakeKeeper)).
 		AddRoute(protocol.SlashingRoute, slashing.NewHandler(p.slashingKeeper)).
@@ -343,7 +345,7 @@ func (p *ProtocolV2) configRouters() {
 // configure all Stores
 func (p *ProtocolV2) configFeeHandlers() {
 	// p.anteHandler = auth.NewAnteHandler(p.accountMapper, p.feeCollectionKeeper)
-	v2auth.GetMsgSendDataHandler = htdfservice.GetMsgSendData  // yqq 2020-12-03, for v2/auth/NewAnteHandler 
+	v2auth.GetMsgSendDataHandler = htdfservice.GetMsgSendData // yqq 2020-12-03, for v2/auth/NewAnteHandler
 	p.anteHandler = v2auth.NewAnteHandler(p.accountMapper, p.feeCollectionKeeper)
 	p.feeRefundHandler = auth.NewFeeRefundHandler(p.accountMapper, p.feeCollectionKeeper)
 	//p.feePreprocessHandler = auth.NewFeePreprocessHandler(p.feeCollectionKeeper)
@@ -384,7 +386,6 @@ func (p *ProtocolV2) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 
 	// distribute rewards from previous block
 	distr.BeginBlocker(ctx, req, p.distrKeeper)
-
 
 	tags := slashing.BeginBlocker(ctx, req, p.slashingKeeper)
 	return abci.ResponseBeginBlock{
