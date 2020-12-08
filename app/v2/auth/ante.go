@@ -21,8 +21,8 @@ import (
 
 var (
 	// simulation signature values used to estimate gas consumption
-	simSecp256k1Pubkey secp256k1.PubKeySecp256k1
-	simSecp256k1Sig    [64]byte
+	simSecp256k1Pubkey    secp256k1.PubKeySecp256k1
+	simSecp256k1Sig       [64]byte
 	GetMsgSendDataHandler sdk.GetMsgDataFunc = nil
 )
 
@@ -198,12 +198,12 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 			maxFee := xauth.NewStdFee(stdTx.Fee.GasWanted, stdTx.Fee.GasPrice)
 			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], maxFee, fOnlyCheckBalanceEnoughForFee)
 			if !res.IsOK() {
-				log.Error("================NewAnteHandler refused")
+				log.Error("== DeductFees failed, NewAnteHandler refused this transaction")
 				return newCtx, res, true
 			}
 
 			// NOTE: htdfservice SendMsg, only inlucde one SendMsg in a Tx
-			if msgs := stdTx.GetMsgs(); len(msgs) == 1 && GetMsgSendDataHandler != nil{
+			if msgs := stdTx.GetMsgs(); len(msgs) == 1 && GetMsgSendDataHandler != nil {
 				if data, err := GetMsgSendDataHandler(msgs[0]); err != nil {
 					// ONLY log error msg , then continue
 					log.Error(fmt.Sprintf("%v", err.Error()))
@@ -222,7 +222,7 @@ func NewAnteHandler(ak xauth.AccountKeeper, fck xauth.FeeCollectionKeeper) sdk.A
 					// if msgSend.To.Empty() {
 					// 	// so this situation is safety
 					// } else {
-					// 	// FIX ME
+					// 	// FIX ME :  this issue had be fixed in app/v2/core/handler.go
 					// }
 					// }
 				}
