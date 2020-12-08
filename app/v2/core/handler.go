@@ -164,7 +164,8 @@ func HandleOpenContract(ctx sdk.Context,
 	var gasLeftover uint64
 	if code := evm.StateDB.GetCode(toAddress); len(inputCode) > 0 && len(code) == 0 {
 		// added by yqq 2020-12-07
-		// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data`.
+		// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data` 
+		// and `MsgSend.To` is not contract address.
 		outputs, gasLeftover, err = nil, 0, fmt.Errorf("invalid contract address")
 	} else {
 		outputs, gasLeftover, err = evm.Call(contractRef, toAddress, inputCode, st.GetGas(), transferAmount)
