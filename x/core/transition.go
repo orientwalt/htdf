@@ -35,7 +35,7 @@ func NewStateTransition(evm *vm.EVM, msg MsgSend, stateDB *evmstate.CommitStateD
 	}
 }
 
-func (st *StateTransition) useGas(amount uint64) error {
+func (st *StateTransition) UseGas(amount uint64) error {
 	if st.gas < amount {
 		return vm.ErrOutOfGas
 	}
@@ -44,7 +44,7 @@ func (st *StateTransition) useGas(amount uint64) error {
 	return nil
 }
 
-func (st *StateTransition) buyGas() error {
+func (st *StateTransition) BuyGas() error {
 	st.gas = st.msg.GasWanted
 	st.initialGas = st.gas
 	fmt.Printf("msgGas=%d\n", st.initialGas)
@@ -68,9 +68,9 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
-func (st *StateTransition) refundGas() {
+func (st *StateTransition) RefundGas() {
 	// Apply refund counter, capped to half of the used gas.
-	refund := st.gasUsed() / 2
+	refund := st.GasUsed() / 2
 	if refund > st.stateDB.GetRefund() {
 		refund = st.stateDB.GetRefund()
 	}
@@ -88,11 +88,23 @@ func (st *StateTransition) refundGas() {
 	st.gpGasWanted.AddGas(st.gas)
 }
 
-// gasUsed returns the amount of gas used up by the state transition.
-func (st *StateTransition) gasUsed() uint64 {
+// GasUsed returns the amount of gas used up by the state transition.
+func (st *StateTransition) GasUsed() uint64 {
 	return st.initialGas - st.gas
 }
 
+func (st *StateTransition) GetGas() uint64 {
+	return st.gas
+}
+func (st *StateTransition) SetGas( gas uint64 ) {
+	st.gas = gas
+}
+
+func (st *StateTransition) GetGasPrice() *big.Int {
+	return st.gasPrice
+}
+
+
 func (st *StateTransition) tokenUsed() uint64 {
-	return new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice).Uint64()
+	return new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice).Uint64()
 }

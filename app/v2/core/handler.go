@@ -2,9 +2,7 @@ package htdfservice
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 
 	vmcore "github.com/orientwalt/htdf/evm/core"
@@ -13,6 +11,7 @@ import (
 	appParams "github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
+	xcore "github.com/orientwalt/htdf/x/core"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,21 +32,6 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
 }
 
-//
-type SendTxResp struct {
-	ErrCode         sdk.CodeType `json:"code"`
-	ErrMsg          string       `json:"message"`
-	ContractAddress string       `json:"contract_address"`
-	EvmOutput       string       `json:"evm_output"`
-}
-
-//
-func (rsp SendTxResp) String() string {
-	rsp.ErrMsg = sdk.GetErrMsg(rsp.ErrCode)
-	data, _ := json.Marshal(&rsp)
-	return string(data)
-}
-
 // New HTDF Message Handler
 // connected to handler.go
 // HandleMsgSend, HandleMsgAdd upgraded to EVM version
@@ -59,32 +43,24 @@ func NewHandler(accountKeeper auth.AccountKeeper,
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 
 		switch msg := msg.(type) {
-		case MsgSend:
+		case xcore.MsgSend:
 			return HandleMsgSend(ctx, accountKeeper, feeCollectionKeeper, keyStorage, keyCode, msg)
 		default:
-			return HandleUnknownMsg(msg)
+			return xcore.HandleUnknownMsg(msg)
 		}
 	}
 
 }
 
-// junying-todo, 2019-08-26
-func HandleUnknownMsg(msg sdk.Msg) sdk.Result {
-	var sendTxResp SendTxResp
-	log.Debugf("msgType error|mstType=%v\n", msg.Type())
-	sendTxResp.ErrCode = sdk.ErrCode_Param
-	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String()}
-}
-
-// junying-todo, 2019-08-26
+// copy from x/core/handler.go
 func HandleMsgSend(ctx sdk.Context,
 	accountKeeper auth.AccountKeeper,
 	feeCollectionKeeper auth.FeeCollectionKeeper,
 	keyStorage *sdk.KVStoreKey,
 	keyCode *sdk.KVStoreKey,
-	msg MsgSend) sdk.Result {
+	msg xcore.MsgSend) sdk.Result {
 	// initialize
-	var sendTxResp SendTxResp
+	var sendTxResp xcore.SendTxResp
 	var gasUsed uint64
 	var evmOutput string
 	var err error
@@ -98,7 +74,7 @@ func HandleMsgSend(ctx sdk.Context,
 		sendTxResp.EvmOutput = evmOutput
 	} else {
 		// create smart contract
-		evmOutput, gasUsed, err = HandleCreateContract(ctx, accountKeeper, feeCollectionKeeper, keyStorage, keyCode, msg)
+		evmOutput, gasUsed, err = xcore.HandleCreateContract(ctx, accountKeeper, feeCollectionKeeper, keyStorage, keyCode, msg)
 		if err != nil {
 			sendTxResp.ErrCode = sdk.ErrCode_CreateContract
 		}
@@ -107,26 +83,13 @@ func HandleMsgSend(ctx sdk.Context,
 	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: gasUsed}
 }
 
-//
-func FeeCollecting(ctx sdk.Context,
-	feeCollectionKeeper auth.FeeCollectionKeeper,
-	stateDB *state.CommitStateDB,
-	gasused uint64,
-	gasprice *big.Int) {
-	gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(gasused), gasprice)
-	log.Debugf("FeeCollecting:gasUsed=%s\n", gasUsed.String())
-	feeCollectionKeeper.AddCollectedFees(ctx, sdk.Coins{sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(gasUsed))})
-	stateDB.Commit(false)
-	log.Debugln("FeeCollecting:stateDB commited!")
-}
-
-// junying-todo, 2019-08-26
+// HandleOpenContract copy from x/core/handler, to implement v2 handler  2020-12-07
 func HandleOpenContract(ctx sdk.Context,
 	accountKeeper auth.AccountKeeper,
 	feeCollectionKeeper auth.FeeCollectionKeeper,
 	keyStorage *sdk.KVStoreKey,
 	keyCode *sdk.KVStoreKey,
-	msg MsgSend) (evmOutput string, gasUsed uint64, err error) {
+	msg xcore.MsgSend) (evmOutput string, gasUsed uint64, err error) {
 
 	log.Debugf("Handling MsgSend with No Contract.\n")
 	log.Debugln(" HandleOpenContract0:ctx.GasMeter().GasConsumed()", ctx.GasMeter().GasConsumed())
@@ -165,7 +128,7 @@ func HandleOpenContract(ctx sdk.Context,
 	transferAmount := msg.Amount.AmountOf(sdk.DefaultDenom).BigInt()
 
 	log.Debugf("transferAmount: %d\n", transferAmount)
-	st := NewStateTransition(evm, msg, stateDB)
+	st := xcore.NewStateTransition(evm, msg, stateDB)
 
 	log.Debugf("gasPrice=%d|gasWanted=%d\n", msg.GasPrice, msg.GasWanted)
 
@@ -181,7 +144,7 @@ func HandleOpenContract(ctx sdk.Context,
 	// commented by junying, 2019-08-22
 	// default non-contract tx gas: 21000
 	// default contract tx gas: 53000 + f(tx.data)
-	itrsGas, err := IntrinsicGas(inputCode, true)
+	itrsGas, err := xcore.IntrinsicGas(inputCode, true)
 	log.Debugf("itrsGas|gas=%d\n", itrsGas)
 	// commented by junying, 2019-08-22
 	// check if tx.gas >= calculated gas
@@ -196,7 +159,18 @@ func HandleOpenContract(ctx sdk.Context,
 	// 2. create receiver account if no exists
 	// 3. execute contract & calculate gas
 	log.Debugln(" HandleOpenContract1:ctx.GasMeter().GasConsumed()", ctx.GasMeter().GasConsumed())
-	outputs, gasLeftover, err := evm.Call(contractRef, toAddress, inputCode, st.gas, transferAmount)
+
+	var outputs []byte
+	var gasLeftover uint64
+	if code := evm.StateDB.GetCode(toAddress); len(inputCode) > 0 && len(code) == 0 {
+		// added by yqq 2020-12-07
+		// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data` 
+		// and `MsgSend.To` is not contract address.
+		outputs, gasLeftover, err = nil, 0, fmt.Errorf("invalid contract address")
+	} else {
+		outputs, gasLeftover, err = evm.Call(contractRef, toAddress, inputCode, st.GetGas(), transferAmount)
+	}
+
 	log.Debugln(" HandleOpenContract2:ctx.GasMeter().GasConsumed()", ctx.GasMeter().GasConsumed())
 	if err != nil {
 		log.Debugf("evm call error|err=%s\n", err)
@@ -204,7 +178,7 @@ func HandleOpenContract(ctx sdk.Context,
 		gasUsed = msg.GasWanted
 		evmOutput = fmt.Sprintf("evm call error|err=%s\n", err)
 	} else {
-		st.gas = gasLeftover
+		st.SetGas(gasLeftover)
 		// junying-todo, 2019-08-22
 		// refund(add) remaining to sender
 		st.RefundGas()
@@ -212,87 +186,6 @@ func HandleOpenContract(ctx sdk.Context,
 		gasUsed = st.GasUsed()
 		evmOutput = hex.EncodeToString(outputs)
 	}
-	FeeCollecting(ctx, feeCollectionKeeper, stateDB, gasUsed, st.gasPrice)
-	return
-}
-
-// junying-todo, 2019-08-26
-func HandleCreateContract(ctx sdk.Context,
-	accountKeeper auth.AccountKeeper,
-	feeCollectionKeeper auth.FeeCollectionKeeper,
-	keyStorage *sdk.KVStoreKey,
-	keyCode *sdk.KVStoreKey,
-	msg MsgSend) (evmOutput string, gasUsed uint64, err error) {
-
-	stateDB, err := state.NewCommitStateDB(ctx, &accountKeeper, keyStorage, keyCode)
-	if err != nil {
-		evmOutput = fmt.Sprintf("newStateDB error\n")
-		return
-	}
-	fromAddress := sdk.ToEthAddress(msg.From)
-	toAddress := sdk.ToEthAddress(msg.To)
-
-	log.Debugf("fromAddr|appFormat=%s|ethFormat=%s|\n", msg.From.String(), fromAddress.String())
-	log.Debugf("toAddress|appFormat=%s|ethFormat=%s|\n", msg.To.String(), toAddress.String())
-	log.Debugf("fromAddress|Balance=%v\n", stateDB.GetBalance(fromAddress))
-
-	config := appParams.MainnetChainConfig
-	logConfig := vm.LogConfig{}
-	structLogger := vm.NewStructLogger(&logConfig)
-	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
-
-	log.Debugf("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
-
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()))
-	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
-	contractRef := vm.AccountRef(fromAddress)
-
-	log.Debugf("blockHeight=%d|IsHomestead=%v|IsDAOFork=%v|IsEIP150=%v|IsEIP155=%v|IsEIP158=%v|IsByzantium=%v\n", ctx.BlockHeight(), evm.ChainConfig().IsHomestead(evm.BlockNumber),
-		evm.ChainConfig().IsDAOFork(evm.BlockNumber), evm.ChainConfig().IsEIP150(evm.BlockNumber),
-		evm.ChainConfig().IsEIP155(evm.BlockNumber), evm.ChainConfig().IsEIP158(evm.BlockNumber),
-		evm.ChainConfig().IsByzantium(evm.BlockNumber))
-
-	inputCode, err := hex.DecodeString(msg.Data)
-	if err != nil {
-		evmOutput = fmt.Sprintf("DecodeString error\n")
-		return
-	}
-
-	log.Debugf("inputCode=%s\n", hex.EncodeToString(inputCode))
-
-	st := NewStateTransition(evm, msg, stateDB)
-
-	log.Debugf("gasPrice=%d|GasWanted=%d\n", msg.GasPrice, msg.GasWanted)
-
-	err = st.BuyGas()
-	if err != nil {
-		evmOutput = fmt.Sprintf("buyGas error|err=%s\n", err)
-		return
-	}
-
-	//Intrinsic gas calc
-	itrsGas, err := IntrinsicGas(inputCode, true)
-	log.Debugf("itrsGas|gas=%d\n", itrsGas)
-	err = st.UseGas(itrsGas)
-	if err != nil {
-		evmOutput = fmt.Sprintf("useGas error|err=%s\n", err)
-		return
-	}
-
-	_, contractAddr, gasLeftover, err := evm.Create(contractRef, inputCode, st.gas, big.NewInt(0))
-	if err != nil {
-		log.Debugf("evm Create error|err=%s\n", err)
-		// junying-todo, 2019-11-05
-		gasUsed = msg.GasWanted
-		evmOutput = fmt.Sprintf("evm Create error|err=%s\n", err)
-	} else {
-		st.gas = gasLeftover
-		st.RefundGas()
-		gasUsed = st.GasUsed()
-		evmOutput = sdk.ToAppAddress(contractAddr).String()
-	}
-
-	log.Debugf("Create contract ok,contractAddr|appFormat=%s|ethFormat=%s\n", sdk.ToAppAddress(contractAddr).String(), contractAddr.String())
-	FeeCollecting(ctx, feeCollectionKeeper, stateDB, gasUsed, st.gasPrice)
+	xcore.FeeCollecting(ctx, feeCollectionKeeper, stateDB, gasUsed, st.GetGasPrice())
 	return
 }
