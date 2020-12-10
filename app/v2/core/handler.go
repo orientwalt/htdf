@@ -113,7 +113,7 @@ func HandleOpenContract(ctx sdk.Context,
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()))
+	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
