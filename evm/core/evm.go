@@ -41,22 +41,25 @@ type IMessage interface {
 	FromAddress() common.Address
 }
 
-type FooChainContext struct{}
+type FooChainContext struct {
+	blockTime time.Time
+}
 
 func (self FooChainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
 
 	return &types.Header{
-		Difficulty: big.NewInt(1),
+		Difficulty: big.NewInt(1), // NOTE: DO NOT use difficulty to generate random number in contract  !! 2020-12-09 yqq
 		Number:     big.NewInt(int64(number)),
 		GasLimit:   0,
 		GasUsed:    0,
-		Time:       big.NewInt(time.Now().Unix()).Uint64(),
-		Extra:      nil,
+		// Time:       big.NewInt(time.Now().Unix()).Uint64(), // fix issue #15 yqq 2020-12-09
+		Time:  uint64(self.blockTime.Unix()),
+		Extra: nil,
 	}
 }
 
 // NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(msg IMessage, author *common.Address, height uint64) vm.Context {
+func NewEVMContext(msg IMessage, author *common.Address, height uint64, blockTime time.Time) vm.Context {
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	var beneficiary common.Address
 	// if author == nil {
@@ -66,7 +69,7 @@ func NewEVMContext(msg IMessage, author *common.Address, height uint64) vm.Conte
 	// }
 	beneficiary = *author
 
-	var fooChainContext FooChainContext
+	fooChainContext := FooChainContext{blockTime: blockTime}
 	fooHash := utils.StringToHash("xxx")
 	fooHeader := fooChainContext.GetHeader(fooHash, height)
 

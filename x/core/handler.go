@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"time"
 
 	vmcore "github.com/orientwalt/htdf/evm/core"
 	"github.com/orientwalt/htdf/evm/state"
@@ -150,7 +151,10 @@ func HandleOpenContract(ctx sdk.Context,
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()))
+	blockTime := ctx.BlockHeader().Time
+	log.Infof("===========> blktime: %s", blockTime.Format(time.RFC3339Nano))
+
+	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
@@ -243,7 +247,10 @@ func HandleCreateContract(ctx sdk.Context,
 
 	log.Debugf("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()))
+	blockTime := ctx.BlockHeader().Time
+	log.Infof("===========> blktime: %s", blockTime.Format(time.RFC3339Nano))
+
+	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
