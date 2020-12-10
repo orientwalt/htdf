@@ -2,15 +2,33 @@ package htdfservice
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
+	"os"
 
 	ethcore "github.com/ethereum/go-ethereum/core"
 	evmstate "github.com/orientwalt/htdf/evm/state"
 	"github.com/orientwalt/htdf/evm/vm"
+	log "github.com/sirupsen/logrus"
 
 	apptypes "github.com/orientwalt/htdf/types"
 )
+
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := log.ParseLevel(lvl)
+	if err != nil {
+		ll = log.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	log.SetLevel(ll)
+	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
+}
 
 //
 type StateTransition struct {
@@ -47,12 +65,12 @@ func (st *StateTransition) UseGas(amount uint64) error {
 func (st *StateTransition) BuyGas() error {
 	st.gas = st.msg.GasWanted
 	st.initialGas = st.gas
-	fmt.Printf("msgGas=%d\n", st.initialGas)
+	log.Debugf("msgGas=%d\n", st.initialGas)
 
 	eaSender := apptypes.ToEthAddress(st.msg.From)
 
 	msgGasVal := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.GasWanted), st.gasPrice)
-	fmt.Printf("msgGasVal=%s\n", msgGasVal.String())
+	log.Debugf("msgGasVal=%s\n", msgGasVal.String())
 
 	if st.stateDB.GetBalance(eaSender).Cmp(msgGasVal) < 0 {
 		return errors.New("insufficient balance for gas")
@@ -60,7 +78,7 @@ func (st *StateTransition) BuyGas() error {
 
 	// try call subGas method, to check gas limit
 	if err := st.gpGasWanted.SubGas(st.msg.GasWanted); err != nil {
-		fmt.Printf("SubGas error|err=%s\n", err)
+		log.Errorf("SubGas error|err=%s\n", err)
 		return err
 	}
 
@@ -96,14 +114,13 @@ func (st *StateTransition) GasUsed() uint64 {
 func (st *StateTransition) GetGas() uint64 {
 	return st.gas
 }
-func (st *StateTransition) SetGas( gas uint64 ) {
+func (st *StateTransition) SetGas(gas uint64) {
 	st.gas = gas
 }
 
 func (st *StateTransition) GetGasPrice() *big.Int {
 	return st.gasPrice
 }
-
 
 func (st *StateTransition) tokenUsed() uint64 {
 	return new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed()), st.gasPrice).Uint64()

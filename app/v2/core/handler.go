@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"time"
 
 	vmcore "github.com/orientwalt/htdf/evm/core"
 	"github.com/orientwalt/htdf/evm/state"
@@ -113,7 +114,10 @@ func HandleOpenContract(ctx sdk.Context,
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	blockTime := ctx.BlockHeader().Time
+	log.Infof("blockHeaderTime: %s", blockTime.Format(time.RFC3339Nano))
+
+	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
@@ -164,7 +168,7 @@ func HandleOpenContract(ctx sdk.Context,
 	var gasLeftover uint64
 	if code := evm.StateDB.GetCode(toAddress); len(inputCode) > 0 && len(code) == 0 {
 		// added by yqq 2020-12-07
-		// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data` 
+		// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data`
 		// and `MsgSend.To` is not contract address.
 		outputs, gasLeftover, err = nil, 0, fmt.Errorf("invalid contract address")
 	} else {

@@ -152,7 +152,7 @@ func HandleOpenContract(ctx sdk.Context,
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	blockTime := ctx.BlockHeader().Time
-	log.Infof("===========> blktime: %s", blockTime.Format(time.RFC3339Nano))
+	log.Infof("blockHeaderTime: %s", blockTime.Format(time.RFC3339Nano))
 
 	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
@@ -248,7 +248,7 @@ func HandleCreateContract(ctx sdk.Context,
 	log.Debugf("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
 
 	blockTime := ctx.BlockHeader().Time
-	log.Infof("===========> blktime: %s", blockTime.Format(time.RFC3339Nano))
+	log.Infof("blockHeaderTime: %s", blockTime.Format(time.RFC3339Nano))
 
 	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
