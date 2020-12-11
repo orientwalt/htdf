@@ -30,7 +30,7 @@ func GetCmdSend(cdc *codec.Codec) *cobra.Command {
 							 htdf1yujjc5yptpphtt665u2u6zp6gl04enlg55fajp \
 							 5satoshi \
 							 --gas=30000 \
-							 --gas-prices=1.0satoshi`,
+							 --gas-price=100`,
 		Args: cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
@@ -125,7 +125,7 @@ func CompleteAndBroadcastTxCLI(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	}
 	addr := sdk.AccAddress.String(fromaddr)
 	ksw := keystore.NewKeyStoreWallet(keystore.DefaultKeyStoreHome())
-	txBytes,err :=ksw.BuildAndSign(txBldr, addr, passphrase, msgs)
+	txBytes, err := ksw.BuildAndSign(txBldr, addr, passphrase, msgs)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"time"
 
 	vmcore "github.com/orientwalt/htdf/evm/core"
 	"github.com/orientwalt/htdf/evm/state"
@@ -150,7 +151,10 @@ func HandleOpenContract(ctx sdk.Context,
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()))
+	blockTime := ctx.BlockHeader().Time
+	log.Infof("blockHeaderTime: %s", blockTime.Format(time.RFC3339Nano))
+
+	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
@@ -171,7 +175,7 @@ func HandleOpenContract(ctx sdk.Context,
 
 	// commented by junying, 2019-08-22
 	// subtract GasWanted*gasprice from sender
-	err = st.buyGas()
+	err = st.BuyGas()
 	if err != nil {
 		evmOutput = fmt.Sprintf("buyGas error|err=%s\n", err)
 		return
@@ -185,7 +189,7 @@ func HandleOpenContract(ctx sdk.Context,
 	log.Debugf("itrsGas|gas=%d\n", itrsGas)
 	// commented by junying, 2019-08-22
 	// check if tx.gas >= calculated gas
-	err = st.useGas(itrsGas)
+	err = st.UseGas(itrsGas)
 	if err != nil {
 		evmOutput = fmt.Sprintf("useGas error|err=%s\n", err)
 		return
@@ -207,9 +211,9 @@ func HandleOpenContract(ctx sdk.Context,
 		st.gas = gasLeftover
 		// junying-todo, 2019-08-22
 		// refund(add) remaining to sender
-		st.refundGas()
-		log.Debugf("gasUsed=%d\n", st.gasUsed())
-		gasUsed = st.gasUsed()
+		st.RefundGas()
+		log.Debugf("gasUsed=%d\n", st.GasUsed())
+		gasUsed = st.GasUsed()
 		evmOutput = hex.EncodeToString(outputs)
 	}
 	FeeCollecting(ctx, feeCollectionKeeper, stateDB, gasUsed, st.gasPrice)
@@ -243,7 +247,10 @@ func HandleCreateContract(ctx sdk.Context,
 
 	log.Debugf("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()))
+	blockTime := ctx.BlockHeader().Time
+	log.Infof("blockHeaderTime: %s", blockTime.Format(time.RFC3339Nano))
+
+	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
@@ -264,7 +271,7 @@ func HandleCreateContract(ctx sdk.Context,
 
 	log.Debugf("gasPrice=%d|GasWanted=%d\n", msg.GasPrice, msg.GasWanted)
 
-	err = st.buyGas()
+	err = st.BuyGas()
 	if err != nil {
 		evmOutput = fmt.Sprintf("buyGas error|err=%s\n", err)
 		return
@@ -273,7 +280,7 @@ func HandleCreateContract(ctx sdk.Context,
 	//Intrinsic gas calc
 	itrsGas, err := IntrinsicGas(inputCode, true)
 	log.Debugf("itrsGas|gas=%d\n", itrsGas)
-	err = st.useGas(itrsGas)
+	err = st.UseGas(itrsGas)
 	if err != nil {
 		evmOutput = fmt.Sprintf("useGas error|err=%s\n", err)
 		return
@@ -287,8 +294,8 @@ func HandleCreateContract(ctx sdk.Context,
 		evmOutput = fmt.Sprintf("evm Create error|err=%s\n", err)
 	} else {
 		st.gas = gasLeftover
-		st.refundGas()
-		gasUsed = st.gasUsed()
+		st.RefundGas()
+		gasUsed = st.GasUsed()
 		evmOutput = sdk.ToAppAddress(contractAddr).String()
 	}
 

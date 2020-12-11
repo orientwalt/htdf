@@ -1,0 +1,24 @@
+[
+    {
+        "constant": false, 
+        "inputs": [
+            {
+                "name": "tokenAddr", 
+                "type": "address"
+            }, 
+            {
+                "name": "dests", 
+                "type": "address[]"
+            }, 
+            {
+                "name": "values", 
+                "type": "uint256[]"
+            }
+        ], 
+        "name": "drop", 
+        "outputs": [], 
+        "payable": true, 
+        "stateMutability": "payable", 
+        "type": "function"
+    }
+]

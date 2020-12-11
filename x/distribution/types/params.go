@@ -36,9 +36,9 @@ func (p Params) String() string {
 // Implements params.Params
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyCommunityTax, &p.CommunityTax},
-		{KeyBaseProposerReward, &p.BaseProposerReward},
-		{KeyBonusProposerReward, &p.BonusProposerReward},
+		{Key: KeyCommunityTax, Value: &p.CommunityTax},
+		{Key: KeyBaseProposerReward, Value: &p.BaseProposerReward},
+		{Key: KeyBonusProposerReward, Value: &p.BonusProposerReward},
 	}
 }
 

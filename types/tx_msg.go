@@ -77,3 +77,9 @@ func (msg *TestMsg) ValidateBasic() Error { return nil }
 func (msg *TestMsg) GetSigners() []AccAddress {
 	return msg.signers
 }
+
+//__________________________________________________________
+
+// GetMsgDataFunc for x/core/MsgSend to get msg.Data ,
+// added by yqq 2020-12-03
+type GetMsgDataFunc  func(msg Msg)([]byte, error)

@@ -128,7 +128,8 @@ func (msg MsgSend) ValidateBasic() sdk.Error {
 
 		// junying-todo, 2019-11-12
 		if msg.GasWanted < params.DefaultMsgGas {
-			return sdk.ErrOutOfGas(fmt.Sprintf("gaswanted must be greather than %d", params.DefaultMsgGas))
+			// return sdk.ErrOutOfGas(fmt.Sprintf("gaswanted must be greather than %d", params.DefaultMsgGas))
+			return sdk.ErrInvalidGas(fmt.Sprintf("gaswanted must be greather than %d", params.DefaultMsgGas))
 		}
 
 	} else {
@@ -179,6 +180,17 @@ func (msg MsgSend) FromAddress() common.Address {
 func (msg MsgSend) GetData() string {
 	return msg.Data
 }
+
+
+
+// GetMsgSendData implement for sdk.GetMsgDataFunc, yqq 2020-12-03
+func GetMsgSendData(msg sdk.Msg)([]byte, error) {
+	if msgSend, ok := msg.(MsgSend) ; ok {
+		return []byte(msgSend.Data), nil
+	}
+	return []byte{}, fmt.Errorf("msg is not MsgSend")
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MsgAdd defines a Add message ///////////////////////////////////////////////////////////////////////////////

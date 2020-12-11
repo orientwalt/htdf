@@ -2,11 +2,13 @@ package v1
 
 import (
 	"fmt"
-	v1Staking "github.com/orientwalt/htdf/app/v1/staking"
 	"os"
 	"sort"
 
+	v1Staking "github.com/orientwalt/htdf/app/v1/staking"
+
 	"github.com/orientwalt/htdf/app/protocol"
+	"github.com/orientwalt/htdf/app/v1/slashing"
 	"github.com/orientwalt/htdf/codec"
 	newevmtypes "github.com/orientwalt/htdf/evm/types"
 	sdk "github.com/orientwalt/htdf/types"
@@ -20,7 +22,6 @@ import (
 	"github.com/orientwalt/htdf/x/mint"
 	"github.com/orientwalt/htdf/x/params"
 	"github.com/orientwalt/htdf/x/service"
-	"github.com/orientwalt/htdf/app/v1/slashing"
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/orientwalt/htdf/x/upgrade"
 	"github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ import (
 
 const (
 	//
-	RouterKey   = "htdfservice"
+	RouterKey = "htdfservice"
 	TxSizeLimit = 1200000 // tx size is limited to 1200000(bytes)
 )
 
@@ -183,7 +184,7 @@ func (p *ProtocolV1) ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg)
 		}
 		// logrus.Traceln("33333333333@@@@@@@@@@@@@!!!!!!!!!")
 
-		logrus.Info(fmt.Sprintf("currTxSize=%d", len(txBytes)))
+		logrus.Debug(fmt.Sprintf("currTxSize=%d", len(txBytes)))
 		if uint64(len(txBytes)) > TxSizeLimit { //txSizeLimit {
 			return sdk.ErrExceedsTxSize(fmt.Sprintf("the tx size [%d] exceeds the limitation [%d]", len(txBytes), txSizeLimit))
 		}

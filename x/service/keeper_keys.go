@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/binary"
+	"fmt"
 
 	sdk "github.com/orientwalt/htdf/types"
 )
@@ -32,7 +33,7 @@ func GetServiceDefinitionKey(chainId, name string) []byte {
 
 // id can not be zero
 func GetMethodPropertyKey(chainId, serviceName string, id int16) []byte {
-	return append(methodPropertyKey, getStringsKey([]string{chainId, serviceName, string(id)})...)
+	return append(methodPropertyKey, getStringsKey([]string{chainId, serviceName, fmt.Sprint(id)})...)
 }
 
 // Key for getting all methods on a service from the store
@@ -51,12 +52,12 @@ func GetBindingsSubspaceKey(chainId, serviceName string) []byte {
 
 func GetRequestKey(defChainId, serviceName, bindChainId string, provider sdk.AccAddress, height int64, counter int16) []byte {
 	return append(requestKey, getStringsKey([]string{defChainId, serviceName,
-		bindChainId, provider.String(), string(height), string(counter)})...)
+		bindChainId, provider.String(), fmt.Sprint(height), fmt.Sprint(counter)})...)
 }
 
 func GetActiveRequestKey(defChainId, serviceName, bindChainId string, provider sdk.AccAddress, height int64, counter int16) []byte {
 	return append(activeRequestKey, getStringsKey([]string{defChainId, serviceName,
-		bindChainId, provider.String(), string(height), string(counter)})...)
+		bindChainId, provider.String(), fmt.Sprint(height), fmt.Sprint(counter)})...)
 }
 
 func GetSubActiveRequestKey(defChainId, serviceName, bindChainId string, provider sdk.AccAddress) []byte {
@@ -68,7 +69,7 @@ func GetSubActiveRequestKey(defChainId, serviceName, bindChainId string, provide
 
 func GetResponseKey(reqChainId string, eHeight, rHeight int64, counter int16) []byte {
 	return append(responseKey, getStringsKey([]string{reqChainId,
-		string(eHeight), string(rHeight), string(counter)})...)
+		fmt.Sprint(eHeight), fmt.Sprint(rHeight), fmt.Sprint(counter)})...)
 }
 
 // get the expiration index of a request

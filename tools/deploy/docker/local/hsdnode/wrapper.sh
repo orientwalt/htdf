@@ -24,6 +24,9 @@ fi
 ##
 ## Run binary with all parameters
 ##
+# echo `pwd`
+# echo `ls -la ${BINARY}`
+# echo `which hsd`
 
 export HSDHOME="/root/node${ID}/.hsd"
 
@@ -33,4 +36,5 @@ else
   "$BINARY" --home "$HSDHOME" "$@"
 fi
 
-chmod 0600 -R /root
+chmod 0777 -R /root
+# chown root:root -R /root

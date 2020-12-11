@@ -61,7 +61,6 @@ func handleMsgSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitPropos
 		Data: keeper.cdc.MustMarshalBinaryLengthPrefixed(proposalID),
 		Tags: resTags,
 	}
-	return sdk.Result{}
 }
 
 //Submit upgrade software proposal

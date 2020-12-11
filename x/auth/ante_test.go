@@ -311,8 +311,10 @@ func TestAnteHandlerFees(t *testing.T) {
 	input.ak.SetAccount(ctx, acc1)
 	checkValidTx(t, anteHandler, ctx, tx, false)
 
+
 	require.True(t, input.fck.GetCollectedFees(ctx).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("satoshi", 600000))))
 	require.True(t, input.ak.GetAccount(ctx, addr1).GetCoins().AmountOf("satoshi").Equal(sdk.NewInt(0)))
+
 }
 
 // Test logic around memo gas consumption.

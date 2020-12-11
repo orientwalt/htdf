@@ -86,6 +86,15 @@ func (msg MsgTest) FromAddress() common.Address {
 	return types.ToEthAddress(msg.From)
 }
 
+func isZeroByte(data []byte) bool {
+	for index := 0; index < len(data); index++ {
+		if data[index] != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // junying-todo, 2020-03-30
 func queryContract(ctx sdk.Context, req abci.RequestQuery, accountKeeper auth.AccountKeeper, keyStorage *sdk.KVStoreKey, keyCode *sdk.KVStoreKey) ([]byte, sdk.Error) {
 	var params QueryContractParams
@@ -116,13 +125,18 @@ func queryContract(ctx sdk.Context, req abci.RequestQuery, accountKeeper auth.Ac
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()))
+	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
-	//
-	outputs, _, err := evm.StaticCall(contractRef, contractAddress, inputCode, TxGasLimit)
-	if err != nil {
-		return nil, sdk.ErrInternal(fmt.Sprintf("evm call error|err=: %s", err))
+	// return contract codedata if inputcode is all zero
+	var outputs []byte
+	if isZeroByte(inputCode) {
+		outputs = evm.StateDB.GetCode(contractAddress)
+	} else {
+		outputs, _, err = evm.StaticCall(contractRef, contractAddress, inputCode, TxGasLimit)
+		if err != nil {
+			return nil, sdk.ErrInternal(fmt.Sprintf("evm call error|err=: %s", err))
+		}
 	}
 	log.Debugf("itrsGas|gas=%d\n", outputs)
 	//
