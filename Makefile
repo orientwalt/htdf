@@ -5,7 +5,8 @@ else
     CURRENT_OS := $(shell uname -s)
 endif
 
-# export GO111MODULE = on
+export GO11MODULE=on
+
 # default: log
 export LOG_LEVEL=debug
 
@@ -64,25 +65,27 @@ build_tags := $(strip $(build_tags))
 BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
 BUILD_FLAGS_STATIC_LINK = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH} -linkmode external -w -extldflags "-static"'
 
-all: tools deps build
+all: build
 
-tools:
-ifndef DEP_CHK
-	@echo "Installing dep"
-	go get -u -v github.com/golang/dep/cmd/dep
-else
-	@echo "Dep is already installed..."
-endif
+# all: tools deps build
 
-deps:
-	@echo "--> Generating vendor directory via dep ensure"
-	@rm -rf .vendor-new
-	@dep ensure -v -vendor-only
+# tools:
+# ifndef DEP_CHK
+# 	@echo "Installing dep"
+# 	go get -u -v github.com/golang/dep/cmd/dep
+# else
+# 	@echo "Dep is already installed..."
+# endif
 
-update:
-	@echo "--> Running dep ensure"
-	@rm -rf .vendor-new
-	@dep ensure -v -update
+# deps:
+# 	@echo "--> Generating vendor directory via dep ensure"
+# 	@rm -rf .vendor-new
+# 	@dep ensure -v -vendor-only
+
+# update:
+# 	@echo "--> Running dep ensure"
+# 	@rm -rf .vendor-new
+# 	@dep ensure -v -update
 
 buildquick: go.sum
 ifeq ($(CURRENT_OS),Windows)
