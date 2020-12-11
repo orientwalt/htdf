@@ -1076,12 +1076,12 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if endBlocker != nil {
 		res = endBlocker(app.deliverState.ctx, req)
 	}
-	appVersionStr, ok := abci.GetTagByKey(res.Tags, sdk.AppVersionTag)
+	_, appVersionStr, ok := abci.GetEventByKey(res.Events, sdk.AppVersionTag)
 	if !ok {
 		return
 	}
 
-	appVersion, _ := strconv.ParseUint(string(appVersionStr.Value), 10, 64)
+	appVersion, _ := strconv.ParseUint(string(appVersionStr.GetValue()), 10, 64)
 	if appVersion <= app.Engine.GetCurrentVersion() {
 		return
 	}
@@ -1093,11 +1093,11 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	if upgradeConfig, ok := app.Engine.ProtocolKeeper.GetUpgradeConfigByStore(app.GetKVStore(protocol.KeyMain)); ok {
-		res.Tags = append(res.Tags,
+		res.Events = append(res.Events,
 			sdk.MakeTag(tmstate.UpgradeFailureTagKey,
 				("Please install the right application version from "+upgradeConfig.Protocol.Software)))
 	} else {
-		res.Tags = append(res.Tags,
+		res.Events = append(res.Events,
 			sdk.MakeTag(tmstate.UpgradeFailureTagKey, ("Please install the right application version")))
 	}
 
