@@ -746,8 +746,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 	msgLogs := make([]sdk.ABCIMessageLog, 0, len(msgs)) // a list of JSON-encoded logs with msg index
 	events := sdk.EmptyEvents()
 
-	var data []byte   // NOTE: we just append them all (?!)
-	var tags sdk.Tags // also just append them all
+	var data []byte // NOTE: we just append them all (?!)
+	// var tags sdk.Tags // also just append them all
 	var code sdk.CodeType
 	var codespace sdk.CodespaceType
 	// var gasUsed uint64
@@ -1094,11 +1094,11 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	if upgradeConfig, ok := app.Engine.ProtocolKeeper.GetUpgradeConfigByStore(app.GetKVStore(protocol.KeyMain)); ok {
 		res.Events = append(res.Events,
-			sdk.MakeTag(tmstate.UpgradeFailureTagKey,
+			sdk.MakeEvent("upgrade", tmstate.UpgradeFailureTagKey,
 				("Please install the right application version from "+upgradeConfig.Protocol.Software)))
 	} else {
 		res.Events = append(res.Events,
-			sdk.MakeTag(tmstate.UpgradeFailureTagKey, ("Please install the right application version")))
+			sdk.MakeEvent("upgrade", tmstate.UpgradeFailureTagKey, ("Please install the right application version")))
 	}
 
 	return

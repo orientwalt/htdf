@@ -59,6 +59,11 @@ type (
 	Events []Event
 )
 
+//
+func MakeEvent(ty, k, v string) abci.Event {
+	return abci.Event(NewEvent(ty, NewAttribute(k, v)))
+}
+
 // NewEvent creates a new Event object with a given type and slice of one or more
 // attributes.
 func NewEvent(ty string, attrs ...Attribute) Event {

@@ -369,6 +369,8 @@ github.com/orientwalt/htdf v0.39.1/go.mod h1:ry2ROl5n+f2/QXpKJo3rdWNJwll00z7KhIV
 github.com/orientwalt/tendermint v0.0.0-20201211070718-c1a5f3bef76d h1:jNpLxvfufFr5IT0XUVp225kx3dng9f4mP+C5Q+b0/p0=
 github.com/orientwalt/tendermint v0.0.0-20201211070718-c1a5f3bef76d/go.mod h1:3GwDKPjSM/81fewfhKXdbT2PHPTWtHmUT5Ewa0YB37o=
 github.com/orientwalt/tendermint v0.99.1 h1:hm8fDJDE/26EC1LJJqRMZyFEVQ4pPx8snhuAOCDShJY=
+github.com/orientwalt/tendermint v0.99.2 h1:3ettNtqHnQZxdMXDE5R7gplm17U+0qaasRR9c0mPEAA=
+github.com/orientwalt/tendermint v0.99.2/go.mod h1:3GwDKPjSM/81fewfhKXdbT2PHPTWtHmUT5Ewa0YB37o=
 github.com/pact-foundation/pact-go v1.0.4/go.mod h1:uExwJY4kCzNPcHRj+hCR/HBbOOIwwtUjcrb0b5/5kLM=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=

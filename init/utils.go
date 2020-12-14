@@ -83,7 +83,7 @@ func InitializeNodeValidatorFiles(
 		return nodeID, valPubKey, nil
 	}
 
-	valPubKey = privval.LoadOrGenFilePV(pvKeyFile, pvStateFile).GetPubKey()
+	valPubKey, err = privval.LoadOrGenFilePV(pvKeyFile, pvStateFile).GetPubKey()
 
 	return nodeID, valPubKey, nil
 }

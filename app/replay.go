@@ -17,7 +17,7 @@ func Replay(logger log.Logger) int64 {
 	ctx := server.NewDefaultContext()
 	ctx.Config.RootDir = viper.GetString(tmcli.HomeFlag)
 	dbContext := node.DBContext{"state", ctx.Config}
-	dbType := dbm.DBBackendType(dbContext.Config.DBBackend)
+	dbType := dbm.BackendType(dbContext.Config.DBBackend)
 	stateDB := dbm.NewDB(dbContext.ID, dbType, dbContext.Config.DBDir())
 	defer stateDB.Close()
 
