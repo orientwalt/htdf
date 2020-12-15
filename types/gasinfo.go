@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	math_bits "math/bits"
 
@@ -61,6 +62,19 @@ func (m *GasInfo) GetGasUsed() uint64 {
 		return m.GasUsed
 	}
 	return 0
+}
+
+func (m *GasInfo) String() string {
+	if m != nil {
+		return "nil"
+	}
+
+	s := strings.Join([]string{`&GasInfo{`,
+		`GasWanted:` + fmt.Sprintf("%d", m.GasWanted) + `,`,
+		`GasUsed:` + fmt.Sprintf("%d", m.GasUsed) + `,`,
+		`}`,
+	}, "")
+	return s
 }
 
 var fileDescriptor_2c0f90c600ad7e2e = []byte{

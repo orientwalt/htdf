@@ -68,13 +68,13 @@ type state struct {
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct {
 	// initialized on creation
-	logger log.Logger
-	name   string               // application name from abci.Info
-	db     dbm.DB               // common DB backend
-	cms    sdk.CommitMultiStore // Main (uncached) state
-	// router      Router               // handle any kind of message
-	// queryRouter QueryRouter          // router for redirecting query calls
-	txDecoder sdk.TxDecoder // unmarshal []byte into sdk.Tx
+	logger      log.Logger
+	name        string               // application name from abci.Info
+	db          dbm.DB               // common DB backend
+	cms         sdk.CommitMultiStore // Main (uncached) state
+	router      sdk.Router           // handle any kind of message
+	queryRouter sdk.QueryRouter      // router for redirecting query calls
+	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
 
 	// set upon LoadVersion or LoadLatestVersion.
 	baseKey *sdk.KVStoreKey // Main KVStore in cms
@@ -96,6 +96,10 @@ type BaseApp struct {
 	deliverState *state          // for DeliverTx
 	voteInfos    []abci.VoteInfo // absent validators from begin block
 
+	// paramStore is used to query for ABCI consensus parameters from an
+	// application parameter store.
+	paramStore ParamStore
+
 	// consensus params
 	// TODO: Move this in the future to baseapp param store on main store.
 	consensusParams *abci.ConsensusParams
@@ -108,6 +112,15 @@ type BaseApp struct {
 	sealed bool
 
 	Engine *protocol.ProtocolEngine
+
+	// block height at which to halt the chain and gracefully shutdown
+	haltHeight uint64
+
+	// minimum block time (in Unix seconds) at which to halt the chain and gracefully shutdown
+	haltTime uint64
+
+	// application's version string
+	appVersion string
 }
 
 // var _ abci.Application = (*BaseApp)(nil)
@@ -298,7 +311,7 @@ func (app *BaseApp) setMinGasPrices(gasPrices sdk.Coins) {
 // }
 
 // QueryRouter returns the QueryRouter of a BaseApp.
-//func (app *BaseApp) QueryRouter() QueryRouter { return app.queryRouter }
+func (app *BaseApp) QueryRouter() sdk.QueryRouter { return app.queryRouter }
 
 // Seal seals a BaseApp. It prohibits any further modifications to a BaseApp.
 func (app *BaseApp) Seal() { app.sealed = true }
@@ -327,6 +340,36 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 		ms:  ms,
 		ctx: sdk.NewContext(ms, header, false, app.logger),
 	}
+}
+
+// GetConsensusParams returns the current consensus parameters from the BaseApp's
+// ParamStore. If the BaseApp has no ParamStore defined, nil is returned.
+func (app *BaseApp) GetConsensusParams(ctx sdk.Context) *abci.ConsensusParams {
+	if app.paramStore == nil {
+		return nil
+	}
+
+	cp := new(abci.ConsensusParams)
+
+	if app.paramStore.Has(ctx, ParamStoreKeyBlockParams) {
+		var bp abci.BlockParams
+		app.paramStore.Get(ctx, ParamStoreKeyBlockParams, &bp)
+		cp.Block = &bp
+	}
+
+	if app.paramStore.Has(ctx, ParamStoreKeyEvidenceParams) {
+		var ep abci.EvidenceParams
+		app.paramStore.Get(ctx, ParamStoreKeyEvidenceParams, &ep)
+		cp.Evidence = &ep
+	}
+
+	if app.paramStore.Has(ctx, ParamStoreKeyValidatorParams) {
+		var vp abci.ValidatorParams
+		app.paramStore.Get(ctx, ParamStoreKeyValidatorParams, &vp)
+		cp.Validator = &vp
+	}
+
+	return cp
 }
 
 // setConsensusParams memoizes the consensus params.
@@ -358,15 +401,37 @@ func (app *BaseApp) StoreConsensusParams(ctx sdk.Context, cp *abci.ConsensusPara
 	app.paramStore.Set(ctx, ParamStoreKeyValidatorParams, cp.Validator)
 }
 
+// // getMaximumBlockGas gets the maximum gas from the consensus params. It panics
+// // if maximum block gas is less than negative one and returns zero if negative
+// // one.
+// func (app *BaseApp) getMaximumBlockGas() uint64 {
+// 	if app.consensusParams == nil || app.consensusParams.Block == nil {
+// 		return 0
+// 	}
+
+// 	maxGas := app.consensusParams.Block.MaxGas
+// 	switch {
+// 	case maxGas < -1:
+// 		panic(fmt.Sprintf("invalid maximum block gas: %d", maxGas))
+
+// 	case maxGas == -1:
+// 		return 0
+
+// 	default:
+// 		return uint64(maxGas)
+// 	}
+// }
+
 // getMaximumBlockGas gets the maximum gas from the consensus params. It panics
 // if maximum block gas is less than negative one and returns zero if negative
 // one.
-func (app *BaseApp) getMaximumBlockGas() uint64 {
-	if app.consensusParams == nil || app.consensusParams.Block == nil {
+func (app *BaseApp) getMaximumBlockGas(ctx sdk.Context) uint64 {
+	cp := app.GetConsensusParams(ctx)
+	if cp == nil || cp.Block == nil {
 		return 0
 	}
 
-	maxGas := app.consensusParams.Block.MaxGas
+	maxGas := cp.Block.MaxGas
 	switch {
 	case maxGas < -1:
 		panic(fmt.Sprintf("invalid maximum block gas: %d", maxGas))
@@ -753,7 +818,7 @@ func IsMsgSend(msg sdk.Msg) bool {
 }
 
 // runMsgs iterates through all the messages and executes them.
-func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (result sdk.Result) {
+func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*sdk.Result, error) {
 	msgLogs := make([]sdk.ABCIMessageLog, 0, len(msgs)) // a list of JSON-encoded logs with msg index
 	events := sdk.EmptyEvents()
 
@@ -771,7 +836,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 		//handler := app.router.Route(msgRoute)
 		handler := app.Engine.GetCurrentProtocol().GetRouter().Route(msgRoute)
 		if handler == nil {
-			return sdk.ErrUnknownRequest("Unrecognized Msg type: " + msgRoute).Result()
+			return nil, sdk.ErrUnknownRequest("Unrecognized Msg type: " + msgRoute)
 		}
 
 		var msgResult sdk.Result
@@ -819,7 +884,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 	}
 	logJSON := codec.Cdc.MustMarshalJSON(msgLogs)
 
-	result = sdk.Result{
+	result := &sdk.Result{
 		Code:      code,
 		Codespace: codespace,
 		Data:      data,
@@ -828,7 +893,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (re
 		Events:    events.ToABCIEvents(),
 	}
 	logrus.Traceln("runMsgs	end~~~~~~~~~~~~~~~~~~~~~~~~")
-	return result
+	return result, nil
 }
 
 // Returns the applications's deliverState if app is in runTxModeDeliver,
@@ -910,13 +975,14 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	ctx := app.getContextForTx(mode, txBytes)
 	ms := ctx.MultiStore()
 
+	gInfo = sdk.GasInfo{GasUsed: ctx.BlockGasMeter().GasConsumed()}
 	// only run the tx if there is block gas remaining
 	if mode == runTxModeDeliver && ctx.BlockGasMeter().IsOutOfGas() {
-		return sdk.ErrOutOfGas("no block gas left to run tx").Result()
+		return gInfo, nil, sdk.ErrOutOfGas("no block gas left to run tx")
 	}
 
 	if err := app.ValidateTx(ctx, txBytes, tx); err != nil {
-		return err.Result()
+		return gInfo, nil, err //err.Result()
 	}
 
 	var startingGas uint64
@@ -937,20 +1003,15 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 					"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
 					rType.Descriptor, gasWanted, ctx.GasMeter().GasConsumed(), //result.GasUsed, //
 				)
-				result = sdk.ErrOutOfGas(log).Result()
+				err = sdk.ErrOutOfGas(log)
 			default:
 				log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
-				result = sdk.ErrInternal(log).Result()
+				err = sdk.ErrInternal(log)
 			}
 			logrus.Traceln("2runTx!!!!!!!!!!!!!!!!!", r)
 		}
 
-		result.GasWanted = gasWanted
-		// commented by junying, 2019-10-30
-		// this value is the lethal one that is finally written into blockchain(database)
-		// By this comment, at last, the value changed
-		result.GasUsed = ctx.GasMeter().GasConsumed() // commented before
-
+		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 	}()
 	logrus.Traceln("runTx:result.GasUsed", result.GasUsed)
 	// Add cache in fee refund. If an error is returned or panic happes during refund,
@@ -958,7 +1019,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	defer func() {
 
 		// commented by junying,2019-10-30
-		result.GasUsed = ctx.GasMeter().GasConsumed() // commented before
+		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 
 		var refundCtx sdk.Context
 		var refundCache sdk.CacheMultiStore
@@ -967,10 +1028,8 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 		// Refund unspent fee
 		if mode != runTxModeCheck && feeRefundHandler != nil {
-			_, err := feeRefundHandler(refundCtx, tx, result)
+			_, err := feeRefundHandler(refundCtx, tx, *result)
 			if err != nil {
-				result = sdk.ErrInternal(err.Error()).Result()
-
 				return
 			}
 			refundCache.Write()
@@ -1038,7 +1097,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 		if abort {
 
-			return result
+			return gInfo, nil, err
 		}
 
 		msCache.Write()
@@ -1052,7 +1111,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	// multi-store in case message processing fails.
 	runMsgCtx, msCache := app.cacheTxContext(ctx, txBytes)
 	logrus.Traceln("8runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs(), mode)
-	result = app.runMsgs(runMsgCtx, tx.GetMsgs(), mode)
+	result, err = app.runMsgs(runMsgCtx, tx.GetMsgs(), mode)
 	logrus.Traceln("9runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs())
 	result.GasWanted = gasWanted
 
