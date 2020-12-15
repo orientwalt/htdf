@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
-	"strconv"
 	"strings"
 
 	"errors"
@@ -22,10 +21,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/store"
 	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/version"
-	"github.com/orientwalt/htdf/x/auth"
 	"github.com/sirupsen/logrus"
-	tmstate "github.com/tendermint/tendermint/state"
 )
 
 func init() {
@@ -58,7 +54,8 @@ const (
 	runTxModeSimulate runTxMode = iota
 	// Deliver a transaction
 	runTxModeDeliver runTxMode = iota
-
+	// Recheck a (pending) transaction after a commit
+	runTxModeReCheck = iota
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
 )
@@ -337,14 +334,28 @@ func (app *BaseApp) setConsensusParams(consensusParams *abci.ConsensusParams) {
 	app.consensusParams = consensusParams
 }
 
-// setConsensusParams stores the consensus params to the main store.
-func (app *BaseApp) storeConsensusParams(consensusParams *abci.ConsensusParams) {
-	consensusParamsBz, err := proto.Marshal(consensusParams)
-	if err != nil {
-		panic(err)
+// // setConsensusParams stores the consensus params to the main store.
+// func (app *BaseApp) storeConsensusParams(consensusParams *abci.ConsensusParams) {
+// 	consensusParamsBz, err := proto.Marshal(consensusParams)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	mainStore := app.cms.GetKVStore(app.baseKey)
+// 	mainStore.Set(mainConsensusParamsKey, consensusParamsBz)
+// }
+
+// StoreConsensusParams sets the consensus parameters to the baseapp's param store.
+func (app *BaseApp) StoreConsensusParams(ctx sdk.Context, cp *abci.ConsensusParams) {
+	if app.paramStore == nil {
+		panic("cannot store consensus params with no params store set")
 	}
-	mainStore := app.cms.GetKVStore(app.baseKey)
-	mainStore.Set(mainConsensusParamsKey, consensusParamsBz)
+	if cp == nil {
+		return
+	}
+
+	app.paramStore.Set(ctx, ParamStoreKeyBlockParams, cp.Block)
+	app.paramStore.Set(ctx, ParamStoreKeyEvidenceParams, cp.Evidence)
+	app.paramStore.Set(ctx, ParamStoreKeyValidatorParams, cp.Validator)
 }
 
 // getMaximumBlockGas gets the maximum gas from the consensus params. It panics
@@ -371,223 +382,223 @@ func (app *BaseApp) getMaximumBlockGas() uint64 {
 // ----------------------------------------------------------------------------
 // ABCI
 
-// Info implements the ABCI interface.
-func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
-	lastCommitID := app.cms.LastCommitID()
+// // Info implements the ABCI interface.
+// func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
+// 	lastCommitID := app.cms.LastCommitID()
 
-	return abci.ResponseInfo{
-		AppVersion:       version.ProtocolVersion,
-		Data:             app.name,
-		LastBlockHeight:  lastCommitID.Version,
-		LastBlockAppHash: lastCommitID.Hash,
-	}
-}
+// 	return abci.ResponseInfo{
+// 		AppVersion:       version.ProtocolVersion,
+// 		Data:             app.name,
+// 		LastBlockHeight:  lastCommitID.Version,
+// 		LastBlockAppHash: lastCommitID.Hash,
+// 	}
+// }
 
-// SetOption implements the ABCI interface.
-func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
-	// TODO: Implement!
-	return
-}
+// // SetOption implements the ABCI interface.
+// func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
+// 	// TODO: Implement!
+// 	return
+// }
 
-// InitChain implements the ABCI interface. It runs the initialization logic
-// directly on the CommitMultiStore.
-func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
-	// stash the consensus params in the cms main store and memoize
-	if req.ConsensusParams != nil {
-		app.setConsensusParams(req.ConsensusParams)
-		app.storeConsensusParams(req.ConsensusParams)
-	}
+// // InitChain implements the ABCI interface. It runs the initialization logic
+// // directly on the CommitMultiStore.
+// func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+// 	// stash the consensus params in the cms main store and memoize
+// 	if req.ConsensusParams != nil {
+// 		app.setConsensusParams(req.ConsensusParams)
+// 		app.storeConsensusParams(req.ConsensusParams)
+// 	}
 
-	initHeader := abci.Header{ChainID: req.ChainId, Time: req.Time}
+// 	initHeader := abci.Header{ChainID: req.ChainId, Time: req.Time}
 
-	// initialize the deliver state and check state with a correct header
-	app.setDeliverState(initHeader)
-	app.setCheckState(initHeader)
+// 	// initialize the deliver state and check state with a correct header
+// 	app.setDeliverState(initHeader)
+// 	app.setCheckState(initHeader)
 
-	// if app.initChainer == nil {
-	// 	return
-	// }
-	initChainer := app.Engine.GetCurrentProtocol().GetInitChainer()
-	if initChainer == nil {
-		return
-	}
+// 	// if app.initChainer == nil {
+// 	// 	return
+// 	// }
+// 	initChainer := app.Engine.GetCurrentProtocol().GetInitChainer()
+// 	if initChainer == nil {
+// 		return
+// 	}
 
-	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx = app.deliverState.ctx.
-		WithBlockGasMeter(sdk.NewInfiniteGasMeter())
-	logrus.Traceln("88888888888888888")
-	res = initChainer(app.deliverState.ctx, app.DeliverTx, req)
+// 	// add block gas meter for any genesis transactions (allow infinite gas)
+// 	app.deliverState.ctx = app.deliverState.ctx.
+// 		WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+// 	logrus.Traceln("88888888888888888")
+// 	res = initChainer(app.deliverState.ctx, app.DeliverTx, req)
 
-	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
-	// deliverState.
-	return
-}
+// 	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
+// 	// deliverState.
+// 	return
+// }
 
-// FilterPeerByAddrPort filters peers by address/port.
-func (app *BaseApp) FilterPeerByAddrPort(info string) abci.ResponseQuery {
-	if app.addrPeerFilter != nil {
-		return app.addrPeerFilter(info)
-	}
-	return abci.ResponseQuery{}
-}
+// // FilterPeerByAddrPort filters peers by address/port.
+// func (app *BaseApp) FilterPeerByAddrPort(info string) abci.ResponseQuery {
+// 	if app.addrPeerFilter != nil {
+// 		return app.addrPeerFilter(info)
+// 	}
+// 	return abci.ResponseQuery{}
+// }
 
-// FilterPeerByIDfilters peers by node ID.
-func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
-	if app.idPeerFilter != nil {
-		return app.idPeerFilter(info)
-	}
-	return abci.ResponseQuery{}
-}
+// // FilterPeerByIDfilters peers by node ID.
+// func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
+// 	if app.idPeerFilter != nil {
+// 		return app.idPeerFilter(info)
+// 	}
+// 	return abci.ResponseQuery{}
+// }
 
-// Splits a string path using the delimiter '/'.
-// e.g. "this/is/funny" becomes []string{"this", "is", "funny"}
-func splitPath(requestPath string) (path []string) {
-	path = strings.Split(requestPath, "/")
-	// first element is empty string
-	if len(path) > 0 && path[0] == "" {
-		path = path[1:]
-	}
-	return path
-}
+// // Splits a string path using the delimiter '/'.
+// // e.g. "this/is/funny" becomes []string{"this", "is", "funny"}
+// func splitPath(requestPath string) (path []string) {
+// 	path = strings.Split(requestPath, "/")
+// 	// first element is empty string
+// 	if len(path) > 0 && path[0] == "" {
+// 		path = path[1:]
+// 	}
+// 	return path
+// }
 
-// Query implements the ABCI interface. It delegates to CommitMultiStore if it
-// implements Queryable.
-func (app *BaseApp) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	path := splitPath(req.Path)
-	if len(path) == 0 {
-		msg := "no query path provided"
-		return sdk.ErrUnknownRequest(msg).QueryResult()
-	}
+// // Query implements the ABCI interface. It delegates to CommitMultiStore if it
+// // implements Queryable.
+// func (app *BaseApp) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
+// 	path := splitPath(req.Path)
+// 	if len(path) == 0 {
+// 		msg := "no query path provided"
+// 		return sdk.ErrUnknownRequest(msg).QueryResult()
+// 	}
 
-	switch path[0] {
-	// "/app" prefix for special application queries
-	case "app":
-		return handleQueryApp(app, path, req)
+// 	switch path[0] {
+// 	// "/app" prefix for special application queries
+// 	case "app":
+// 		return handleQueryApp(app, path, req)
 
-	case "store":
-		return handleQueryStore(app, path, req)
+// 	case "store":
+// 		return handleQueryStore(app, path, req)
 
-	case "p2p":
-		return handleQueryP2P(app, path, req)
+// 	case "p2p":
+// 		return handleQueryP2P(app, path, req)
 
-	case "custom":
-		return handleQueryCustom(app, path, req)
-	}
+// 	case "custom":
+// 		return handleQueryCustom(app, path, req)
+// 	}
 
-	msg := "unknown query path"
-	return sdk.ErrUnknownRequest(msg).QueryResult()
-}
+// 	msg := "unknown query path"
+// 	return sdk.ErrUnknownRequest(msg).QueryResult()
+// }
 
-func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
-	if len(path) >= 2 {
-		var result sdk.Result
+// func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
+// 	if len(path) >= 2 {
+// 		var result sdk.Result
 
-		switch path[1] {
-		case "simulate":
-			txBytes := req.Data
-			tx, err := app.txDecoder(txBytes)
-			if err != nil {
-				result = err.Result()
-			} else {
-				result = app.Simulate(txBytes, tx)
-			}
+// 		switch path[1] {
+// 		case "simulate":
+// 			txBytes := req.Data
+// 			tx, err := app.txDecoder(txBytes)
+// 			if err != nil {
+// 				result = err.Result()
+// 			} else {
+// 				result = app.Simulate(txBytes, tx)
+// 			}
 
-		case "version":
-			return abci.ResponseQuery{
-				Code:      uint32(sdk.CodeOK),
-				Codespace: string(sdk.CodespaceRoot),
-				Value:     []byte(version.GetVersion()),
-			}
+// 		case "version":
+// 			return abci.ResponseQuery{
+// 				Code:      uint32(sdk.CodeOK),
+// 				Codespace: string(sdk.CodespaceRoot),
+// 				Value:     []byte(version.GetVersion()),
+// 			}
 
-		default:
-			result = sdk.ErrUnknownRequest(fmt.Sprintf("Unknown query: %s", path)).Result()
-		}
+// 		default:
+// 			result = sdk.ErrUnknownRequest(fmt.Sprintf("Unknown query: %s", path)).Result()
+// 		}
 
-		value := codec.Cdc.MustMarshalBinaryLengthPrefixed(result)
-		return abci.ResponseQuery{
-			Code:      uint32(sdk.CodeOK),
-			Codespace: string(sdk.CodespaceRoot),
-			Value:     value,
-		}
-	}
+// 		value := codec.Cdc.MustMarshalBinaryLengthPrefixed(result)
+// 		return abci.ResponseQuery{
+// 			Code:      uint32(sdk.CodeOK),
+// 			Codespace: string(sdk.CodespaceRoot),
+// 			Value:     value,
+// 		}
+// 	}
 
-	msg := "Expected second parameter to be either simulate or version, neither was present"
-	return sdk.ErrUnknownRequest(msg).QueryResult()
-}
+// 	msg := "Expected second parameter to be either simulate or version, neither was present"
+// 	return sdk.ErrUnknownRequest(msg).QueryResult()
+// }
 
-func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
-	// "/store" prefix for store queries
-	queryable, ok := app.cms.(sdk.Queryable)
-	if !ok {
-		msg := "multistore doesn't support queries"
-		return sdk.ErrUnknownRequest(msg).QueryResult()
-	}
+// func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
+// 	// "/store" prefix for store queries
+// 	queryable, ok := app.cms.(sdk.Queryable)
+// 	if !ok {
+// 		msg := "multistore doesn't support queries"
+// 		return sdk.ErrUnknownRequest(msg).QueryResult()
+// 	}
 
-	req.Path = "/" + strings.Join(path[1:], "/")
-	return queryable.Query(req)
-}
+// 	req.Path = "/" + strings.Join(path[1:], "/")
+// 	return queryable.Query(req)
+// }
 
-func handleQueryP2P(app *BaseApp, path []string, _ abci.RequestQuery) (res abci.ResponseQuery) {
-	// "/p2p" prefix for p2p queries
-	if len(path) >= 4 {
-		cmd, typ, arg := path[1], path[2], path[3]
-		switch cmd {
-		case "filter":
-			switch typ {
-			case "addr":
-				return app.FilterPeerByAddrPort(arg)
-			case "id":
-				return app.FilterPeerByID(arg)
-			}
-		default:
-			msg := "Expected second parameter to be filter"
-			return sdk.ErrUnknownRequest(msg).QueryResult()
-		}
-	}
+// func handleQueryP2P(app *BaseApp, path []string, _ abci.RequestQuery) (res abci.ResponseQuery) {
+// 	// "/p2p" prefix for p2p queries
+// 	if len(path) >= 4 {
+// 		cmd, typ, arg := path[1], path[2], path[3]
+// 		switch cmd {
+// 		case "filter":
+// 			switch typ {
+// 			case "addr":
+// 				return app.FilterPeerByAddrPort(arg)
+// 			case "id":
+// 				return app.FilterPeerByID(arg)
+// 			}
+// 		default:
+// 			msg := "Expected second parameter to be filter"
+// 			return sdk.ErrUnknownRequest(msg).QueryResult()
+// 		}
+// 	}
 
-	msg := "Expected path is p2p filter <addr|id> <parameter>"
-	return sdk.ErrUnknownRequest(msg).QueryResult()
-}
+// 	msg := "Expected path is p2p filter <addr|id> <parameter>"
+// 	return sdk.ErrUnknownRequest(msg).QueryResult()
+// }
 
-func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
-	// path[0] should be "custom" because "/custom" prefix is required for keeper
-	// queries.
-	//
-	// The queryRouter routes using path[1]. For example, in the path
-	// "custom/gov/proposal", queryRouter routes using "gov".
-	if len(path) < 2 || path[1] == "" {
-		return sdk.ErrUnknownRequest("No route for custom query specified").QueryResult()
-	}
+// func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) (res abci.ResponseQuery) {
+// 	// path[0] should be "custom" because "/custom" prefix is required for keeper
+// 	// queries.
+// 	//
+// 	// The queryRouter routes using path[1]. For example, in the path
+// 	// "custom/gov/proposal", queryRouter routes using "gov".
+// 	if len(path) < 2 || path[1] == "" {
+// 		return sdk.ErrUnknownRequest("No route for custom query specified").QueryResult()
+// 	}
 
-	//querier := app.queryRouter.Route(path[1])
-	querier := app.Engine.GetCurrentProtocol().GetQueryRouter().Route(path[1])
-	if querier == nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("no custom querier found for route %s", path[1])).QueryResult()
-	}
+// 	//querier := app.queryRouter.Route(path[1])
+// 	querier := app.Engine.GetCurrentProtocol().GetQueryRouter().Route(path[1])
+// 	if querier == nil {
+// 		return sdk.ErrUnknownRequest(fmt.Sprintf("no custom querier found for route %s", path[1])).QueryResult()
+// 	}
 
-	// cache wrap the commit-multistore for safety
-	ctx := sdk.NewContext(
-		app.cms.CacheMultiStore(), app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+// 	// cache wrap the commit-multistore for safety
+// 	ctx := sdk.NewContext(
+// 		app.cms.CacheMultiStore(), app.checkState.ctx.BlockHeader(), true, app.logger,
+// 	).WithMinGasPrices(app.minGasPrices)
 
-	// Passes the rest of the path as an argument to the querier.
-	//
-	// For example, in the path "custom/gov/proposal/test", the gov querier gets
-	// []string{"proposal", "test"} as the path.
-	resBytes, err := querier(ctx, path[2:], req)
-	if err != nil {
-		return abci.ResponseQuery{
-			Code:      uint32(err.Code()),
-			Codespace: string(err.Codespace()),
-			Log:       err.ABCILog(),
-		}
-	}
+// 	// Passes the rest of the path as an argument to the querier.
+// 	//
+// 	// For example, in the path "custom/gov/proposal/test", the gov querier gets
+// 	// []string{"proposal", "test"} as the path.
+// 	resBytes, err := querier(ctx, path[2:], req)
+// 	if err != nil {
+// 		return abci.ResponseQuery{
+// 			Code:      uint32(err.Code()),
+// 			Codespace: string(err.Codespace()),
+// 			Log:       err.ABCILog(),
+// 		}
+// 	}
 
-	return abci.ResponseQuery{
-		Code:  uint32(sdk.CodeOK),
-		Value: resBytes,
-	}
-}
+// 	return abci.ResponseQuery{
+// 		Code:  uint32(sdk.CodeOK),
+// 		Value: resBytes,
+// 	}
+// }
 
 func (app *BaseApp) validateHeight(req abci.RequestBeginBlock) error {
 	if req.Header.Height < 1 {
@@ -602,105 +613,105 @@ func (app *BaseApp) validateHeight(req abci.RequestBeginBlock) error {
 	return nil
 }
 
-// BeginBlock implements the ABCI application interface.
-func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	if app.cms.TracingEnabled() {
-		app.cms.SetTracingContext(sdk.TraceContext(
-			map[string]interface{}{"blockHeight": req.Header.Height},
-		))
-	}
+// // BeginBlock implements the ABCI application interface.
+// func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+// 	if app.cms.TracingEnabled() {
+// 		app.cms.SetTracingContext(sdk.TraceContext(
+// 			map[string]interface{}{"blockHeight": req.Header.Height},
+// 		))
+// 	}
 
-	if err := app.validateHeight(req); err != nil {
-		panic(err)
-	}
+// 	if err := app.validateHeight(req); err != nil {
+// 		panic(err)
+// 	}
 
-	// Initialize the DeliverTx state. If this is the first block, it should
-	// already be initialized in InitChain. Otherwise app.deliverState will be
-	// nil, since it is reset on Commit.
-	if app.deliverState == nil {
-		app.setDeliverState(req.Header)
-	} else {
-		// In the first block, app.deliverState.ctx will already be initialized
-		// by InitChain. Context is now updated with Header information.
-		app.deliverState.ctx = app.deliverState.ctx.
-			WithBlockHeader(req.Header).
-			WithBlockHeight(req.Header.Height).WithCheckValidNum(0)
-	}
+// 	// Initialize the DeliverTx state. If this is the first block, it should
+// 	// already be initialized in InitChain. Otherwise app.deliverState will be
+// 	// nil, since it is reset on Commit.
+// 	if app.deliverState == nil {
+// 		app.setDeliverState(req.Header)
+// 	} else {
+// 		// In the first block, app.deliverState.ctx will already be initialized
+// 		// by InitChain. Context is now updated with Header information.
+// 		app.deliverState.ctx = app.deliverState.ctx.
+// 			WithBlockHeader(req.Header).
+// 			WithBlockHeight(req.Header.Height).WithCheckValidNum(0)
+// 	}
 
-	// add block gas meter
-	var gasMeter sdk.GasMeter
-	if maxGas := app.getMaximumBlockGas(); maxGas > 0 {
-		gasMeter = sdk.NewGasMeter(maxGas)
-	} else {
-		gasMeter = sdk.NewInfiniteGasMeter()
-	}
+// 	// add block gas meter
+// 	var gasMeter sdk.GasMeter
+// 	if maxGas := app.getMaximumBlockGas(); maxGas > 0 {
+// 		gasMeter = sdk.NewGasMeter(maxGas)
+// 	} else {
+// 		gasMeter = sdk.NewInfiniteGasMeter()
+// 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+// 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
 
-	// if app.beginBlocker != nil {
-	// 	res = app.beginBlocker(app.deliverState.ctx, req)
-	// }
-	beginBlocker := app.Engine.GetCurrentProtocol().GetBeginBlocker()
+// 	// if app.beginBlocker != nil {
+// 	// 	res = app.beginBlocker(app.deliverState.ctx, req)
+// 	// }
+// 	beginBlocker := app.Engine.GetCurrentProtocol().GetBeginBlocker()
 
-	if beginBlocker != nil {
-		res = beginBlocker(app.deliverState.ctx, req)
-	}
-	// set the signed validators for addition to context in deliverTx
-	app.voteInfos = req.LastCommitInfo.GetVotes()
-	return
-}
+// 	if beginBlocker != nil {
+// 		res = beginBlocker(app.deliverState.ctx, req)
+// 	}
+// 	// set the signed validators for addition to context in deliverTx
+// 	app.voteInfos = req.LastCommitInfo.GetVotes()
+// 	return
+// }
 
-// CheckTx implements the ABCI interface. It runs the "basic checks" to see
-// whether or not a transaction can possibly be executed, first decoding, then
-// the ante handler (which checks signatures/fees/ValidateBasic), then finally
-// the route match to see whether a handler exists.
-//
-// NOTE:CheckTx does not run the actual Msg handler function(s).
-func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
-	var result sdk.Result
-	tx, err := app.txDecoder(txBytes)
-	logrus.Traceln("CheckTx88888888888888888888:tx", tx)
-	if err != nil {
-		result = err.Result()
-	} else {
-		result = app.runTx(runTxModeCheck, txBytes, tx)
-	}
+// // CheckTx implements the ABCI interface. It runs the "basic checks" to see
+// // whether or not a transaction can possibly be executed, first decoding, then
+// // the ante handler (which checks signatures/fees/ValidateBasic), then finally
+// // the route match to see whether a handler exists.
+// //
+// // NOTE:CheckTx does not run the actual Msg handler function(s).
+// func (app *BaseApp) CheckTx(txBytes []byte) (res abci.ResponseCheckTx) {
+// 	var result sdk.Result
+// 	tx, err := app.txDecoder(txBytes)
+// 	logrus.Traceln("CheckTx88888888888888888888:tx", tx)
+// 	if err != nil {
+// 		result = err.Result()
+// 	} else {
+// 		result = app.runTx(runTxModeCheck, txBytes, tx)
+// 	}
 
-	return abci.ResponseCheckTx{
-		Code:      uint32(result.Code),
-		Data:      result.Data,
-		Log:       result.Log,
-		GasWanted: int64(result.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(result.GasUsed),   // TODO: Should type accept unsigned ints?
-		// Tags:      result.Events,
-		Events: result.Events,
-	}
-}
+// 	return abci.ResponseCheckTx{
+// 		Code:      uint32(result.Code),
+// 		Data:      result.Data,
+// 		Log:       result.Log,
+// 		GasWanted: int64(result.GasWanted), // TODO: Should type accept unsigned ints?
+// 		GasUsed:   int64(result.GasUsed),   // TODO: Should type accept unsigned ints?
+// 		// Tags:      result.Events,
+// 		Events: result.Events,
+// 	}
+// }
 
-// DeliverTx implements the ABCI interface.
-func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
-	var result sdk.Result
+// // DeliverTx implements the ABCI interface.
+// func (app *BaseApp) DeliverTx(txBytes []byte) (res abci.ResponseDeliverTx) {
+// 	var result sdk.Result
 
-	tx, err := app.txDecoder(txBytes)
-	logrus.Traceln("DeliverTx1111111111111", tx)
-	if err != nil {
-		result = err.Result()
-	} else {
-		result = app.runTx(runTxModeDeliver, txBytes, tx)
-	}
-	logrus.Traceln("DeliverTx1111111111111", result.Data, result.Log, result.Events)
-	// junying-todo, 2019-10-18
-	// this return value is written to database(blockchain)
-	return abci.ResponseDeliverTx{
-		Code:      uint32(result.Code),
-		Codespace: string(result.Codespace),
-		Data:      result.Data,
-		Log:       result.Log,
-		GasWanted: int64(result.GasWanted), // TODO: Should type accept unsigned ints?
-		GasUsed:   int64(result.GasUsed),   // TODO: Should type accept unsigned ints?
-		Events:    result.Events,
-	}
-}
+// 	tx, err := app.txDecoder(txBytes)
+// 	logrus.Traceln("DeliverTx1111111111111", tx)
+// 	if err != nil {
+// 		result = err.Result()
+// 	} else {
+// 		result = app.runTx(runTxModeDeliver, txBytes, tx)
+// 	}
+// 	logrus.Traceln("DeliverTx1111111111111", result.Data, result.Log, result.Events)
+// 	// junying-todo, 2019-10-18
+// 	// this return value is written to database(blockchain)
+// 	return abci.ResponseDeliverTx{
+// 		Code:      uint32(result.Code),
+// 		Codespace: string(result.Codespace),
+// 		Data:      result.Data,
+// 		Log:       result.Log,
+// 		GasWanted: int64(result.GasWanted), // TODO: Should type accept unsigned ints?
+// 		GasUsed:   int64(result.GasUsed),   // TODO: Should type accept unsigned ints?
+// 		Events:    result.Events,
+// 	}
+// }
 
 // // junying-todo, 2019-11-13
 // // ValidateBasic executes basic validator calls for all messages
@@ -890,7 +901,7 @@ func (app *BaseApp) ValidateTx(ctx sdk.Context, txBytes []byte, tx sdk.Tx) sdk.E
 // anteHandler. The provided txBytes may be nil in some cases, eg. in tests. For
 // further details on transaction execution, reference the BaseApp SDK
 // documentation.
-func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk.Result) {
+func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.GasInfo, result *sdk.Result, err error) {
 	// NOTE: GasWanted should be returned by the AnteHandler. GasUsed is
 	// determined by the GasMeter. We need access to the context to get the gas
 	// meter so we initialize upfront.
@@ -1063,69 +1074,69 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (result sdk
 	return
 }
 
-// EndBlock implements the ABCI interface.
-func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	if app.deliverState.ms.TracingEnabled() {
-		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
-	}
+// // EndBlock implements the ABCI interface.
+// func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+// 	if app.deliverState.ms.TracingEnabled() {
+// 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
+// 	}
 
-	// if app.endBlocker != nil {
-	// 	res = app.endBlocker(app.deliverState.ctx, req)
-	// }
-	endBlocker := app.Engine.GetCurrentProtocol().GetEndBlocker()
-	if endBlocker != nil {
-		res = endBlocker(app.deliverState.ctx, req)
-	}
-	_, appVersionStr, ok := abci.GetEventByKey(res.Events, sdk.AppVersionTag)
-	if !ok {
-		return
-	}
+// 	// if app.endBlocker != nil {
+// 	// 	res = app.endBlocker(app.deliverState.ctx, req)
+// 	// }
+// 	endBlocker := app.Engine.GetCurrentProtocol().GetEndBlocker()
+// 	if endBlocker != nil {
+// 		res = endBlocker(app.deliverState.ctx, req)
+// 	}
+// 	_, appVersionStr, ok := abci.GetEventByKey(res.Events, sdk.AppVersionTag)
+// 	if !ok {
+// 		return
+// 	}
 
-	appVersion, _ := strconv.ParseUint(string(appVersionStr.GetValue()), 10, 64)
-	if appVersion <= app.Engine.GetCurrentVersion() {
-		return
-	}
-	fmt.Print("111111111111	", appVersion, "	22222222222	", app.Engine.GetCurrentVersion(), "\n")
-	success := app.Engine.Activate(appVersion)
-	if success {
-		app.txDecoder = auth.DefaultTxDecoder(app.Engine.GetCurrentProtocol().GetCodec())
-		return
-	}
+// 	appVersion, _ := strconv.ParseUint(string(appVersionStr.GetValue()), 10, 64)
+// 	if appVersion <= app.Engine.GetCurrentVersion() {
+// 		return
+// 	}
+// 	fmt.Print("111111111111	", appVersion, "	22222222222	", app.Engine.GetCurrentVersion(), "\n")
+// 	success := app.Engine.Activate(appVersion)
+// 	if success {
+// 		app.txDecoder = auth.DefaultTxDecoder(app.Engine.GetCurrentProtocol().GetCodec())
+// 		return
+// 	}
 
-	if upgradeConfig, ok := app.Engine.ProtocolKeeper.GetUpgradeConfigByStore(app.GetKVStore(protocol.KeyMain)); ok {
-		res.Events = append(res.Events,
-			sdk.MakeEvent("upgrade", tmstate.UpgradeFailureTagKey,
-				("Please install the right application version from "+upgradeConfig.Protocol.Software)))
-	} else {
-		res.Events = append(res.Events,
-			sdk.MakeEvent("upgrade", tmstate.UpgradeFailureTagKey, ("Please install the right application version")))
-	}
+// 	if upgradeConfig, ok := app.Engine.ProtocolKeeper.GetUpgradeConfigByStore(app.GetKVStore(protocol.KeyMain)); ok {
+// 		res.Events = append(res.Events,
+// 			sdk.MakeEvent("upgrade", tmstate.UpgradeFailureTagKey,
+// 				("Please install the right application version from "+upgradeConfig.Protocol.Software)))
+// 	} else {
+// 		res.Events = append(res.Events,
+// 			sdk.MakeEvent("upgrade", tmstate.UpgradeFailureTagKey, ("Please install the right application version")))
+// 	}
 
-	return
-}
+// 	return
+// }
 
-// Commit implements the ABCI interface.
-func (app *BaseApp) Commit() (res abci.ResponseCommit) {
-	header := app.deliverState.ctx.BlockHeader()
+// // Commit implements the ABCI interface.
+// func (app *BaseApp) Commit() (res abci.ResponseCommit) {
+// 	header := app.deliverState.ctx.BlockHeader()
 
-	// write the Deliver state and commit the MultiStore
-	app.deliverState.ms.Write()
-	commitID := app.cms.Commit()
-	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
+// 	// write the Deliver state and commit the MultiStore
+// 	app.deliverState.ms.Write()
+// 	commitID := app.cms.Commit()
+// 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
-	// Reset the Check state to the latest committed.
-	//
-	// NOTE: safe because Tendermint holds a lock on the mempool for Commit.
-	// Use the header from this latest block.
-	app.setCheckState(header)
+// 	// Reset the Check state to the latest committed.
+// 	//
+// 	// NOTE: safe because Tendermint holds a lock on the mempool for Commit.
+// 	// Use the header from this latest block.
+// 	app.setCheckState(header)
 
-	// empty/reset the deliver state
-	app.deliverState = nil
+// 	// empty/reset the deliver state
+// 	app.deliverState = nil
 
-	return abci.ResponseCommit{
-		Data: commitID.Hash,
-	}
-}
+// 	return abci.ResponseCommit{
+// 		Data: commitID.Hash,
+// 	}
+// }
 
 // ----------------------------------------------------------------------------
 // State
