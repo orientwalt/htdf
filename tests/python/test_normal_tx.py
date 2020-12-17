@@ -6,8 +6,8 @@ import pytest
 from pprint import pprint
 from htdfsdk import HtdfRPC, HtdfTxBuilder, htdf_to_satoshi, Address, HtdfPrivateKey
 
-def test_normal_transaction():
 
+def test_normal_tx_send():
     gas_wanted = 30000
     gas_price = 100
     tx_amount = 1
@@ -19,12 +19,11 @@ def test_normal_transaction():
     from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
 
     new_to_addr = HtdfPrivateKey('').address
-    # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
     private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
-    assert from_acc.balance_satoshi > gas_price*gas_wanted + tx_amount
+    assert from_acc.balance_satoshi > gas_price * gas_wanted + tx_amount
 
     signed_tx = HtdfTxBuilder(
         from_address=from_addr,
@@ -36,13 +35,13 @@ def test_normal_transaction():
         gas_price=gas_price,
         gas_wanted=gas_wanted,
         data=data,
-        memo= memo
+        memo=memo
     ).build_and_sign(private_key=private_key)
 
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    mempool =  htdfrpc.get_mempool_trasactions()
+    mempool = htdfrpc.get_mempool_trasactions()
     pprint(mempool)
 
     memtx = htdfrpc.get_mempool_transaction(transaction_hash=tx_hash)
@@ -76,7 +75,7 @@ def test_normal_transaction():
 
     time.sleep(5)  # wait for chain state update
 
-    to_acc = htdfrpc.get_account_info(address= new_to_addr.address)
+    to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     assert to_acc is not None
     assert to_acc.balance_satoshi == tx_amount
 
@@ -84,14 +83,11 @@ def test_normal_transaction():
     assert from_acc_new.address == from_acc.address
     assert from_acc_new.sequence == from_acc.sequence + 1
     assert from_acc_new.account_number == from_acc.account_number
-    assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price*gas_wanted + tx_amount)
+    assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * gas_wanted + tx_amount)
 
 
-
-def test_normal_transaction_with_data():
+def test_normal_tx_with_data():
     # protocol_version = subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json | jq .current_version.UpgradeInfo.Protocol.version')
-    # outputs = json.loads( subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json') )
-    protocol_version =  2 #int(outputs['current_version']['UpgradeInfo']['Protocol']['version'])
 
     gas_wanted = 7500000
     gas_price = 100
@@ -100,6 +96,9 @@ def test_normal_transaction_with_data():
     memo = 'test_normal_transaction_with_data'
 
     htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+
+    upgrade_info = htdfrpc.get_upgrade_info()
+    protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
     from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
 
@@ -138,7 +137,7 @@ def test_normal_transaction_with_data():
 
     tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
 
-    if protocol_version < 2: # v0 and v1
+    if protocol_version < 2:  # v0 and v1
         assert tx['logs'][0]['success'] == True
         assert tx['gas_wanted'] == str(gas_wanted)
         assert int(tx['gas_used']) < gas_wanted
@@ -172,7 +171,7 @@ def test_normal_transaction_with_data():
         assert from_acc_new.sequence == from_acc.sequence + 1
         assert from_acc_new.account_number == from_acc.account_number
         assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * int(tx['gas_used']) + tx_amount)
-    elif protocol_version == 2: # v2
+    elif protocol_version == 2:  # v2
 
         # because of `data` isn't empty. `to` must be correct contract address, if not,
         # this transaction be failed in V2 handler
@@ -212,19 +211,13 @@ def test_normal_transaction_with_data():
         assert from_acc_new.address == from_acc.address
         assert from_acc_new.sequence == from_acc.sequence + 1
         assert from_acc_new.account_number == from_acc.account_number
-        assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * gas_wanted )
+        assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * gas_wanted)
     else:
         raise Exception("invalid protocol version {}".format(protocol_version))
     pass
 
 
-
-
-def test_normal_transaction_with_data_excess_100000bytes():
-    # protocol_version = subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json | jq .current_version.UpgradeInfo.Protocol.version')
-    # outputs = json.loads( subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json') )
-    protocol_version =  2 #int(outputs['current_version']['UpgradeInfo']['Protocol']['version'])
-
+def test_txsize_excess_100000bytes():
     gas_wanted = 7500000
     gas_price = 100
     tx_amount = 1
@@ -233,10 +226,12 @@ def test_normal_transaction_with_data_excess_100000bytes():
     # in protocol V2, TxSizeLimit is 100000 bytes
     data = 'ff' * 50000
 
-
     memo = 'test_normal_transaction_with_data_excess_100000bytes'
 
     htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+
+    upgrade_info = htdfrpc.get_upgrade_info()
+    protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
     from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
 
@@ -261,11 +256,10 @@ def test_normal_transaction_with_data_excess_100000bytes():
         memo=memo
     ).build_and_sign(private_key=private_key)
 
-
-    if protocol_version < 2: # v0 and v1
+    if protocol_version < 2:  # v0 and v1
         # TODO:
         pass
-    elif protocol_version == 2: # v2
+    elif protocol_version == 2:  # v2
 
         try:
             tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
@@ -282,12 +276,7 @@ def test_normal_transaction_with_data_excess_100000bytes():
     pass
 
 
-
-def test_normal_transaction_gas_wanted():
-    # protocol_version = subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json | jq .current_version.UpgradeInfo.Protocol.version')
-    # outputs = json.loads( subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json') )
-    protocol_version =  2 #int(outputs['current_version']['UpgradeInfo']['Protocol']['version'])
-
+def test_normal_tx_gas_wanted_adjust():
     # in protocol V2, if gasWanted is greater than 210000, anteHandler will adjust tx's gasWanted to 30000
     # in protocol V2, max gasWanted is 7500000
     gas_wanted = 210001
@@ -300,13 +289,13 @@ def test_normal_transaction_gas_wanted():
     data = ''
     memo = 'test_normal_transaction_gas_wanted'
 
-
     htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    upgrade_info = htdfrpc.get_upgrade_info()
+    protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
     from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
 
     new_to_addr = HtdfPrivateKey('').address
-    # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
     private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
@@ -412,29 +401,27 @@ def test_normal_transaction_gas_wanted():
         assert from_acc_new.address == from_acc.address
         assert from_acc_new.sequence == from_acc.sequence + 1
         assert from_acc_new.account_number == from_acc.account_number
-        assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * normal_send_tx_gas_wanted + tx_amount)
+        assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (
+                gas_price * normal_send_tx_gas_wanted + tx_amount)
     else:
         raise Exception("invalid protocol version {}".format(protocol_version))
     pass
 
 
-def test_normal_transaction_gas_wanted_excess_7500000():
-    # protocol_version = subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json | jq .current_version.UpgradeInfo.Protocol.version')
-    # outputs = json.loads( subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json') )
-    protocol_version =  2 #int(outputs['current_version']['UpgradeInfo']['Protocol']['version'])
-
-    gas_wanted = 7500001   # v2  max gas_wanted is 7500000
+def test_normal_tx_gas_wanted_excess_7500000():
+    gas_wanted = 7500001  # v2  max gas_wanted is 7500000
     gas_price = 100
     tx_amount = 1
     data = ''
     memo = 'test_normal_transaction_gas_wanted_excess_7500000'
 
     htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    upgrade_info = htdfrpc.get_upgrade_info()
+    protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
     from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
 
     new_to_addr = HtdfPrivateKey('').address
-    # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
     private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
@@ -500,11 +487,181 @@ def test_normal_transaction_gas_wanted_excess_7500000():
         assert from_acc_new.address == from_acc.address
         assert from_acc_new.sequence == from_acc.sequence + 1
         assert from_acc_new.account_number == from_acc.account_number
-        assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - ( gas_price * int(tx['gas_used']) + tx_amount)
-
+        assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * int(tx['gas_used']) + tx_amount)
 
     pass
 
 
+def test_balance_less_than_fee_tx():
+    """
+    test for issue #6
+
+    In protocol v0 and v1 , if a account's balance less than fee( gas_wanted * gas_price)
+    its transactions still could be included into a block.
+
+    In protocol v2, if a account's balance less than fee(gas_wanted * gas_price), its transaction
+    will be rejected when it be broadcasted.
+    """
+
+    gas_wanted = 30000
+    gas_price = 100
+    tx_amount = 1
+    data = ''
+    memo = 'test_balance_less_than_fee_tx'
+
+    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+
+    upgrade_info = htdfrpc.get_upgrade_info()
+    protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
+
+    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+
+    new_to_privkey = HtdfPrivateKey('')
+    new_to_addr = new_to_privkey.address
+    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    from_acc = htdfrpc.get_account_info(address=from_addr.address)
+
+    assert from_acc is not None
+    assert from_acc.balance_satoshi > gas_price * gas_wanted + tx_amount
+
+    signed_tx = HtdfTxBuilder(
+        from_address=from_addr,
+        to_address=new_to_addr,
+        amount_satoshi=tx_amount,
+        sequence=from_acc.sequence,
+        account_number=from_acc.account_number,
+        chain_id=htdfrpc.chain_id,
+        gas_price=gas_price,
+        gas_wanted=gas_wanted,
+        data=data,
+        memo=memo
+    ).build_and_sign(private_key=private_key)
+
+    tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
+    print('tx_hash: {}'.format(tx_hash))
+
+    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    assert tx['logs'][0]['success'] == True
+
+    time.sleep(5)  # wait for chain state update
+    to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
+    assert to_acc is not None
+    assert to_acc.balance_satoshi == tx_amount
+
+    signed_tx_back = HtdfTxBuilder(
+        from_address=new_to_addr,
+        to_address=from_addr,
+        amount_satoshi=tx_amount,
+        sequence=to_acc.sequence,
+        account_number=to_acc.account_number,
+        chain_id=htdfrpc.chain_id,
+        gas_price=gas_price,
+        gas_wanted=gas_wanted,
+        data=data,
+        memo=memo
+    ).build_and_sign(private_key=new_to_privkey)
+
+    if protocol_version < 2:
+        tx_hash_back = htdfrpc.broadcast_tx(tx_hex=signed_tx_back)
+        print('tx_hash_back: {}'.format(tx_hash_back))
+
+        tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash_back)
+        assert tx['logs'][0]['success'] == False
+
+        time.sleep(5)  # wait for chain state update
+        to_acc_new = htdfrpc.get_account_info(address=new_to_addr.address)
+        assert to_acc_new is not None
+        assert to_acc_new.address == to_acc.address
+        assert to_acc_new.balance_satoshi == to_acc.balance_satoshi  # balance not change
+        assert to_acc_new.sequence == to_acc.sequence + 1  # sequence changed
+        assert to_acc_new.account_number == to_acc.account_number
+
+    elif protocol_version == 2:
+        try:
+            tx_hash_back = htdfrpc.broadcast_tx(tx_hex=signed_tx_back)
+            print('tx_hash_back: {}'.format(tx_hash_back))
+            # error
+            assert False == True
+        except Exception as e:
+            # ok
+            print(e)
+
+            to_acc_new = htdfrpc.get_account_info(address=new_to_addr.address)
+            assert to_acc_new is not None
+            assert to_acc_new.address == to_acc.address
+            assert to_acc_new.balance_satoshi == to_acc.balance_satoshi  # balance not change
+            assert to_acc_new.sequence == to_acc.sequence  # sequence not change
+            assert to_acc_new.account_number == to_acc.account_number
+
+            pass
+    else:
+        raise Exception("invalid protocol version:{}".format(protocol_version))
+
+    pass
 
 
+def test_5000_normal_send_txs():
+    """
+    Node's mempool size is 5000 txs by default, if mempool is full, tx will be rejected.
+    the blockGasLimit of tendermint is 15,000,000 , if a tx's gasWanted is 30000,
+    single block could include 500 txs.
+    """
+
+    txs_count = 5000
+    gas_wanted = 30000
+    gas_price = 100
+    tx_amount = 1
+    data = ''
+    memo = 'test_2000_normal_send_txs'
+
+    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+
+    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+
+    new_to_addr = HtdfPrivateKey('').address
+    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    from_acc = htdfrpc.get_account_info(address=from_addr.address)
+
+    assert from_acc is not None
+    assert from_acc.balance_satoshi > (gas_price * gas_wanted + tx_amount) * txs_count
+
+    signed_tx_list = []
+
+    for n in range(txs_count):
+        signed_tx = HtdfTxBuilder(
+            from_address=from_addr,
+            to_address=new_to_addr,
+            amount_satoshi=tx_amount,
+            sequence=from_acc.sequence + n,
+            account_number=from_acc.account_number,
+            chain_id=htdfrpc.chain_id,
+            gas_price=gas_price,
+            gas_wanted=gas_wanted,
+            data=data,
+            memo=memo
+        ).build_and_sign(private_key=private_key)
+
+        signed_tx_list.append(signed_tx)
+
+    tx_hash_list = []
+    for n in range(txs_count):
+        tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx_list[n])
+        # print('tx_hash: {}'.format(tx_hash))
+        tx_hash_list.append(tx_hash)
+
+    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash_list[-1], timeout_secs=(txs_count / 500.0 * 6.0))
+    assert tx['logs'][0]['success'] == True
+
+    time.sleep(5)  # wait for chain state update
+
+    to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
+    assert to_acc is not None
+    assert to_acc.balance_satoshi == tx_amount * txs_count
+
+    from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
+    assert from_acc_new.address == from_acc.address
+    assert from_acc_new.sequence == from_acc.sequence + txs_count
+    assert from_acc_new.account_number == from_acc.account_number
+    assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * gas_wanted + tx_amount) * txs_count
+
+    pass
