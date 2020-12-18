@@ -11,18 +11,18 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/x/slashing"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 )
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec) {
 	r.HandleFunc(
 		"/slashing/validators/{validatorPubKey}/signing_info",
-		signingInfoHandlerFn(cliCtx, slashing.StoreKey, cdc),
+		signingInfoHandlerFn(cliCtx, slashingtypes.StoreKey, cdc),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/slashing/signing_infos",
-		signingInfoHandlerListFn(cliCtx, slashing.StoreKey, cdc),
+		signingInfoHandlerListFn(cliCtx, slashingtypes.StoreKey, cdc),
 	).Methods("GET").Queries("page", "{page}", "limit", "{limit}")
 
 	r.HandleFunc(
@@ -55,7 +55,7 @@ func signingInfoHandlerFn(cliCtx context.CLIContext, storeName string, cdc *code
 // http request handler to query signing info
 func signingInfoHandlerListFn(cliCtx context.CLIContext, storeName string, cdc *codec.Codec) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var signingInfoList []slashing.ValidatorSigningInfo
+		var signingInfoList []slashingtypes.ValidatorSigningInfo
 
 		_, page, limit, err := rest.ParseHTTPArgs(r)
 		if err != nil {
@@ -105,7 +105,7 @@ func signingInfoHandlerListFn(cliCtx context.CLIContext, storeName string, cdc *
 
 func queryParamsHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		route := fmt.Sprintf("custom/%s/parameters", slashing.QuerierRoute)
+		route := fmt.Sprintf("custom/%s/parameters", slashingtypes.QuerierRoute)
 
 		res, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
@@ -117,8 +117,8 @@ func queryParamsHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.Hand
 	}
 }
 
-func getSigningInfo(cliCtx context.CLIContext, storeName string, cdc *codec.Codec, address []byte) (signingInfo slashing.ValidatorSigningInfo, code int, err error) {
-	key := slashing.GetValidatorSigningInfoKey(sdk.ConsAddress(address))
+func getSigningInfo(cliCtx context.CLIContext, storeName string, cdc *codec.Codec, address []byte) (signingInfo slashingtypes.ValidatorSigningInfo, code int, err error) {
+	key := slashingtypes.GetValidatorSigningInfoKey(sdk.ConsAddress(address))
 
 	res, err := cliCtx.QueryStore(key, storeName)
 	if err != nil {

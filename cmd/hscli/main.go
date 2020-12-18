@@ -32,8 +32,8 @@ import (
 	gv "github.com/orientwalt/htdf/x/gov"
 	gov "github.com/orientwalt/htdf/x/gov/client/rest"
 	mint "github.com/orientwalt/htdf/x/mint/client/rest"
-	sl "github.com/orientwalt/htdf/x/slashing"
 	slashing "github.com/orientwalt/htdf/x/slashing/client/rest"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 	st "github.com/orientwalt/htdf/x/staking"
 	staking "github.com/orientwalt/htdf/x/staking/client/rest"
 
@@ -78,7 +78,7 @@ func main() {
 		hsgovClient.NewModuleClient(gv.StoreKey, cdc),
 		hsdistClient.NewModuleClient(distcmd.StoreKey, cdc),
 		hstakingClient.NewModuleClient(st.StoreKey, cdc),
-		hslashingClient.NewModuleClient(sl.StoreKey, cdc),
+		hslashingClient.NewModuleClient(slashingtypes.StoreKey, cdc),
 	}
 
 	rootCmd := &cobra.Command{

@@ -3,11 +3,12 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
-	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 	"net/http"
 	"strconv"
 	"time"
+
+	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
+	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 
 	"github.com/gorilla/mux"
 	"github.com/orientwalt/htdf/client"
@@ -62,8 +63,7 @@ func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
 			return nil, err
 		}
 
-		err = tmliteProxy.ValidateBlockMeta(res.BlockMeta, check)
-		if err != nil {
+		if err := tmliteProxy.ValidateHeader(&res.Block.Header, check); err != nil {
 			return nil, err
 		}
 
@@ -212,7 +212,7 @@ type GetTxResponse struct {
 	Info      string              `json:"info,omitempty"`
 	GasWanted int64               `json:"gas_wanted,omitempty"`
 	GasUsed   int64               `json:"gas_used,omitempty"`
-	Tags      sdk.StringTags      `json:"tags,omitempty"`
+	Events    sdk.StringEvents    `json:"events,omitempty"`
 	Codespace string              `json:"codespace,omitempty"`
 	Tx        StdTx               `json:"tx,omitempty"`
 	// Data      string              `json:"data,omitempty"`
@@ -254,10 +254,10 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 			return
 		}
 
-		blockInfo.BlockMeta = resultBlock.BlockMeta
+		// blockInfo.BlockMeta = resultBlock.BlockMeta
 		blockInfo.Block.Evidence = resultBlock.Block.Evidence
 		blockInfo.Block.LastCommit = resultBlock.Block.LastCommit
-		blockInfo.Time = resultBlock.BlockMeta.Header.Time.Local().Format("2006-01-02 15:04:05")
+		blockInfo.Time = resultBlock.Block.Header.Time.Local().Format("2006-01-02 15:04:05")
 
 		for _, tx := range resultBlock.Block.Data.Txs {
 			sdkTx, err := parseTx(cdc, tx)
@@ -394,7 +394,7 @@ func GetTxFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
 		getTxResponse.Info = txResp.Info
 		getTxResponse.GasWanted = txResp.GasWanted
 		getTxResponse.GasUsed = txResp.GasUsed
-		getTxResponse.Tags = txResp.Tags
+		getTxResponse.Events = txResp.Events
 		getTxResponse.Codespace = txResp.Codespace
 
 		// switch currTx := txResp.Tx.(type) {

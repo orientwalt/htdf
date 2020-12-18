@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/orientwalt/htdf/accounts/keystore"
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/client/rpc"
@@ -11,10 +13,9 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	sdkRest "github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/utils/unit_convert"
-	"net/http"
 
 	"github.com/orientwalt/htdf/x/auth"
-	"github.com/orientwalt/htdf/x/core"
+	htdfservice "github.com/orientwalt/htdf/x/core"
 	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
 	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 )
@@ -180,7 +181,7 @@ func GetAccountTxsFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFu
 								displayTx.Amount = unit_convert.DefaultCoinsToBigCoins(msg.Amount)
 								displayTx.Hash = hex.EncodeToString(tx.Hash())
 								displayTx.Height = height
-								displayTx.Time = resultBlock.BlockMeta.Header.Time.Local().Format("2006-01-02 15:04:05")
+								displayTx.Time = resultBlock.Block.Header.Time.Local().Format("2006-01-02 15:04:05")
 								displayTx.Memo = iMsg.Memo
 								displayTx.Data = msg.Data
 

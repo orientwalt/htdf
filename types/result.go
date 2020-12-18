@@ -323,9 +323,9 @@ type TxResponse struct {
 	Info      string          `json:"info,omitempty"`
 	GasWanted int64           `json:"gas_wanted,omitempty"`
 	GasUsed   int64           `json:"gas_used,omitempty"`
-	// Tags      StringTags      `json:"tags,omitempty"`
-	Tx        Tx     `json:"tx,omitempty"`
-	Timestamp string `json:"timestamp,omitempty"`
+	Events    StringEvents    `json:"events,omitempty"`
+	Tx        Tx              `json:"tx,omitempty"`
+	Timestamp string          `json:"timestamp,omitempty"`
 }
 
 // NewResponseResultTx returns a TxResponse given a ResultTx from tendermint
@@ -417,7 +417,7 @@ func newTxResponseDeliverTx(res *ctypes.ResultBroadcastTxCommit) TxResponse {
 		Info:      res.DeliverTx.Info,
 		GasWanted: res.DeliverTx.GasWanted,
 		GasUsed:   res.DeliverTx.GasUsed,
-		// Tags:      TagsToStringTags(res.DeliverTx.Tags),
+		Events:    StringifyEvents(res.DeliverTx.Events),
 	}
 }
 
@@ -469,9 +469,9 @@ func (r TxResponse) String() string {
 	if r.GasUsed != 0 {
 		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
 	}
-	//if len(r.Tags) > 0 {
-	//	sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Tags.String()))
-	//}
+	if len(r.Events) > 0 {
+		sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Events.String()))
+	}
 
 	if r.Codespace != "" {
 		sb.WriteString(fmt.Sprintf("  Codespace: %s\n", r.Codespace))
