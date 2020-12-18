@@ -39,7 +39,7 @@ func SearchTxs(cliCtx context.CLIContext, cdc *codec.Codec, tags []string, page,
 
 	prove := !cliCtx.TrustNode
 
-	resTxs, err := node.TxSearch(query, prove, page, limit)
+	resTxs, err := node.TxSearch(query, prove, page, limit, "asc")
 	if err != nil {
 		return nil, err
 	}
