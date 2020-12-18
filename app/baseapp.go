@@ -21,6 +21,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/store"
 	sdk "github.com/orientwalt/htdf/types"
+	sdkerrors "github.com/orientwalt/htdf/types/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -836,7 +837,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		//handler := app.router.Route(msgRoute)
 		handler := app.Engine.GetCurrentProtocol().GetRouter().Route(msgRoute)
 		if handler == nil {
-			return nil, sdk.ErrUnknownRequest("Unrecognized Msg type: " + msgRoute)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, msgIdx)
 		}
 
 		var msgResult sdk.Result
@@ -978,7 +979,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	gInfo = sdk.GasInfo{GasUsed: ctx.BlockGasMeter().GasConsumed()}
 	// only run the tx if there is block gas remaining
 	if mode == runTxModeDeliver && ctx.BlockGasMeter().IsOutOfGas() {
-		return gInfo, nil, sdk.ErrOutOfGas("no block gas left to run tx")
+		return gInfo, nil, sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx") //sdk.ErrOutOfGas("no block gas left to run tx")
 	}
 
 	if err := app.ValidateTx(ctx, txBytes, tx); err != nil {
@@ -999,14 +1000,18 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		if r := recover(); r != nil {
 			switch rType := r.(type) {
 			case sdk.ErrorOutOfGas:
-				log := fmt.Sprintf(
-					"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
-					rType.Descriptor, gasWanted, ctx.GasMeter().GasConsumed(), //result.GasUsed, //
+				err = sdkerrors.Wrap(
+					sdkerrors.ErrOutOfGas, fmt.Sprintf(
+						"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
+						rType.Descriptor, gasWanted, ctx.GasMeter().GasConsumed(),
+					),
 				)
-				err = sdk.ErrOutOfGas(log)
 			default:
-				log := fmt.Sprintf("recovered: %v\nstack:\n%v", r, string(debug.Stack()))
-				err = sdk.ErrInternal(log)
+				err = sdkerrors.Wrap(
+					sdkerrors.ErrPanic, fmt.Sprintf(
+						"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
+					),
+				)
 			}
 			logrus.Traceln("2runTx!!!!!!!!!!!!!!!!!", r)
 		}
