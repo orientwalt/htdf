@@ -8,9 +8,19 @@ import time
 from pprint import pprint
 
 from eth_utils import remove_0x_prefix, to_checksum_address
-from htdfsdk import HtdfRPC, Address, HtdfPrivateKey, HtdfTxBuilder, HtdfContract
+from htdfsdk import HtdfRPC, Address, HtdfPrivateKey, HtdfTxBuilder, HtdfContract, htdf_to_satoshi
 
 hrc20_contract_address = []
+
+
+
+@pytest.fixture(scope="module", autouse=True)
+def check_balance():
+    print("====> check_balance <=======")
+    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    acc = htdfrpc.get_account_info(address=from_addr.address)
+    assert acc.balance_satoshi > htdf_to_satoshi(100000)
 
 
 @pytest.fixture(scope='module', autouse=True)

@@ -13,6 +13,15 @@ from htdfsdk import HtdfRPC, Address, HtdfPrivateKey, HtdfTxBuilder, HtdfContrac
 htdf_faucet_contract_address = []
 
 
+@pytest.fixture(scope="module", autouse=True)
+def check_balance():
+    print("====> check_balance <=======")
+    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    acc = htdfrpc.get_account_info(address=from_addr.address)
+    assert acc.balance_satoshi > htdf_to_satoshi(100000)
+
+
 @pytest.fixture(scope='module', autouse=True)
 def test_deploy_htdf_faucet():
     """

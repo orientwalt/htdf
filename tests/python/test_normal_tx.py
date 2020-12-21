@@ -7,6 +7,15 @@ from pprint import pprint
 from htdfsdk import HtdfRPC, HtdfTxBuilder, htdf_to_satoshi, Address, HtdfPrivateKey
 
 
+@pytest.fixture(scope="module", autouse=True)
+def check_balance():
+    print("====> check_balance <=======")
+    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    acc = htdfrpc.get_account_info(address=from_addr.address)
+    assert acc.balance_satoshi > htdf_to_satoshi(100000)
+
+
 def test_normal_tx_send():
     gas_wanted = 30000
     gas_price = 100
@@ -664,4 +673,14 @@ def test_5000_normal_send_txs():
     assert from_acc_new.account_number == from_acc.account_number
     assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * gas_wanted + tx_amount) * txs_count
 
+    pass
+
+
+
+def main():
+    pass
+
+
+if __name__ == '__main__':
+    pytest.main('test_normal_tx.py')
     pass
