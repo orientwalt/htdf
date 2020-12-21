@@ -45,6 +45,7 @@ import (
 	hslashingClient "github.com/orientwalt/htdf/x/slashing/client"
 	hstakingClient "github.com/orientwalt/htdf/x/staking/client"
 	upgradecmd "github.com/orientwalt/htdf/x/upgrade/client/cli"
+	upgraderest "github.com/orientwalt/htdf/x/upgrade/client/rest"
 )
 
 const (
@@ -127,6 +128,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	slashing.RegisterRoutes(rs.CliCtx, rs.Mux, rs.Cdc, rs.KeyBase)
 	gov.RegisterRoutes(rs.CliCtx, rs.Mux, rs.Cdc)
 	mint.RegisterRoutes(rs.CliCtx, rs.Mux, rs.Cdc)
+	upgraderest.RegisterRoutes(rs.CliCtx, rs.Mux, rs.Cdc)
 }
 
 func versionCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {
