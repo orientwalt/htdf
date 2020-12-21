@@ -8,27 +8,39 @@ from htdfsdk import HtdfRPC, HtdfTxBuilder, htdf_to_satoshi, Address, HtdfPrivat
 
 
 @pytest.fixture(scope="module", autouse=True)
-def check_balance():
+def check_balance(conftest_args):
     print("====> check_balance <=======")
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
+    from_addr = Address(conftest_args['ADDRESS'])
     acc = htdfrpc.get_account_info(address=from_addr.address)
     assert acc.balance_satoshi > htdf_to_satoshi(100000)
 
+def test_get_params(conftest_args):
+    test_chain_id = conftest_args['CHAINID']
+    test_address = conftest_args['ADDRESS']
+    test_private_key = conftest_args['PRIVATE_KEY']
+    test_rpc_host = conftest_args['RPC_HOST']
+    test_rpc_port = conftest_args['RPC_PORT']
+    print(test_chain_id)
+    print(test_address)
+    print(test_private_key)
+    print(test_rpc_host)
+    print(test_rpc_port)
 
-def test_normal_tx_send():
+
+def test_normal_tx_send(conftest_args):
     gas_wanted = 30000
     gas_price = 100
     tx_amount = 1
     data = ''
     memo = 'test_normal_transaction'
 
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    from_addr = Address(conftest_args['ADDRESS'])
 
     new_to_addr = HtdfPrivateKey('').address
-    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -95,7 +107,7 @@ def test_normal_tx_send():
     assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * gas_wanted + tx_amount)
 
 
-def test_normal_tx_with_data():
+def test_normal_tx_with_data(conftest_args):
     # protocol_version = subprocess.getoutput('hscli query  upgrade info  --chain-id=testchain -o json | jq .current_version.UpgradeInfo.Protocol.version')
 
     gas_wanted = 7500000
@@ -104,16 +116,16 @@ def test_normal_tx_with_data():
     data = 'ff' * 1000
     memo = 'test_normal_transaction_with_data'
 
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
     upgrade_info = htdfrpc.get_upgrade_info()
     protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    from_addr = Address(conftest_args['ADDRESS'])
 
     new_to_addr = HtdfPrivateKey('').address
     # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
-    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -226,7 +238,7 @@ def test_normal_tx_with_data():
     pass
 
 
-def test_txsize_excess_100000bytes():
+def test_txsize_excess_100000bytes(conftest_args):
     gas_wanted = 7500000
     gas_price = 100
     tx_amount = 1
@@ -237,16 +249,16 @@ def test_txsize_excess_100000bytes():
 
     memo = 'test_normal_transaction_with_data_excess_100000bytes'
 
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
     upgrade_info = htdfrpc.get_upgrade_info()
     protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    from_addr = Address(conftest_args['ADDRESS'])
 
     new_to_addr = HtdfPrivateKey('').address
     # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
-    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -285,7 +297,7 @@ def test_txsize_excess_100000bytes():
     pass
 
 
-def test_normal_tx_gas_wanted_adjust():
+def test_normal_tx_gas_wanted_adjust(conftest_args):
     # in protocol V2, if gasWanted is greater than 210000, anteHandler will adjust tx's gasWanted to 30000
     # in protocol V2, max gasWanted is 7500000
     gas_wanted = 210001
@@ -298,14 +310,14 @@ def test_normal_tx_gas_wanted_adjust():
     data = ''
     memo = 'test_normal_transaction_gas_wanted'
 
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
     upgrade_info = htdfrpc.get_upgrade_info()
     protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    from_addr = Address(conftest_args['ADDRESS'])
 
     new_to_addr = HtdfPrivateKey('').address
-    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -417,21 +429,21 @@ def test_normal_tx_gas_wanted_adjust():
     pass
 
 
-def test_normal_tx_gas_wanted_excess_7500000():
+def test_normal_tx_gas_wanted_excess_7500000(conftest_args):
     gas_wanted = 7500001  # v2  max gas_wanted is 7500000
     gas_price = 100
     tx_amount = 1
     data = ''
     memo = 'test_normal_transaction_gas_wanted_excess_7500000'
 
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
     upgrade_info = htdfrpc.get_upgrade_info()
     protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    from_addr = Address(conftest_args['ADDRESS'])
 
     new_to_addr = HtdfPrivateKey('').address
-    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -501,7 +513,7 @@ def test_normal_tx_gas_wanted_excess_7500000():
     pass
 
 
-def test_balance_less_than_fee_tx():
+def test_balance_less_than_fee_tx(conftest_args):
     """
     test for issue #6
 
@@ -518,16 +530,16 @@ def test_balance_less_than_fee_tx():
     data = ''
     memo = 'test_balance_less_than_fee_tx'
 
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
     upgrade_info = htdfrpc.get_upgrade_info()
     protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    from_addr = Address(conftest_args['ADDRESS'])
 
     new_to_privkey = HtdfPrivateKey('')
     new_to_addr = new_to_privkey.address
-    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -609,7 +621,7 @@ def test_balance_less_than_fee_tx():
     pass
 
 
-def test_5000_normal_send_txs():
+def test_5000_normal_send_txs(conftest_args):
     """
     Node's mempool size is 5000 txs by default, if mempool is full, tx will be rejected.
     the blockGasLimit of tendermint is 15,000,000 , if a tx's gasWanted is 30000,
@@ -623,12 +635,12 @@ def test_5000_normal_send_txs():
     data = ''
     memo = 'test_2000_normal_send_txs'
 
-    htdfrpc = HtdfRPC(chaid_id='testchain', rpc_host='192.168.0.171', rpc_port=1317)
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    from_addr = Address('htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml')
+    from_addr = Address(conftest_args['ADDRESS'])
 
     new_to_addr = HtdfPrivateKey('').address
-    private_key = HtdfPrivateKey('279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8')
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
