@@ -404,7 +404,6 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 // initialize store from a genesis state
 func (p *ProtocolV0) initFromGenesisState(ctx sdk.Context, DeliverTx sdk.DeliverTx, genesisState GenesisState) []abci.ValidatorUpdate {
 	genesisState.Sanitize()
-
 	// load the accounts
 	for _, gacc := range genesisState.Accounts {
 		acc := gacc.ToAccount()
@@ -414,13 +413,11 @@ func (p *ProtocolV0) initFromGenesisState(ctx sdk.Context, DeliverTx sdk.Deliver
 	}
 	// initialize distribution (must happen before staking)
 	distr.InitGenesis(ctx, p.distrKeeper, genesisState.DistrData)
-
 	// load the initial stake information
 	validators, err := stake.InitGenesis(ctx, p.StakeKeeper, genesisState.StakeData)
 	if err != nil {
 		panic(err)
 	}
-
 	// initialize module-specific stores
 	gov.InitGenesis(ctx, p.govKeeper, genesisState.GovData)
 	auth.InitGenesis(ctx, p.accountMapper, p.feeCollectionKeeper, genesisState.AuthData)
@@ -435,21 +432,27 @@ func (p *ProtocolV0) initFromGenesisState(ctx sdk.Context, DeliverTx sdk.Deliver
 	if err := HtdfValidateGenesisState(genesisState); err != nil {
 		panic(err) // TODO find a way to do this w/o panics
 	}
-
 	if len(genesisState.GenTxs) > 0 {
 		for _, genTx := range genesisState.GenTxs {
 			var tx auth.StdTx
-			err = p.cdc.UnmarshalJSON(genTx, &tx)
+			p.cdc.MustUnmarshalJSON(genTx, &tx)
+			logrus.Traceln("-1-----------", tx)
 			if err != nil {
 				panic(err)
 			}
+			logrus.Traceln("-2-----------")
+			// bz := p.cdc.MustMarshalBinaryBare(tx)
 			bz := p.cdc.MustMarshalBinaryLengthPrefixed(tx)
-			res := DeliverTx(bz)
+			logrus.Traceln("-3-----------")
+			res := DeliverTx(abci.RequestDeliverTx{Tx: bz})
+			logrus.Traceln("-4-----------")
 			if !res.IsOK() {
 				panic(res.Log)
 			}
 		}
+		logrus.Traceln("-5-----------")
 		validators = p.StakeKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
+		logrus.Traceln("-6-----------")
 	}
 	logrus.Traceln("999999999999999")
 	return validators

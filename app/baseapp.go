@@ -378,29 +378,29 @@ func (app *BaseApp) setConsensusParams(consensusParams *abci.ConsensusParams) {
 	app.consensusParams = consensusParams
 }
 
-// // setConsensusParams stores the consensus params to the main store.
-// func (app *BaseApp) storeConsensusParams(consensusParams *abci.ConsensusParams) {
-// 	consensusParamsBz, err := proto.Marshal(consensusParams)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	mainStore := app.cms.GetKVStore(app.baseKey)
-// 	mainStore.Set(mainConsensusParamsKey, consensusParamsBz)
-// }
-
-// StoreConsensusParams sets the consensus parameters to the baseapp's param store.
-func (app *BaseApp) StoreConsensusParams(ctx sdk.Context, cp *abci.ConsensusParams) {
-	if app.paramStore == nil {
-		panic("cannot store consensus params with no params store set")
+// setConsensusParams stores the consensus params to the main store.
+func (app *BaseApp) StoreConsensusParams(consensusParams *abci.ConsensusParams) {
+	consensusParamsBz, err := proto.Marshal(consensusParams)
+	if err != nil {
+		panic(err)
 	}
-	if cp == nil {
-		return
-	}
-
-	app.paramStore.Set(ctx, ParamStoreKeyBlockParams, cp.Block)
-	app.paramStore.Set(ctx, ParamStoreKeyEvidenceParams, cp.Evidence)
-	app.paramStore.Set(ctx, ParamStoreKeyValidatorParams, cp.Validator)
+	mainStore := app.cms.GetKVStore(app.baseKey)
+	mainStore.Set(mainConsensusParamsKey, consensusParamsBz)
 }
+
+// // StoreConsensusParams sets the consensus parameters to the baseapp's param store.
+// func (app *BaseApp) StoreConsensusParams(ctx sdk.Context, cp *abci.ConsensusParams) {
+// 	if app.paramStore == nil {
+// 		panic("cannot store consensus params with no params store set")
+// 	}
+// 	if cp == nil {
+// 		return
+// 	}
+
+// 	app.paramStore.Set(ctx, ParamStoreKeyBlockParams, cp.Block)
+// 	app.paramStore.Set(ctx, ParamStoreKeyEvidenceParams, cp.Evidence)
+// 	app.paramStore.Set(ctx, ParamStoreKeyValidatorParams, cp.Validator)
+// }
 
 // // getMaximumBlockGas gets the maximum gas from the consensus params. It panics
 // // if maximum block gas is less than negative one and returns zero if negative
@@ -463,40 +463,6 @@ func (app *BaseApp) getMaximumBlockGas(ctx sdk.Context) uint64 {
 // // SetOption implements the ABCI interface.
 // func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
 // 	// TODO: Implement!
-// 	return
-// }
-
-// // InitChain implements the ABCI interface. It runs the initialization logic
-// // directly on the CommitMultiStore.
-// func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
-// 	// stash the consensus params in the cms main store and memoize
-// 	if req.ConsensusParams != nil {
-// 		app.setConsensusParams(req.ConsensusParams)
-// 		app.storeConsensusParams(req.ConsensusParams)
-// 	}
-
-// 	initHeader := abci.Header{ChainID: req.ChainId, Time: req.Time}
-
-// 	// initialize the deliver state and check state with a correct header
-// 	app.setDeliverState(initHeader)
-// 	app.setCheckState(initHeader)
-
-// 	// if app.initChainer == nil {
-// 	// 	return
-// 	// }
-// 	initChainer := app.Engine.GetCurrentProtocol().GetInitChainer()
-// 	if initChainer == nil {
-// 		return
-// 	}
-
-// 	// add block gas meter for any genesis transactions (allow infinite gas)
-// 	app.deliverState.ctx = app.deliverState.ctx.
-// 		WithBlockGasMeter(sdk.NewInfiniteGasMeter())
-// 	logrus.Traceln("88888888888888888")
-// 	res = initChainer(app.deliverState.ctx, app.DeliverTx, req)
-
-// 	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
-// 	// deliverState.
 // 	return
 // }
 
@@ -829,11 +795,11 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	var codespace sdk.CodespaceType
 	// var gasUsed uint64
 
-	logrus.Traceln("runMsgs	begin~~~~~~~~~~~~~~~~~~~~~~~~")
+	logger().Traceln("runMsgs	begin~~~~~~~~~~~~~~~~~~~~~~~~")
 	for msgIdx, msg := range msgs {
 		// match message route
 		msgRoute := msg.Route()
-		logrus.Traceln("999999999999", msgRoute)
+		logger().Traceln("999999999999", msgRoute)
 		//handler := app.router.Route(msgRoute)
 		handler := app.Engine.GetCurrentProtocol().GetRouter().Route(msgRoute)
 		if handler == nil {
@@ -848,7 +814,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 
 		}
 
-		logrus.Traceln("runMsgs:msgResult.GasUsed=", msgResult.GasUsed)
+		logger().Traceln("runMsgs:msgResult.GasUsed=", msgResult.GasUsed)
 		// NOTE: GasWanted is determined by ante handler and GasUsed by the GasMeter.
 
 		// Result.Data must be length prefixed in order to separate each result
@@ -893,7 +859,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		GasUsed:   ctx.GasMeter().GasConsumed(),
 		Events:    events.ToABCIEvents(),
 	}
-	logrus.Traceln("runMsgs	end~~~~~~~~~~~~~~~~~~~~~~~~")
+	logger().Traceln("runMsgs	end~~~~~~~~~~~~~~~~~~~~~~~~")
 	return result, nil
 }
 
@@ -990,7 +956,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	if mode == runTxModeDeliver {
 		startingGas = ctx.BlockGasMeter().GasConsumed()
 	}
-	logrus.Traceln("runTx:startingGas", startingGas)
+	logger().Traceln("runTx:startingGas", startingGas)
 	if mode == runTxModeDeliver {
 		app.deliverState.ctx = app.deliverState.ctx.WithCheckValidNum(app.deliverState.ctx.CheckValidNum() + 1)
 	}
@@ -1013,12 +979,12 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 					),
 				)
 			}
-			logrus.Traceln("2runTx!!!!!!!!!!!!!!!!!", r)
+			logger().Traceln("2runTx!!!!!!!!!!!!!!!!!", r)
 		}
 
 		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 	}()
-	logrus.Traceln("runTx:result.GasUsed", result.GasUsed)
+	logger().Traceln("runTx:result.GasUsed", result.GasUsed)
 	// Add cache in fee refund. If an error is returned or panic happes during refund,
 	// no value will be written into blockchain state.
 	defer func() {
@@ -1040,7 +1006,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 			refundCache.Write()
 		}
 	}()
-	logrus.Traceln("3runTx!!!!!!!!!!!!!!!!!")
+	logger().Traceln("3runTx!!!!!!!!!!!!!!!!!")
 	// If BlockGasMeter() panics it will be caught by the above recover and will
 	// return an error - in any case BlockGasMeter will consume gas past the limit.
 	//
@@ -1060,7 +1026,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 			}
 		}
 	}()
-	logrus.Traceln("4runTx!!!!!!!!!!!!!!!!!")
+	logger().Traceln("4runTx!!!!!!!!!!!!!!!!!")
 	// feePreprocessHandler := app.Engine.GetCurrentProtocol().GetFeePreprocessHandler()
 	// // run the fee handler
 	// if feePreprocessHandler != nil && ctx.BlockHeight() != 0 {
@@ -1070,7 +1036,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	// 		return err.Result()
 	// 	}
 	// }
-	logrus.Traceln("5runTx!!!!!!!!!!!!!!!!!")
+	logger().Traceln("5runTx!!!!!!!!!!!!!!!!!")
 	anteHandler := app.Engine.GetCurrentProtocol().GetAnteHandler()
 	if anteHandler != nil {
 		var anteCtx sdk.Context
@@ -1086,7 +1052,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		anteCtx, msCache = app.cacheTxContext(ctx, txBytes)
 
 		newCtx, result, abort := anteHandler(anteCtx, tx, mode == runTxModeSimulate)
-		logrus.Traceln("anteHandler", result.GasUsed, result.GasWanted, result.Log)
+		logger().Traceln("anteHandler", result.GasUsed, result.GasWanted, result.Log)
 		if !newCtx.IsZero() {
 			// At this point, newCtx.MultiStore() is cache-wrapped, or something else
 			// replaced by the ante handler. We want the original multistore, not one
@@ -1107,23 +1073,23 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 		msCache.Write()
 	}
-	logrus.Traceln("6runTx!!!!!!!!!!!!!!!!!")
+	logger().Traceln("6runTx!!!!!!!!!!!!!!!!!")
 	if mode == runTxModeCheck {
 		return
 	}
-	logrus.Traceln("7runTx!!!!!!!!!!!!!!!!!")
+	logger().Traceln("7runTx!!!!!!!!!!!!!!!!!")
 	// Create a new context based off of the existing context with a cache wrapped
 	// multi-store in case message processing fails.
 	runMsgCtx, msCache := app.cacheTxContext(ctx, txBytes)
-	logrus.Traceln("8runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs(), mode)
+	logger().Traceln("8runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs(), mode)
 	result, err = app.runMsgs(runMsgCtx, tx.GetMsgs(), mode)
-	logrus.Traceln("9runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs())
+	logger().Traceln("9runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs())
 	result.GasWanted = gasWanted
 
 	if mode == runTxModeSimulate {
 		return
 	}
-	logrus.Traceln("10runTx!!!!!!!!!!!!!!!!!", result.IsOK(), result.GasUsed, result.GasWanted)
+	logger().Traceln("10runTx!!!!!!!!!!!!!!!!!", result.IsOK(), result.GasUsed, result.GasWanted)
 	// only update state if all messages pass
 	// junying-todo, 2019-11-05
 	// wondering if should add some condition for evm failure
@@ -1131,7 +1097,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	// result.Code = 0: Success
 	// result.Code = 1,2: EVM ERROR
 	if result.Code < 3 {
-		logrus.Traceln("11runTx!!!!!!!!!!!!!!!!!")
+		logger().Traceln("11runTx!!!!!!!!!!!!!!!!!")
 		msCache.Write()
 	}
 

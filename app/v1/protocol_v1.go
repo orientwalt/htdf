@@ -443,12 +443,14 @@ func (p *ProtocolV1) initFromGenesisState(ctx sdk.Context, DeliverTx sdk.Deliver
 	if len(genesisState.GenTxs) > 0 {
 		for _, genTx := range genesisState.GenTxs {
 			var tx auth.StdTx
-			err = p.cdc.UnmarshalJSON(genTx, &tx)
+			p.cdc.MustUnmarshalJSON(genTx, &tx)
 			if err != nil {
 				panic(err)
 			}
+			// bz := p.cdc.MustMarshalBinaryBare(tx)
 			bz := p.cdc.MustMarshalBinaryLengthPrefixed(tx)
-			res := DeliverTx(bz)
+
+			res := DeliverTx(abci.RequestDeliverTx{Tx: bz})
 			if !res.IsOK() {
 				panic(res.Log)
 			}

@@ -3,10 +3,12 @@ package app
 import (
 	"fmt"
 	"os"
-	"sort"
+	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/sirupsen/logrus"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/orientwalt/htdf/codec"
@@ -14,56 +16,125 @@ import (
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
 )
 
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := logrus.ParseLevel(lvl)
+	if err != nil {
+		ll = logrus.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	logrus.SetLevel(ll)
+	logrus.SetFormatter(&logrus.TextFormatter{}) //&log.JSONFormatter{})
+}
+
+func logger() *logrus.Entry {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		panic("Could not get context info for logger!")
+	}
+
+	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
+	funcname := runtime.FuncForPC(pc).Name()
+	fn := funcname[strings.LastIndex(funcname, ".")+1:]
+	return logrus.WithField("file", filename).WithField("function", fn)
+}
+
 // InitChain implements the ABCI interface. It runs the initialization logic
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	// stash the consensus params in the cms main store and memoize
+	if req.ConsensusParams != nil {
+		app.setConsensusParams(req.ConsensusParams)
+		app.StoreConsensusParams(req.ConsensusParams)
+	}
+
 	initHeader := abci.Header{ChainID: req.ChainId, Time: req.Time}
 
 	// initialize the deliver state and check state with a correct header
 	app.setDeliverState(initHeader)
 	app.setCheckState(initHeader)
 
-	// Store the consensus params in the BaseApp's paramstore. Note, this must be
-	// done after the deliver state and context have been set as it's persisted
-	// to state.
-	if req.ConsensusParams != nil {
-		app.StoreConsensusParams(app.deliverState.ctx, req.ConsensusParams)
-	}
-
-	if app.initChainer == nil {
+	// if app.initChainer == nil {
+	// 	return
+	// }
+	logrus.Traceln("1111111111111")
+	initChainer := app.Engine.GetCurrentProtocol().GetInitChainer()
+	if initChainer == nil {
 		return
 	}
 
 	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
-
-	res = app.initChainer(app.deliverState.ctx, req)
-
-	// sanity check
-	if len(req.Validators) > 0 {
-		if len(req.Validators) != len(res.Validators) {
-			panic(
-				fmt.Errorf(
-					"len(RequestInitChain.Validators) != len(GenesisValidators) (%d != %d)",
-					len(req.Validators), len(res.Validators),
-				),
-			)
-		}
-
-		sort.Sort(abci.ValidatorUpdates(req.Validators))
-		sort.Sort(abci.ValidatorUpdates(res.Validators))
-
-		for i, val := range res.Validators {
-			if !val.Equal(req.Validators[i]) {
-				panic(fmt.Errorf("genesisValidators[%d] != req.Validators[%d] ", i, i))
-			}
-		}
-	}
+	app.deliverState.ctx = app.deliverState.ctx.
+		WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	logrus.Traceln("88888888888888888")
+	res = initChainer(app.deliverState.ctx, app.DeliverTx, req)
 
 	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
 	// deliverState.
-	return res
+	return
 }
+
+// // InitChain implements the ABCI interface. It runs the initialization logic
+// // directly on the CommitMultiStore.
+// func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+// 	initHeader := abci.Header{ChainID: req.ChainId, Time: req.Time}
+
+// 	// initialize the deliver state and check state with a correct header
+// 	app.setDeliverState(initHeader)
+// 	app.setCheckState(initHeader)
+
+// 	// Store the consensus params in the BaseApp's paramstore. Note, this must be
+// 	// done after the deliver state and context have been set as it's persisted
+// 	// to state.
+// 	logrus.Traceln("1111111111111111")
+// 	if req.ConsensusParams != nil {
+// 		// app.StoreConsensusParams(app.deliverState.ctx, req.ConsensusParams)
+// 		app.setConsensusParams(req.ConsensusParams)
+// 		app.StoreConsensusParams(req.ConsensusParams)
+
+// 	}
+// 	logrus.Traceln("222222222222222")
+// 	if app.initChainer == nil {
+// 		return
+// 	}
+// 	logrus.Traceln("33333333333333")
+// 	// add block gas meter for any genesis transactions (allow infinite gas)
+// 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+
+// 	res = app.initChainer(app.deliverState.ctx, req)
+// 	logrus.Traceln("444444444444444")
+// 	// sanity check
+// 	if len(req.Validators) > 0 {
+// 		logrus.Traceln("55555555555555555")
+// 		if len(req.Validators) != len(res.Validators) {
+// 			panic(
+// 				fmt.Errorf(
+// 					"len(RequestInitChain.Validators) != len(GenesisValidators) (%d != %d)",
+// 					len(req.Validators), len(res.Validators),
+// 				),
+// 			)
+// 		}
+
+// 		sort.Sort(abci.ValidatorUpdates(req.Validators))
+// 		sort.Sort(abci.ValidatorUpdates(res.Validators))
+// 		logrus.Traceln("6666666666666666666")
+// 		for i, val := range res.Validators {
+// 			if !val.Equal(req.Validators[i]) {
+// 				panic(fmt.Errorf("genesisValidators[%d] != req.Validators[%d] ", i, i))
+// 			}
+// 		}
+// 	}
+
+// 	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
+// 	// deliverState.
+// 	return res
+// }
 
 // Info implements the ABCI interface.
 func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
@@ -200,16 +271,17 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 // Regardless of tx execution outcome, the ResponseDeliverTx will contain relevant
 // gas execution context.
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+	logger().Traceln("Tracing...")
 	tx, err := app.txDecoder(req.Tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, 0, 0)
 	}
-
+	logger().Traceln("Tracing...")
 	gInfo, result, err := app.runTx(runTxModeDeliver, req.Tx, tx)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed)
 	}
-
+	logger().Traceln("Tracing...")
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?

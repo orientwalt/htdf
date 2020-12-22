@@ -270,7 +270,6 @@ func DefaultTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
-		// fmt.Println("DefaultTxDecoder:tx", tx)
 		return tx, nil
 	}
 }
