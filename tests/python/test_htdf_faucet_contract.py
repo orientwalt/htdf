@@ -296,8 +296,8 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     assert len(data) > 0 and ((len(data) & 1) == 0)
 
     # test for  non-owner , it will be failed
-    from_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
-    private_key = HtdfPrivateKey('485de9a2ee4ed834272389617da915da9176bd5281ec5d261256e15be0c375f2')
+    from_addr = Address('htdf188tzdtuka7yc6xnkm20pv84f3kgthz05650au5')
+    private_key = HtdfPrivateKey('f3024714bb950cfbd2461b48ef4d3a9aea854309c4ab843fda57be34cdaf856e')
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
     if from_acc is None or from_acc.balance_satoshi < 100 * 200000:
         gas_wanted = 30000
