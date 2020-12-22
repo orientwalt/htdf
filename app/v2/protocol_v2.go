@@ -191,9 +191,9 @@ func (p *ProtocolV2) ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg)
 		}
 		// logrus.Traceln("33333333333@@@@@@@@@@@@@!!!!!!!!!")
 
-		logrus.Debug(fmt.Sprintf("currTxSize=%d", len(txBytes)))
+		logrus.Debug(fmt.Sprintf("1111====currTxSize=%d", len(txBytes)))
 		if uint64(len(txBytes)) > TxSizeLimit { //txSizeLimit {
-			return sdk.ErrExceedsTxSize(fmt.Sprintf("the tx size [%d] exceeds the limitation [%d]", len(txBytes), txSizeLimit))
+			return sdk.ErrExceedsTxSize(fmt.Sprintf("txsizelimit, the tx size ((%d)) exceeds the limitation ((%d))", len(txBytes), TxSizeLimit))
 		}
 	}
 
@@ -206,8 +206,9 @@ func (p *ProtocolV2) ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg)
 			panic("The subspace " + service.DefaultParamSpace + " cannot be found!")
 		}
 
+		logrus.Debug(fmt.Sprintf("222====currTxSize=%d", len(txBytes)))
 		if uint64(len(txBytes)) > TxSizeLimit { //serviceTxSizeLimit {
-			return sdk.ErrExceedsTxSize(fmt.Sprintf("the tx size [%d] exceeds the limitation [%d]", len(txBytes), TxSizeLimit))
+			return sdk.ErrExceedsTxSize(fmt.Sprintf("TXSIZELIMIT, the tx size [[%d]] exceeds the limitation [[%d]]", len(txBytes), TxSizeLimit))
 		}
 
 	}
