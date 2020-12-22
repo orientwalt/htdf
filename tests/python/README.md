@@ -12,10 +12,12 @@
 - the default address is `htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml`, make sure its HTDF balance is greater than 100000HTDF(100000 * (10^8) satoshi)
 
 
-- run all pytest cases
-
-    ``` 
-    make test
-    ```
+-  `chaintype` to switch test parameters:
+    - `regtest`: for local regtest
+    - `inner`: for internal testnet
+    - `testnet`: for open testnet
+    
+  run test, run all pytest cases
+   `make test  chaintype=inner`
 
 

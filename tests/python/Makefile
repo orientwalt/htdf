@@ -3,20 +3,30 @@ all: test
 
 .PHONY:test_normal_tx test_hrc20_contract_tx test_htdf_faucet_contract test create_venv
 
+export TESTTYPE=$(chaintype)
+
+ifeq ($(TESTTYPE), )
+	export TESTTYPE=inner
+endif
+
 create_venv:
 	python3 -m venv venv
 	source ./venv/bin/activate
 	pip3 install -r requirements.txt
 
+clean:
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
 
-test_normal_tx:
-	pytest -v --disable-warnings ./test_normal_tx.py
+test_normal_tx:clean
+	pytest -v --disable-warnings -s ./test_normal_tx.py  --cache-clear
 
-test_hrc20_contract_tx:
-	pytest -v --disable-warnings ./test_hrc20_contract_tx.py
+test_hrc20_contract_tx:clean
+	pytest -v --disable-warnings -s ./test_hrc20_contract_tx.py --cache-clear
 
-test_htdf_faucet_contract:
-	pytest -v --disable-warnings ./test_htdf_faucet_contract.py
+test_htdf_faucet_contract:clean
+	pytest -v --disable-warnings -s ./test_htdf_faucet_contract.py  --cache-clear
 
-test:
-	pytest -v ./ --disable-warnings
+test:clean
+	pytest -v ./ --disable-warnings -s --cache-clear

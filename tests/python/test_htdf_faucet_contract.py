@@ -23,7 +23,7 @@ def check_balance(conftest_args):
 
 
 @pytest.fixture(scope='module', autouse=True)
-def test_deploy_htdf_faucet(conftest_args):
+def deploy_htdf_faucet(conftest_args):
     """
     run this test case, if only run single test
     run this test case, if run this test file
@@ -42,6 +42,7 @@ def test_deploy_htdf_faucet(conftest_args):
     # new_to_addr = HtdfPrivateKey('').address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
+    print('from_acc balance: {}'.format(from_acc.balance_satoshi))
 
     assert from_acc is not None
     assert from_acc.balance_satoshi > gas_price * gas_wanted + tx_amount
@@ -97,6 +98,7 @@ def test_deploy_htdf_faucet(conftest_args):
     # assert to_acc.balance_satoshi == tx_amount
 
     from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
+    print("from_acc_new balance is {}".format(from_acc_new.balance_satoshi))
     assert from_acc_new.address == from_acc.address
     assert from_acc_new.sequence == from_acc.sequence + 1
     assert from_acc_new.account_number == from_acc.account_number
@@ -109,6 +111,9 @@ def test_deploy_htdf_faucet(conftest_args):
 
     pass
 
+def test_deploy_htdf_faucet(conftest_args):
+    assert len(htdf_faucet_contract_address) > 0
+    pass
 
 def test_contract_htdf_faucet_owner(conftest_args):
     with open('sol/htdf_faucet_sol_HtdfFaucet.abi', 'r') as abifile:
@@ -288,11 +293,56 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
 
     deposit_tx = hc.functions.setOnceAmount(amount=once_htdf_to_set).buildTransaction_htdf()
     data = remove_0x_prefix(deposit_tx['data'])
+    assert len(data) > 0 and ((len(data) & 1) == 0)
 
     # test for  non-owner , it will be failed
     from_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
     private_key = HtdfPrivateKey('485de9a2ee4ed834272389617da915da9176bd5281ec5d261256e15be0c375f2')
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
+    if from_acc is None or from_acc.balance_satoshi < 100 * 200000:
+        gas_wanted = 30000
+        gas_price = 100
+        tx_amount = htdf_to_satoshi(10)
+        data = ''
+        memo = 'test_normal_transaction'
+
+        htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'],
+                          rpc_port=conftest_args['RPC_PORT'])
+
+        g_from_addr = Address(conftest_args['ADDRESS'])
+
+        # new_to_addr = HtdfPrivateKey('').address
+        private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+        g_from_acc = htdfrpc.get_account_info(address=g_from_addr.address)
+
+        assert g_from_acc is not None
+        assert g_from_acc.balance_satoshi > gas_price * gas_wanted + tx_amount
+
+        signed_tx = HtdfTxBuilder(
+            from_address=g_from_addr,
+            to_address=from_addr,
+            amount_satoshi=tx_amount,
+            sequence=g_from_acc.sequence,
+            account_number=g_from_acc.account_number,
+            chain_id=htdfrpc.chain_id,
+            gas_price=gas_price,
+            gas_wanted=gas_wanted,
+            data='',
+            memo=memo
+        ).build_and_sign(private_key=private_key)
+
+        tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
+        print('tx_hash: {}'.format(tx_hash))
+
+        tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+        pprint(tx)
+
+        time.sleep(8)
+
+        assert tx['logs'][0]['success'] == True
+        from_acc = htdfrpc.get_account_info(address=from_addr.address)
+        assert from_acc is not None and from_acc.balance_satoshi >= 100*200000
+
     signed_tx = HtdfTxBuilder(
         from_address=from_addr,
         to_address=contract_address,
@@ -303,7 +353,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         gas_price=100,
         gas_wanted=200000,
         data=data,
-        memo='htdf_faucet.deposit()'
+        memo='htdf_faucet.setOnceAmount()'
     ).build_and_sign(private_key=private_key)
 
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
@@ -353,4 +403,5 @@ def main():
 
 
 if __name__ == '__main__':
+    # main()
     pytest.main('test_htdf_faucet_contract.py')
