@@ -764,6 +764,9 @@ func (app *BaseApp) validateHeight(req abci.RequestBeginBlock) error {
 
 // retrieve the context for the tx w/ txBytes and other memoized values.
 func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) (ctx sdk.Context) {
+	if app.consensusParams != nil {
+		logger().Traceln(app.consensusParams)
+	}
 	ctx = app.getState(mode).ctx.
 		WithTxBytes(txBytes).
 		WithVoteInfos(app.voteInfos).
@@ -809,7 +812,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		var msgResult sdk.Result
 		// skip actual execution for CheckTx mode
 		if mode != runTxModeCheck {
-			logrus.Traceln("runMsgs/msgResult.IsOK()~~~~~~~~~~~~~~~~~~~~~~~~", msgRoute)
+			logrus.Traceln(msgRoute, handler)
 			msgResult = handler(ctx, msg)
 
 		}
@@ -959,6 +962,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	logger().Traceln("runTx:startingGas", startingGas)
 	if mode == runTxModeDeliver {
 		app.deliverState.ctx = app.deliverState.ctx.WithCheckValidNum(app.deliverState.ctx.CheckValidNum() + 1)
+		logger().Traceln("")
 	}
 
 	defer func() {
@@ -972,19 +976,23 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 						rType.Descriptor, gasWanted, ctx.GasMeter().GasConsumed(),
 					),
 				)
+				logger().Traceln("")
 			default:
 				err = sdkerrors.Wrap(
 					sdkerrors.ErrPanic, fmt.Sprintf(
 						"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
 					),
 				)
+				logger().Traceln(err)
 			}
 			logger().Traceln("2runTx!!!!!!!!!!!!!!!!!", r)
 		}
 
 		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 	}()
-	logger().Traceln("runTx:result.GasUsed", result.GasUsed)
+	if result != nil {
+		logger().Traceln("runTx:result.GasUsed", result.GasUsed)
+	}
 	// Add cache in fee refund. If an error is returned or panic happes during refund,
 	// no value will be written into blockchain state.
 	defer func() {
@@ -1061,6 +1069,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 			// Also, in the case of the tx aborting, we need to track gas consumed via
 			// the instantiated gas meter in the ante handler, so we update the context
 			// prior to returning.
+			logger().Traceln("newCtx not IsZero")
 			ctx = newCtx.WithMultiStore(ms)
 		}
 

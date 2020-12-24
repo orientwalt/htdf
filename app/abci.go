@@ -49,6 +49,7 @@ func logger() *logrus.Entry {
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
 	// stash the consensus params in the cms main store and memoize
+	logger().Traceln("ConsensusParams", req.ConsensusParams)
 	if req.ConsensusParams != nil {
 		app.setConsensusParams(req.ConsensusParams)
 		app.StoreConsensusParams(req.ConsensusParams)

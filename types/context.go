@@ -3,10 +3,15 @@ package types
 
 import (
 	"context"
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/sirupsen/logrus"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
@@ -14,6 +19,35 @@ import (
 	"github.com/orientwalt/htdf/store/gaskv"
 	stypes "github.com/orientwalt/htdf/store/types"
 )
+
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := logrus.ParseLevel(lvl)
+	if err != nil {
+		ll = logrus.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	logrus.SetLevel(ll)
+	logrus.SetFormatter(&logrus.TextFormatter{}) //&log.JSONFormatter{})
+}
+
+func logger() *logrus.Entry {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		panic("Could not get context info for logger!")
+	}
+
+	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
+	funcname := runtime.FuncForPC(pc).Name()
+	fn := funcname[strings.LastIndex(funcname, ".")+1:]
+	return logrus.WithField("file", filename).WithField("function", fn)
+}
 
 /*
 The intent of Context is for it to be an immutable object that can be
@@ -52,14 +86,17 @@ func (c Context) BlockGasMeter() GasMeter     { return c.Value(contextKeyBlockGa
 func (c Context) IsCheckTx() bool             { return c.Value(contextKeyIsCheckTx).(bool) }
 func (c Context) MinGasPrices() Coins         { return c.Value(contextKeyMinGasPrices).(Coins) }
 func (c Context) MinimumFees() Coins          { return c.Value(contextKeyMinimumFees).(Coins) }
-func (c Context) EventManager() *EventManager { return c.Value(contextEventManager).(*EventManager) }
+func (c Context) EventManager() *EventManager { return c.Value(contextKeyEventManager).(*EventManager) }
 
 func (c Context) BlockHeader() abci.Header {
 	return c.Value(contextKeyBlockHeader).(abci.Header)
 }
 
 func (c Context) ConsensusParams() *abci.ConsensusParams {
-	return c.Value(contextKeyConsensusParams).(*abci.ConsensusParams)
+	logger().Traceln(contextKeyConsensusParams)
+	value := c.Value(contextKeyConsensusParams)
+	logger().Traceln(value)
+	return value.(*abci.ConsensusParams)
 }
 
 // create a new context
@@ -108,7 +145,7 @@ const (
 	contextKeyCheckValidNum
 	contextKeyCoinFlowTrigger
 	contextKeyCoinFlowTags
-	contextEventManager
+	contextKeyEventManager
 )
 
 func (c Context) MultiStore() MultiStore {
@@ -196,7 +233,7 @@ func (c Context) WithMinimumFees(minFees Coins) Context {
 }
 
 func (c Context) WithEventManager(em *EventManager) Context {
-	return c.withValue(contextEventManager, em)
+	return c.withValue(contextKeyEventManager, em)
 }
 
 // is context nil
@@ -252,13 +289,17 @@ func (c Context) withValue(key interface{}, value interface{}) Context {
 
 // context value for the provided key
 func (c Context) Value(key interface{}) interface{} {
+	// logger().Traceln(key)
 	value := c.Context.Value(key)
+	// logger().Traceln(value)
 	if cloner, ok := value.(cloner); ok {
 		return cloner.Clone()
 	}
+	// logger().Traceln(1)
 	if message, ok := value.(proto.Message); ok {
 		return proto.Clone(message)
 	}
+	// logger().Traceln(2)
 	return value
 }
 

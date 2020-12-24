@@ -1,8 +1,13 @@
 package staking
 
 import (
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	abci "github.com/tendermint/tendermint/abci/types"
 	common "github.com/tendermint/tendermint/libs/strings"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -12,6 +17,35 @@ import (
 	"github.com/orientwalt/htdf/x/staking/tags"
 	"github.com/orientwalt/htdf/x/staking/types"
 )
+
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := logrus.ParseLevel(lvl)
+	if err != nil {
+		ll = logrus.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	logrus.SetLevel(ll)
+	logrus.SetFormatter(&logrus.TextFormatter{}) //&log.JSONFormatter{})
+}
+
+func logger() *logrus.Entry {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		panic("Could not get context info for logger!")
+	}
+
+	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
+	funcname := runtime.FuncForPC(pc).Name()
+	fn := funcname[strings.LastIndex(funcname, ".")+1:]
+	return logrus.WithField("file", filename).WithField("function", fn)
+}
 
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
@@ -97,58 +131,63 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) ([]abci.ValidatorUpdate, sdk.T
 // now we just perform action and save
 
 func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k keeper.Keeper) sdk.Result {
+	logger().Traceln()
 	// check to see if the pubkey or sender has been registered before
 	if _, found := k.GetValidator(ctx, msg.ValidatorAddress); found {
 		return ErrValidatorOwnerExists(k.Codespace()).Result()
 	}
-
+	logger().Traceln()
 	if _, found := k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(msg.PubKey)); found {
 		return ErrValidatorPubKeyExists(k.Codespace()).Result()
 	}
-
+	logger().Traceln()
 	if msg.Value.Denom != k.GetParams(ctx).BondDenom {
 		return ErrBadDenom(k.Codespace()).Result()
 	}
-
+	logger().Traceln()
 	if _, err := msg.Description.EnsureLength(); err != nil {
 		return err.Result()
 	}
-
+	logger().Traceln()
 	if ctx.ConsensusParams() != nil {
+		logger().Traceln()
 		tmPubKey := tmtypes.TM2PB.PubKey(msg.PubKey)
+		logger().Traceln()
 		if !common.StringInSlice(tmPubKey.Type, ctx.ConsensusParams().Validator.PubKeyTypes) {
+			logger().Traceln()
 			return ErrValidatorPubKeyTypeUnsupported(k.Codespace(),
 				tmPubKey.Type,
 				ctx.ConsensusParams().Validator.PubKeyTypes).Result()
 		}
 	}
-
+	logger().Traceln()
 	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description)
 	commission := NewCommissionWithTime(
 		msg.Commission.Rate, msg.Commission.MaxRate,
 		msg.Commission.MaxChangeRate, ctx.BlockHeader().Time,
 	)
+	logger().Traceln()
 	validator, err := validator.SetInitialCommission(commission)
 	if err != nil {
 		return err.Result()
 	}
-
+	logger().Traceln()
 	validator.MinSelfDelegation = msg.MinSelfDelegation
 
 	k.SetValidator(ctx, validator)
 	k.SetValidatorByConsAddr(ctx, validator)
 	k.SetNewValidatorByPowerIndex(ctx, validator)
-
+	logger().Traceln()
 	// call the after-creation hook
 	k.AfterValidatorCreated(ctx, validator.OperatorAddress)
-
+	logger().Traceln()
 	// move coins from the msg.Address account to a (self-delegation) delegator account
 	// the validator account and global shares are updated within here
 	_, err = k.Delegate(ctx, msg.DelegatorAddress, msg.Value.Amount, validator, true)
 	if err != nil {
 		return err.Result()
 	}
-
+	logger().Traceln()
 	// tags := sdk.NewTags(
 	// 	tags.DstValidator, msg.ValidatorAddress.String(),
 	// 	tags.Moniker, msg.Description.Moniker,
@@ -158,7 +197,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	// return sdk.Result{
 	// 	Tags: tags,
 	// }
-
+	logger().Traceln()
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeCreateValidator,
@@ -171,7 +210,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
 		),
 	})
-
+	logger().Traceln()
 	return sdk.Result{Events: ctx.EventManager().ABCIEvents()} //, nil
 }
 
