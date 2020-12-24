@@ -292,13 +292,13 @@ func (c Context) Value(key interface{}) interface{} {
 	// logger().Traceln(key)
 	value := c.Context.Value(key)
 	// logger().Traceln(value)
-	if cloner, ok := value.(cloner); ok {
-		return cloner.Clone()
-	}
+	// if cloner, ok := value.(cloner); ok {
+	// 	return cloner.Clone()
+	// }
 	// logger().Traceln(1)
-	if message, ok := value.(proto.Message); ok {
-		return proto.Clone(message)
-	}
+	// if message, ok := value.(proto.Message); ok {
+	// 	return proto.Clone(message)
+	// }
 	// logger().Traceln(2)
 	return value
 }
