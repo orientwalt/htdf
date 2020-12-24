@@ -256,7 +256,9 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed)
 	}
-
+	if result == nil {
+		result = &sdk.Result{}
+	}
 	return abci.ResponseCheckTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
@@ -502,20 +504,22 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	//
 	// The QueryRouter routes using path[1]. For example, in the path
 	// "custom/gov/proposal", QueryRouter routes using "gov".
+	logger().Traceln(path, req)
 	if len(path) < 2 || path[1] == "" {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no route for custom query specified"))
 	}
-
-	querier := app.queryRouter.Route(path[1])
+	logger().Traceln(path)
+	querier := app.Engine.GetCurrentProtocol().GetQueryRouter().Route(path[1])
+	logger().Traceln()
 	if querier == nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "no custom querier found for route %s", path[1]))
 	}
-
+	logger().Traceln()
 	// when a client did not provide a query height, manually inject the latest
 	if req.Height == 0 {
 		req.Height = app.LastBlockHeight()
 	}
-
+	logger().Traceln()
 	if req.Height <= 1 && req.Prove {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrap(
@@ -524,7 +528,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 			),
 		)
 	}
-
+	logger().Traceln()
 	cacheMS, err := app.cms.CacheMultiStoreWithVersion(req.Height)
 	if err != nil {
 		return sdkerrors.QueryResult(
@@ -534,12 +538,12 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 			),
 		)
 	}
-
+	logger().Traceln()
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
 	).WithMinGasPrices(app.minGasPrices)
-
+	logger().Traceln()
 	// Passes the rest of the path as an argument to the querier.
 	//
 	// For example, in the path "custom/gov/proposal/test", the gov querier gets
@@ -554,7 +558,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 			Height:    req.Height,
 		}
 	}
-
+	logger().Traceln()
 	return abci.ResponseQuery{
 		Height: req.Height,
 		Value:  resBytes,

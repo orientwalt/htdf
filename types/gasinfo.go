@@ -18,6 +18,10 @@ type GasInfo struct {
 	GasUsed uint64 `protobuf:"varint,2,opt,name=gas_used,json=gasUsed,proto3" json:"gas_used,omitempty" yaml:"gas_used"`
 }
 
+func NewGasInfo() GasInfo {
+	return GasInfo{}
+}
+
 var xxx_messageInfo_GasInfo proto.InternalMessageInfo
 
 func (m *GasInfo) Reset()      { *m = GasInfo{} }

@@ -945,7 +945,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	ctx := app.getContextForTx(mode, txBytes)
 	ms := ctx.MultiStore()
 
-	gInfo = sdk.GasInfo{GasUsed: ctx.BlockGasMeter().GasConsumed()}
+	gInfo = sdk.NewGasInfo()
 	// only run the tx if there is block gas remaining
 	if mode == runTxModeDeliver && ctx.BlockGasMeter().IsOutOfGas() {
 		return gInfo, nil, sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx") //sdk.ErrOutOfGas("no block gas left to run tx")
@@ -1082,7 +1082,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 		msCache.Write()
 	}
-	logger().Traceln("6runTx!!!!!!!!!!!!!!!!!")
+	logger().Traceln("6runTx!!!!!!!!!!!!!!!!!", result)
 	if mode == runTxModeCheck {
 		return
 	}
