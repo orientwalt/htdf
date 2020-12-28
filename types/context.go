@@ -93,9 +93,7 @@ func (c Context) BlockHeader() abci.Header {
 }
 
 func (c Context) ConsensusParams() *abci.ConsensusParams {
-	logger().Traceln(contextKeyConsensusParams)
 	value := c.Value(contextKeyConsensusParams)
-	logger().Traceln(value)
 	return value.(*abci.ConsensusParams)
 }
 
