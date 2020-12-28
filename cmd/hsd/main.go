@@ -53,6 +53,7 @@ func main() {
 		Short:             "HtdfService App Daemon (server)",
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
+	// rootCmd
 
 	rootCmd.AddCommand(hsinit.InitCmd(ctx, cdc))
 	rootCmd.AddCommand(hsinit.CollectGenTxsCmd(ctx, cdc))
