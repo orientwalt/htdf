@@ -192,3 +192,64 @@ func (app *HtdfServiceApp) replayToHeight(replayHeight int64, logger log.Logger)
 	}
 	return loadHeight
 }
+
+// ResetOrReplay returns whether you need to reset or replay
+func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, height int64) {
+	lastBlockHeight := app.BaseApp.LastBlockHeight()
+	if replayHeight > lastBlockHeight {
+		replayHeight = lastBlockHeight
+	}
+
+	app.logger.Info("This Reset operation will change the application store, backup your node home directory before proceeding!!!")
+	app.logger.Info(fmt.Sprintf("The last block height is %v, will reset height to %v.", lastBlockHeight, replayHeight))
+
+	app.logger.Info("Are you sure to proceed? (y/n)")
+	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+	confirm := strings.ToLower(strings.TrimSpace(input))
+	if confirm != "y" && confirm != "yes" {
+		cmn.Exit("Reset operation aborted.")
+	}
+
+	if lastBlockHeight-replayHeight <= DefaultCacheSize {
+		err := app.LoadVersion(replayHeight, protocol.KeyMain, true)
+
+		if err != nil {
+			if strings.Contains(err.Error(), fmt.Sprintf("wanted to load target %v but only found up to", replayHeight)) {
+				app.logger.Info(fmt.Sprintf("Can not find the target version %d, trying to load an earlier version and replay blocks", replayHeight))
+			} else {
+				cmn.Exit(err.Error())
+			}
+		} else {
+			app.logger.Info(fmt.Sprintf("The last block height is %d, loaded store at %d", lastBlockHeight, replayHeight))
+			return false, replayHeight
+		}
+	}
+
+	loadHeight := app.replayToHeight(replayHeight, app.logger)
+	err = app.LoadVersion(loadHeight, protocol.KeyMain, true)
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+
+	// If reset to another protocol version, should reload Protocol and reset txDecoder
+	loaded, current := app.Engine.LoadCurrentProtocol(app.GetKVStore(protocol.KeyMain))
+	if !loaded {
+		cmn.Exit(fmt.Sprintf("Your software doesn't support the required protocol (version %d)!", current))
+	}
+	app.BaseApp.txDecoder = auth.DefaultTxDecoder(app.Engine.GetCurrentProtocol().GetCodec())
+
+	app.logger.Info(fmt.Sprintf("The last block height is %d, want to load store at %d", lastBlockHeight, replayHeight))
+
+	// Version 1 does not need replay
+	if replayHeight == 1 {
+		app.logger.Info(fmt.Sprintf("Loaded store at %d", loadHeight))
+		return false, replayHeight
+	}
+
+	app.logger.Info(fmt.Sprintf("Loaded store at %d, start to replay to %d", loadHeight, replayHeight))
+	return true, replayHeight
+
+}
