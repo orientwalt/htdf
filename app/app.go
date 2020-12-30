@@ -180,16 +180,16 @@ func (app *HtdfServiceApp) replayToHeight(replayHeight int64, logger log.Logger)
 		// version 1 will always be kept
 		loadHeight = 1
 	}
-	logger.Info("This replay operation will change the application store, backup your node home directory before proceeding!!")
-	logger.Info("Are you sure to proceed? (y/n)")
-	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil {
-		cmn.Exit(err.Error())
-	}
-	confirm := strings.ToLower(strings.TrimSpace(input))
-	if confirm != "y" && confirm != "yes" {
-		cmn.Exit("Replay operation aborted.")
-	}
+	// logger.Info("This replay operation will change the application store, backup your node home directory before proceeding!!")
+	// logger.Info("Are you sure to proceed? (y/n)")
+	// input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	// if err != nil {
+	// 	cmn.Exit(err.Error())
+	// }
+	// confirm := strings.ToLower(strings.TrimSpace(input))
+	// if confirm != "y" && confirm != "yes" {
+	// 	cmn.Exit("Replay operation aborted.")
+	// }
 	return loadHeight
 }
 
@@ -204,14 +204,15 @@ func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, heigh
 	app.logger.Info(fmt.Sprintf("The last block height is %v, will reset height to %v.", lastBlockHeight, replayHeight))
 
 	app.logger.Info("Are you sure to proceed? (y/n)")
-	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	if err != nil {
-		cmn.Exit(err.Error())
-	}
-	confirm := strings.ToLower(strings.TrimSpace(input))
-	if confirm != "y" && confirm != "yes" {
-		cmn.Exit("Reset operation aborted.")
-	}
+	_, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	// input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	// if err != nil {
+	// 	cmn.Exit(err.Error())
+	// }
+	// confirm := strings.ToLower(strings.TrimSpace(input))
+	// if confirm != "y" && confirm != "yes" {
+	// 	cmn.Exit("Reset operation aborted.")
+	// }
 
 	if lastBlockHeight-replayHeight <= DefaultCacheSize {
 		err := app.LoadVersion(replayHeight, protocol.KeyMain, true)

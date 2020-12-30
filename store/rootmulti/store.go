@@ -138,6 +138,9 @@ func (rs *Store) LoadVersion(ver int64, overwrite bool) error {
 		info, ok := infos[key]
 		if ok {
 			id = info.Core.CommitID
+		} else {
+			// reset all not existing store
+			rs.resetStore(key, storeParams)
 		}
 
 		store, err := rs.loadCommitStoreFromParams(key, id, storeParams, overwrite)
@@ -150,6 +153,15 @@ func (rs *Store) LoadVersion(ver int64, overwrite bool) error {
 	// Success.
 	rs.lastCommitID = cInfo.CommitID()
 	rs.stores = newStores
+
+	// yqq 2020-12-29 add for block reset fiture
+	// update latest version
+	if overwrite {
+		batch := rs.db.NewBatch()
+		setLatestVersion(batch, ver)
+		batch.Write()
+	}
+
 	return nil
 }
 
@@ -377,6 +389,39 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 			return
 		}
 		store = transient.NewStore()
+		return
+	default:
+		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
+	}
+}
+
+func (rs *Store) resetStore(key types.StoreKey, params storeParams) (err error) {
+	var db dbm.DB
+	if params.db != nil {
+		db = dbm.NewPrefixDB(params.db, []byte("s/_/"))
+	} else {
+		db = dbm.NewPrefixDB(rs.db, []byte("s/k:"+params.key.Name()+"/"))
+	}
+	switch params.typ {
+	case types.StoreTypeMulti:
+		panic("recursive MultiStores not yet supported")
+		// TODO: id?
+		// return NewCommitMultiStore(db, id)
+	case types.StoreTypeIAVL:
+		tree := iavl.NewMutableTree(db)
+		// tree.Reset()
+		store := iavl.UnsafeNewStore(tree, int64(0), int64(0))
+		// store.SetPruning( types.PruneEverything)
+		err = store.Reset()
+		return
+	case types.StoreTypeDB:
+		panic("dbm.DB is not a CommitStore")
+	case types.StoreTypeTransient:
+		_, ok := key.(*types.TransientStoreKey)
+		if !ok {
+			err = fmt.Errorf("invalid StoreKey for StoreTypeTransient: %s", key.String())
+			return
+		}
 		return
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))

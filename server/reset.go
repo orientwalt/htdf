@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/viper"
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 
-	// dbm "github.com/tendermint/tm-db"
 	bc "github.com/tendermint/tendermint/blockchain"
 	dbm "github.com/tendermint/tendermint/libs/db"
 )

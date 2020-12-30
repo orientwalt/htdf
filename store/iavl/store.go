@@ -21,6 +21,10 @@ const (
 	defaultIAVLCacheSize = 10000
 )
 
+func NewMutableTree(db dbm.DB) *iavl.MutableTree {
+	return iavl.NewMutableTree(db, defaultIAVLCacheSize)
+}
+
 // load the iavl store
 func LoadStore(db dbm.DB, id types.CommitID, pruning types.PruningOptions, overwrite bool) (types.CommitStore, error) {
 	tree := iavl.NewMutableTree(db, defaultIAVLCacheSize)
@@ -87,6 +91,14 @@ func (st *Store) Commit() types.CommitID {
 	if st.numRecent < previous {
 		toRelease := previous - st.numRecent
 		if st.storeEvery == 0 || toRelease%st.storeEvery != 0 {
+			// Keep version 1 for block reset
+			if toRelease == 1 {
+				return types.CommitID{
+					Version: version,
+					Hash:    hash,
+				}
+			}
+
 			err := st.tree.DeleteVersion(toRelease)
 			if err != nil && err.(cmn.Error).Data() != iavl.ErrVersionDoesNotExist {
 				panic(err)
@@ -254,6 +266,29 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	}
 
 	return
+}
+
+// Reset delete all the tree version from disk specified.
+func (st *Store) Reset() error {
+	// _, err := st.tree.LoadVersion(st.tLoad)
+	// lastestVersion, err := st.tree.Load()
+	// if err != nil {
+	// 	return err
+	// }
+	// // lastestVersion := tree.ndb.getLatestVersion()
+	// for version := int64(0); version <= lastestVersion; version++ {
+	// 	if  ok := st.tree.VersionExists(version); !ok {
+	// 		//return cmn.ErrorWrap(ErrVersionDoesNotExist, "")
+	// 		continue
+	// 	}
+	// 	st.tree.DeleteVersion(version)
+	// 	st.tree.
+	// 	// delete(st.tree., version)
+	// }
+	// tree.ndb.Commit()
+	// st.tree.
+	_, err := st.tree.LoadVersionForOverwriting(0)
+	return err
 }
 
 //----------------------------------------
