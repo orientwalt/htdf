@@ -304,29 +304,6 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	return
 }
 
-// Reset delete all the tree version from disk specified.
-func (st *Store) Reset() error {
-	// _, err := st.tree.LoadVersion(st.tLoad)
-	// lastestVersion, err := st.tree.Load()
-	// if err != nil {
-	// 	return err
-	// }
-	// // lastestVersion := tree.ndb.getLatestVersion()
-	// for version := int64(0); version <= lastestVersion; version++ {
-	// 	if  ok := st.tree.VersionExists(version); !ok {
-	// 		//return cmn.ErrorWrap(ErrVersionDoesNotExist, "")
-	// 		continue
-	// 	}
-	// 	st.tree.DeleteVersion(version)
-	// 	st.tree.
-	// 	// delete(st.tree., version)
-	// }
-	// tree.ndb.Commit()
-	// st.tree.
-	_, err := st.tree.LoadVersionForOverwriting(0)
-	return err
-}
-
 //----------------------------------------
 
 // Implements types.Iterator.

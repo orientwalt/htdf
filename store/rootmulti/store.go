@@ -234,7 +234,6 @@ func (rs *Store) CommitWithVersion(KVStoreList []*types.KVStoreKey, _ int64) typ
 	return rs.Commit(KVStoreList)
 }
 
-
 // Implements CacheWrapper/Store/CommitStore.
 func (rs *Store) CacheWrap() types.CacheWrap {
 	return rs.CacheMultiStore().(types.CacheWrap)
@@ -415,10 +414,7 @@ func (rs *Store) resetStore(key types.StoreKey, params storeParams) (err error) 
 		// return NewCommitMultiStore(db, id)
 	case types.StoreTypeIAVL:
 		tree := iavl.NewMutableTree(db)
-		// tree.Reset()
-		store := iavl.UnsafeNewStore(tree, int64(0), int64(0))
-		// store.SetPruning( types.PruneEverything)
-		err = store.Reset()
+		tree.Reset() // reset store
 		return
 	case types.StoreTypeDB:
 		panic("dbm.DB is not a CommitStore")
@@ -540,8 +536,6 @@ func setLatestVersion(batch dbm.Batch, version int64) {
 	batch.Set([]byte(latestVersionKey), latestBytes)
 }
 
-
-
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitStore, KVStoreList []*types.KVStoreKey) commitInfo {
 
@@ -589,6 +583,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitStore, 
 		return ci
 	}
 }
+
 // Gets commitInfo from disk.
 func getCommitInfo(db dbm.DB, ver int64) (commitInfo, error) {
 
