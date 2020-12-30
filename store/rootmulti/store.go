@@ -208,11 +208,11 @@ func (rs *Store) LastCommitID() types.CommitID {
 }
 
 // Implements Committer/CommitStore.
-func (rs *Store) Commit() types.CommitID {
+func (rs *Store) Commit(KVStoreList []*types.KVStoreKey) types.CommitID {
 
 	// Commit stores.
 	version := rs.lastCommitID.Version + 1
-	commitInfo := commitStores(version, rs.stores)
+	commitInfo := commitStores(version, rs.stores, KVStoreList)
 
 	// Need to update atomically.
 	batch := rs.db.NewBatch()
@@ -228,6 +228,12 @@ func (rs *Store) Commit() types.CommitID {
 	rs.lastCommitID = commitID
 	return commitID
 }
+
+// Implements Committer/CommitStore.
+func (rs *Store) CommitWithVersion(KVStoreList []*types.KVStoreKey, _ int64) types.CommitID {
+	return rs.Commit(KVStoreList)
+}
+
 
 // Implements CacheWrapper/Store/CommitStore.
 func (rs *Store) CacheWrap() types.CacheWrap {
@@ -534,33 +540,55 @@ func setLatestVersion(batch dbm.Batch, version int64) {
 	batch.Set([]byte(latestVersionKey), latestBytes)
 }
 
+
+
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitStore) commitInfo {
-	storeInfos := make([]storeInfo, 0, len(storeMap))
+func commitStores(version int64, storeMap map[types.StoreKey]types.CommitStore, KVStoreList []*types.KVStoreKey) commitInfo {
 
-	for key, store := range storeMap {
-		// Commit
-		commitID := store.Commit()
-
-		if store.GetStoreType() == types.StoreTypeTransient {
-			continue
+	if len(KVStoreList) > 0 {
+		storeInfos := make([]storeInfo, 0, len(KVStoreList))
+		for _, key := range KVStoreList {
+			if store, ok := storeMap[key]; ok {
+				// Commit
+				commitID := store.CommitWithVersion([]*types.KVStoreKey{}, version)
+				if store.GetStoreType() == types.StoreTypeTransient {
+					continue
+				}
+				// Record CommitID
+				si := storeInfo{}
+				si.Name = key.Name()
+				si.Core.CommitID = commitID
+				// si.Core.StoreType = store.GetStoreType()
+				storeInfos = append(storeInfos, si)
+			}
 		}
-
-		// Record CommitID
-		si := storeInfo{}
-		si.Name = key.Name()
-		si.Core.CommitID = commitID
-		// si.Core.StoreType = store.GetStoreType()
-		storeInfos = append(storeInfos, si)
+		ci := commitInfo{
+			Version:    version,
+			StoreInfos: storeInfos,
+		}
+		return ci
+	} else {
+		storeInfos := make([]storeInfo, 0, len(storeMap))
+		for key, store := range storeMap {
+			// Commit
+			commitID := store.Commit([]*types.KVStoreKey{})
+			if store.GetStoreType() == types.StoreTypeTransient {
+				continue
+			}
+			// Record CommitID
+			si := storeInfo{}
+			si.Name = key.Name()
+			si.Core.CommitID = commitID
+			// si.Core.StoreType = store.GetStoreType()
+			storeInfos = append(storeInfos, si)
+		}
+		ci := commitInfo{
+			Version:    version,
+			StoreInfos: storeInfos,
+		}
+		return ci
 	}
-
-	ci := commitInfo{
-		Version:    version,
-		StoreInfos: storeInfos,
-	}
-	return ci
 }
-
 // Gets commitInfo from disk.
 func getCommitInfo(db dbm.DB, ver int64) (commitInfo, error) {
 

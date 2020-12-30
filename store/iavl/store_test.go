@@ -42,7 +42,7 @@ func newAlohaTree(t *testing.T, db dbm.DB) (*iavl.MutableTree, types.CommitID) {
 	}
 	hash, ver, err := tree.SaveVersion()
 	require.Nil(t, err)
-	return tree, types.CommitID{ver, hash}
+	return tree, types.CommitID{Version: ver, Hash: hash}
 }
 
 func TestIAVLStoreGetSetHasDelete(t *testing.T) {
@@ -306,7 +306,7 @@ func nextVersion(iavl *Store) {
 	key := []byte(fmt.Sprintf("Key for tree: %d", iavl.LastCommitID().Version))
 	value := []byte(fmt.Sprintf("Value for tree: %d", iavl.LastCommitID().Version))
 	iavl.Set(key, value)
-	iavl.Commit()
+	iavl.Commit(nil)
 }
 
 func TestIAVLDefaultPruning(t *testing.T) {
@@ -447,7 +447,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	valExpSub1 := cdc.MustMarshalBinaryLengthPrefixed(KVs1)
 	valExpSub2 := cdc.MustMarshalBinaryLengthPrefixed(KVs2)
 
-	cid := iavlStore.Commit()
+	cid := iavlStore.Commit(nil)
 	ver := cid.Version
 	query := abci.RequestQuery{Path: "/key", Data: k1, Height: ver}
 	querySub := abci.RequestQuery{Path: "/subspace", Data: ksub, Height: ver}
@@ -467,7 +467,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	require.Nil(t, qres.Value)
 
 	// commit it, but still don't see on old version
-	cid = iavlStore.Commit()
+	cid = iavlStore.Commit(nil)
 	qres = iavlStore.Query(query)
 	require.Equal(t, uint32(errors.CodeOK), qres.Code)
 	require.Nil(t, qres.Value)
@@ -485,7 +485,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 
 	// modify
 	iavlStore.Set(k1, v3)
-	cid = iavlStore.Commit()
+	cid = iavlStore.Commit(nil)
 
 	// query will return old values, as height is fixed
 	qres = iavlStore.Query(query)

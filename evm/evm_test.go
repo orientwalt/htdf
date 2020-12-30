@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/magiconair/properties/assert"
-	"github.com/orientwalt/htdf/utils"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/big"
 	"os"
+
+	"github.com/magiconair/properties/assert"
+	"github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/utils"
+	"github.com/stretchr/testify/require"
 
 	ec "github.com/orientwalt/htdf/evm/core"
 	"github.com/orientwalt/htdf/evm/vm"
@@ -334,7 +336,7 @@ func TestNewEvm(t *testing.T) {
 	//commit
 	stateDB.Commit(false)
 	ms.Write()
-	cms.Commit()
+	cms.Commit([]*types.KVStoreKey{})
 	db.Close()
 
 	if !bytes.Equal(contractCode, stateDB.GetCode(contractAddr)) {
@@ -444,7 +446,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	//commit
 	stateDB.Commit(false)
 	ms.Write()
-	cms.Commit()
+	cms.Commit([]*types.KVStoreKey{})
 	db.Close()
 
 	return nil

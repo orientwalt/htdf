@@ -5,6 +5,7 @@ import (
 
 	dbm "github.com/tendermint/tendermint/libs/db"
 
+	"github.com/orientwalt/htdf/types"
 	sdk "github.com/orientwalt/htdf/types"
 )
 
@@ -38,7 +39,11 @@ func (ms multiStore) SetTracer(w io.Writer) sdk.MultiStore {
 	panic("not implemented")
 }
 
-func (ms multiStore) Commit() sdk.CommitID {
+func (ms multiStore) Commit([]*types.KVStoreKey) sdk.CommitID {
+	panic("not implemented")
+}
+
+func (ms multiStore) CommitWithVersion(_ []*types.KVStoreKey, _ int64) sdk.CommitID {
 	panic("not implemented")
 }
 

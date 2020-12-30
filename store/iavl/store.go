@@ -78,7 +78,7 @@ func UnsafeNewStore(tree *iavl.MutableTree, numRecent int64, storeEvery int64) *
 }
 
 // Implements Committer.
-func (st *Store) Commit() types.CommitID {
+func (st *Store) Commit(_ []*types.KVStoreKey) types.CommitID {
 	// Save a new version.
 	hash, version, err := st.tree.SaveVersion()
 	if err != nil {
@@ -100,6 +100,42 @@ func (st *Store) Commit() types.CommitID {
 			}
 
 			err := st.tree.DeleteVersion(toRelease)
+			if err != nil && err.(cmn.Error).Data() != iavl.ErrVersionDoesNotExist {
+				panic(err)
+			}
+		}
+	}
+
+	return types.CommitID{
+		Version: version,
+		Hash:    hash,
+	}
+}
+
+// prune ivalstore version using rootstore version
+func (st *Store) CommitWithVersion(KVStoreList []*types.KVStoreKey, release int64) types.CommitID {
+	// Save a new version.
+	hash, version, err := st.tree.SaveVersion()
+	if err != nil {
+		// TODO: Do we want to extend Commit to allow returning errors?
+		panic(err)
+	}
+
+	// Release an old version of history, if not a sync waypoint.
+	previous := version - 1
+	preRelease := release - 1
+	if st.numRecent < previous {
+		toVersion := previous - st.numRecent
+		toRelease := preRelease - st.numRecent
+		if st.storeEvery == 0 || toRelease%st.storeEvery != 0 {
+			// Keep version 1
+			if toVersion == 1 {
+				return types.CommitID{
+					Version: version,
+					Hash:    hash,
+				}
+			}
+			err := st.tree.DeleteVersion(toVersion)
 			if err != nil && err.(cmn.Error).Data() != iavl.ErrVersionDoesNotExist {
 				panic(err)
 			}

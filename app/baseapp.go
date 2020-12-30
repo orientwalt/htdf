@@ -1100,7 +1100,7 @@ func (app *BaseApp) Commit() (res abci.ResponseCommit) {
 
 	// write the Deliver state and commit the MultiStore
 	app.deliverState.ms.Write()
-	commitID := app.cms.Commit()
+	commitID := app.cms.Commit(app.Engine.GetCurrentProtocol().GetKVStoreKeyList())
 	app.logger.Debug("Commit synced", "commit", fmt.Sprintf("%X", commitID))
 
 	// Reset the Check state to the latest committed.
