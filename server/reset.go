@@ -18,7 +18,7 @@ import (
 func ResetCmd(ctx *Context, cdc *codec.Codec, appReset AppReset) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "reset",
-		Short: "Reset app state to the specified height",
+		Short: "Reset App state to the specified height.(NOTE: Not delete any blocks)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			home := viper.GetString(tmcli.HomeFlag)
 			traceWriterFile := viper.GetString(flagTraceStore)
@@ -55,11 +55,11 @@ func ResetCmd(ctx *Context, cdc *codec.Codec, appReset AppReset) *cobra.Command 
 				return errors.Errorf("Error reset state: %v\n", err)
 			}
 
-			fmt.Println("Reset app state successfully")
+			fmt.Printf("Reset App state to height %v successfully.Then use the `hsd start` to start node.\n", height)
 			return nil
 		},
 	}
-	cmd.Flags().Uint64(flagHeight, 0, "Reset state from a particular height (greater than latest height means latest height)")
+	cmd.Flags().Uint64(flagHeight, 0, "Reset Application state from a particular height. Tendermint will automatically replay the blocks.")
 	cmd.MarkFlagRequired(flagHeight)
 	return cmd
 }
