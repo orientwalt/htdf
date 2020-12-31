@@ -18,8 +18,6 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/x/auth"
 
-	//"github.com/orientwalt/htdf/x/mint"
-
 	sdk "github.com/orientwalt/htdf/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -27,6 +25,7 @@ import (
 	v0 "github.com/orientwalt/htdf/app/v0"
 	v1 "github.com/orientwalt/htdf/app/v1"
 	v2 "github.com/orientwalt/htdf/app/v2"
+	"github.com/orientwalt/htdf/server"
 	cfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tendermint/libs/common"
 )
@@ -56,8 +55,6 @@ const (
 	RouterKey = "htdfservice"
 	// DefaultKeyPass contains the default key password for genesis transactions
 	DefaultKeyPass = "12345678"
-
-	FlagReplay = "replay-last-block"
 
 	DefaultCacheSize = 100 // Multistore saves last 100 blocks
 
@@ -98,7 +95,7 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	app.MountStoresTransient(engine.GetTransientStoreKeys())
 
 	var err error
-	if viper.GetBool(FlagReplay) {
+	if viper.GetBool(server.FlagReplay) {
 		lastHeight := Replay(app.logger)
 		err = app.LoadVersion(lastHeight, protocol.KeyMain, true)
 	} else {
@@ -167,6 +164,7 @@ func (app *HtdfServiceApp) LoadHeight(height int64) error {
 
 // MakeCodec generates the necessary codecs for Amino
 func MakeLatestCodec() *codec.Codec {
+	// TODO: replace v0 with v2 ??
 	var cdc = v0.MakeLatestCodec() // replace with latest protocol version
 	return cdc
 }
@@ -177,19 +175,9 @@ func (app *HtdfServiceApp) replayToHeight(replayHeight int64, logger log.Logger)
 	if replayHeight >= DefaultSyncableHeight {
 		loadHeight = replayHeight - replayHeight%DefaultSyncableHeight
 	} else {
-		// version 1 will always be kept
+		// version 1 will always be kept for block reset
 		loadHeight = 1
 	}
-	// logger.Info("This replay operation will change the application store, backup your node home directory before proceeding!!")
-	// logger.Info("Are you sure to proceed? (y/n)")
-	// input, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	// if err != nil {
-	// 	cmn.Exit(err.Error())
-	// }
-	// confirm := strings.ToLower(strings.TrimSpace(input))
-	// if confirm != "y" && confirm != "yes" {
-	// 	cmn.Exit("Replay operation aborted.")
-	// }
 	return loadHeight
 }
 
@@ -204,15 +192,14 @@ func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, heigh
 	app.logger.Info(fmt.Sprintf("The last block height is %v, will reset height to %v.", lastBlockHeight, replayHeight))
 
 	app.logger.Info("Are you sure to proceed? (y/n)")
-	_, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	// input, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	// if err != nil {
-	// 	cmn.Exit(err.Error())
-	// }
-	// confirm := strings.ToLower(strings.TrimSpace(input))
-	// if confirm != "y" && confirm != "yes" {
-	// 	cmn.Exit("Reset operation aborted.")
-	// }
+	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+	confirm := strings.ToLower(strings.TrimSpace(input))
+	if confirm != "y" && confirm != "yes" {
+		cmn.Exit("Reset operation aborted.")
+	}
 
 	if lastBlockHeight-replayHeight <= DefaultCacheSize {
 		err := app.LoadVersion(replayHeight, protocol.KeyMain, true)
