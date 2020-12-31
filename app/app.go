@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/orientwalt/htdf/app/protocol"
@@ -171,7 +172,6 @@ func MakeLatestCodec() *codec.Codec {
 
 func (app *HtdfServiceApp) replayToHeight(replayHeight int64, logger log.Logger) int64 {
 	loadHeight := int64(0)
-	logger.Info("Please make sure the replay height is smaller than the latest block height.")
 	if replayHeight >= DefaultSyncableHeight {
 		loadHeight = replayHeight - replayHeight%DefaultSyncableHeight
 	} else {
@@ -188,16 +188,44 @@ func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, heigh
 		replayHeight = lastBlockHeight
 	}
 
-	app.logger.Info("This Reset operation will change the application store, backup your node home directory before proceeding!!!")
-	app.logger.Info(fmt.Sprintf("The last block height is %v, will reset height to %v.", lastBlockHeight, replayHeight))
+	app.logger.Info("NOTE: This Reset operation will change the application store!")
+	app.logger.Info("️NOTE: Backup(备份,備份,지원,Apoyo,Резервный) your node home directory before proceeding!")
 
-	app.logger.Info("Are you sure to proceed? (y/n)")
+	// for safety, ask user input the reset height again
+	app.logger.Info("Please input reset height again:")
+	inputHeight, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+	resetHeight, err := strconv.ParseInt(strings.TrimSpace(inputHeight), 10, 64)
+	if resetHeight != replayHeight {
+		cmn.Exit(fmt.Sprintf("The second input reset height(%v) does not match first height(%v)!", resetHeight, replayHeight))
+	}
+
+	// for safety, check backup dir exists
+	app.logger.Info("Please input absolute path of your backuped node home directory for check it's exists:")
+	backupPath, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+	backupPath = strings.TrimSpace(backupPath)
+	s, err := os.Stat(backupPath)
+	if err != nil {
+		cmn.Exit("Backup path doesn't exists: " + err.Error())
+	}
+	if !s.IsDir() {
+		cmn.Exit(fmt.Sprintf("Backup path '%v' is not a directory!", backupPath))
+	}
+
+	// last confirm
+	app.logger.Info(fmt.Sprintf("The last block height is %v, will reset height to %v.", lastBlockHeight, replayHeight))
+	app.logger.Info("Are you sure to proceed? (yes/n)")
 	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
 	confirm := strings.ToLower(strings.TrimSpace(input))
-	if confirm != "y" && confirm != "yes" {
+	if confirm != "yes" {
 		cmn.Exit("Reset operation aborted.")
 	}
 
