@@ -165,7 +165,7 @@ def test_contract_htdf_faucet_deposit(conftest_args):
 
     hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
 
-    deposit_amount = htdf_to_satoshi(100)
+    deposit_amount = htdf_to_satoshi(10)
     deposit_tx = hc.functions.deposit().buildTransaction_htdf()
     data = remove_0x_prefix(deposit_tx['data'])
 
@@ -303,7 +303,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         gas_wanted = 30000
         gas_price = 100
         tx_amount = htdf_to_satoshi(10)
-        data = ''
+        #data = ''
         memo = 'test_normal_transaction'
 
         htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'],

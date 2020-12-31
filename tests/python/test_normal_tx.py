@@ -94,7 +94,7 @@ def test_normal_tx_send(conftest_args):
 
     pprint(tx)
 
-    time.sleep(5)  # wait for chain state update
+    time.sleep(8)  # wait for chain state update
 
     to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     assert to_acc is not None
