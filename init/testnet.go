@@ -27,7 +27,7 @@ import (
 	tmtime "github.com/tendermint/tendermint/types/time"
 
 	"github.com/orientwalt/htdf/accounts/keystore"
-	v0 "github.com/orientwalt/htdf/app/v0"
+	appver "github.com/orientwalt/htdf/app/v2"
 	"github.com/orientwalt/htdf/server"
 	hsutils "github.com/orientwalt/htdf/utils"
 )
@@ -123,7 +123,7 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 	hsConfig.MinGasPrices = viper.GetString(server.FlagMinGasPrices)
 
 	var (
-		accs     []v0.GenesisAccount
+		accs     []appver.GenesisAccount
 		genFiles []string
 	)
 
@@ -214,7 +214,7 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 
 		accTokens := sdk.TokensFromTendermintPower(30000000)
 		// accStakingTokens := sdk.TokensFromTendermintPower(250000000)
-		accs = append(accs, v0.GenesisAccount{
+		accs = append(accs, appver.GenesisAccount{
 			Address: accaddr,
 			Coins: sdk.Coins{
 				sdk.NewCoin(DefaultDenom, accTokens),
@@ -278,11 +278,11 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 
 //
 func initGenFiles(
-	cdc *codec.Codec, chainID string, accs []v0.GenesisAccount,
+	cdc *codec.Codec, chainID string, accs []appver.GenesisAccount,
 	genFiles []string, numValidators int,
 ) error {
 
-	appGenState := v0.NewDefaultGenesisState()
+	appGenState := appver.NewDefaultGenesisState()
 	appGenState.Accounts = accs
 
 	appGenStateJSON, err := codec.MarshalJSONIndent(cdc, appGenState)

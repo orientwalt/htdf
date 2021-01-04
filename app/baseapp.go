@@ -1075,12 +1075,13 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if appVersion <= app.Engine.GetCurrentVersion() {
 		return
 	}
-	fmt.Print("111111111111	", appVersion, "	22222222222	", app.Engine.GetCurrentVersion(), "\n")
+	app.logger.Info(fmt.Sprintf("=== Upgrading protocol from current version: (%v) to version: (%v) ===", app.Engine.GetCurrentVersion(), appVersion))
 	success := app.Engine.Activate(appVersion)
 	if success {
 		app.txDecoder = auth.DefaultTxDecoder(app.Engine.GetCurrentProtocol().GetCodec())
 		return
 	}
+	app.logger.Error(fmt.Sprintf("UPGRADE PROTOCOL FAILED! current version: (%v), target upgrade version: (%v)", app.Engine.GetCurrentVersion(), appVersion))
 
 	if upgradeConfig, ok := app.Engine.ProtocolKeeper.GetUpgradeConfigByStore(app.GetKVStore(protocol.KeyMain)); ok {
 		res.Tags = append(res.Tags,
@@ -1088,7 +1089,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 				("Please install the right application version from "+upgradeConfig.Protocol.Software)))
 	} else {
 		res.Tags = append(res.Tags,
-			sdk.MakeTag(tmstate.UpgradeFailureTagKey, ("Please install the right application version")))
+			sdk.MakeTag(tmstate.UpgradeFailureTagKey, ("Please install the right application version !")))
 	}
 
 	return

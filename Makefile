@@ -62,7 +62,7 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
+BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
 BUILD_FLAGS_STATIC_LINK = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH} -linkmode external -w -extldflags "-static"'
 
 all: build
@@ -168,13 +168,14 @@ new: install clear hsinit accs conf vals
 new.pure: clear hsinit accs conf vals
 
 hsinit:
-	@hsd init yjy --chain-id $(CHAIN_ID)
+	@hsd init mynode --chain-id $(CHAIN_ID)
 
 accs:
 	@echo create new accounts....;\
     $(eval ACC1=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))\
-	$(eval ACC2=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))\
-	hsd add-genesis-account $(ACC1) $(GENESIS_ACCOUNT_BALANCE)
+	$(eval ACC2=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))
+	@hsd add-genesis-account $(ACC1) $(GENESIS_ACCOUNT_BALANCE)
+	@hsd add-guardian-account $(ACC1) 
 	@hsd add-genesis-account $(ACC2) $(GENESIS_ACCOUNT_BALANCE)
 
 conf:

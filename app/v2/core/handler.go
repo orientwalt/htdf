@@ -115,7 +115,7 @@ func HandleOpenContract(ctx sdk.Context,
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	blockTime := ctx.BlockHeader().Time
-	log.Info("================ HandleOpenContract by yqq ================")
+	log.Info("=== v2.HandleOpenContract  ===")
 	log.Infof("blockHeaderTime: %s", blockTime.Format(time.RFC3339Nano))
 
 	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), blockTime)
