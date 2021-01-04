@@ -199,7 +199,7 @@ func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, heigh
 	}
 	resetHeight, err := strconv.ParseInt(strings.TrimSpace(inputHeight), 10, 64)
 	if resetHeight != replayHeight {
-		cmn.Exit(fmt.Sprintf("The second input reset height(%v) does not match first height(%v)!", resetHeight, replayHeight))
+		cmn.Exit(fmt.Sprintf("The second input reset height(%v) does not match first input height(%v)!", resetHeight, replayHeight))
 	}
 
 	// for safety, check backup dir exists

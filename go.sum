@@ -185,8 +185,8 @@ github.com/openconfig/gnmi v0.0.0-20190823184014-89b2bf29312c/go.mod h1:t+O9It+L
 github.com/openconfig/reference v0.0.0-20190727015836-8dfd928c9696/go.mod h1:ym2A+zigScwkSEb/cVQB0/ZMpU3rqiH6X7WRRsxgOGw=
 github.com/orientwalt/iavl v0.12.92 h1:K/YV9azf0CM/MPbrwmw5ol7/0/9URmhwZU+WAV9uy30=
 github.com/orientwalt/iavl v0.12.92/go.mod h1:R5FoZnzgueWHEeFahdmROJHj3+RJzjgbNIE5BRLbHVQ=
-github.com/orientwalt/tendermint v0.90.9 h1:5r9Dd3U8zDyhV04E2IhcVWJysY5Pi03/qP7o4wH/Zxg=
-github.com/orientwalt/tendermint v0.90.9/go.mod h1:ionaXhIlKeEiQmqFIbJKVhrkjmHJRBvyZz251Dv78+8=
+github.com/orientwalt/tendermint v0.90.10 h1:oDQp8+ea0s0OuiIls65MWA4i4E+Jj1wgmDyn3juhPU4=
+github.com/orientwalt/tendermint v0.90.10/go.mod h1:F3KifciKlTiuhqxXl6zh7B/s6/q1qQRDdnhMhsHkLE0=
 github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181zc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pierrec/lz4 v0.0.0-20190327172049-315a67e90e41/go.mod h1:3/3N9NVKO0jef7pBehbT1qWhCMrIgbYNnFAZCqQ5LRc=
