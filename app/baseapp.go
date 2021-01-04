@@ -376,7 +376,8 @@ func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
 	lastCommitID := app.cms.LastCommitID()
 
 	return abci.ResponseInfo{
-		AppVersion:       version.ProtocolVersion,
+		// AppVersion:       version.ProtocolVersion,
+		AppVersion:       version.AppVersion, // yqq 2021-01-04 keep backward compatibility
 		Data:             app.name,
 		LastBlockHeight:  lastCommitID.Version,
 		LastBlockAppHash: lastCommitID.Hash,

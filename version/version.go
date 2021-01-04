@@ -9,8 +9,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Version - protocol version of (software)upgrade
-const ProtocolVersion = 2   // start from version 2  by yqq 2021-01-04
+// Use AppVersion BaseApp.Info() to keep compatible with lower protocol version,
+// instead of using ProtocolVersion.
+//
+// DO NOT EDIT THIS AppVersion
+const AppVersion = 0
+
+//-------------------------------------------
+// ProtocolVersion - protocol version of (software)upgrade
+const ProtocolVersion = 2 // start from version 2  by yqq 2021-01-04
 
 var Version = params.Version
 

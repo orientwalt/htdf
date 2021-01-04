@@ -188,11 +188,11 @@ func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, heigh
 		replayHeight = lastBlockHeight
 	}
 
-	app.logger.Info("NOTE: This Reset operation will change the application store!")
-	app.logger.Info("️NOTE: Backup(备份,備份,지원,Apoyo,Резервный) your node home directory before proceeding!")
+	fmt.Println("NOTE: This Reset operation will change the application store!")
+	fmt.Println("️NOTE: Backup(备份,備份,지원,Apoyo,Резервный) your node home directory before proceeding!")
 
 	// for safety, ask user input the reset height again
-	app.logger.Info("Please input reset height again:")
+	fmt.Println("Please input reset height again:")
 	inputHeight, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		cmn.Exit(err.Error())
@@ -203,7 +203,7 @@ func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, heigh
 	}
 
 	// for safety, check backup dir exists
-	app.logger.Info("Please input absolute path of your backuped node home directory for check it's exists:")
+	fmt.Println("Please input absolute path of your backuped node home directory for check it's exists:")
 	backupPath, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		cmn.Exit(err.Error())
@@ -218,8 +218,8 @@ func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, heigh
 	}
 
 	// last confirm
-	app.logger.Info(fmt.Sprintf("The last block height is %v, will reset height to %v.", lastBlockHeight, replayHeight))
-	app.logger.Info("Are you sure to proceed? (yes/n)")
+	fmt.Printf("The last block height is %v, will reset height to %v.\n", lastBlockHeight, replayHeight)
+	fmt.Println("Are you sure to proceed? (yes/n)")
 	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		cmn.Exit(err.Error())
