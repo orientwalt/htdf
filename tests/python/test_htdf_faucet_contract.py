@@ -312,7 +312,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         g_from_addr = Address(conftest_args['ADDRESS'])
 
         # new_to_addr = HtdfPrivateKey('').address
-        private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+        g_from_private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
         g_from_acc = htdfrpc.get_account_info(address=g_from_addr.address)
 
         assert g_from_acc is not None
@@ -329,7 +329,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
             gas_wanted=gas_wanted,
             data='',
             memo=memo
-        ).build_and_sign(private_key=private_key)
+        ).build_and_sign(private_key=g_from_private_key)
 
         tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
         print('tx_hash: {}'.format(tx_hash))
@@ -337,7 +337,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
         pprint(tx)
 
-        time.sleep(8)
+        time.sleep(10)
 
         assert tx['logs'][0]['success'] == True
         from_acc = htdfrpc.get_account_info(address=from_addr.address)

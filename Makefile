@@ -193,12 +193,29 @@ vals:
 start: start.daemon start.rest
 
 start.daemon:
+ifeq ($(CURRENT_OS),Windows)
+	@echo "use 'make start.daemon.windows' instead"
+else
 	@echo starting daemon....
 	@nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
+endif
 
 start.rest:
+ifeq ($(CURRENT_OS),Windows)
+	@echo "use 'make start.rest.windows' instead"
+else
 	@echo starting rest server...
 	@nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
+endif
+
+
+start.daemon.windows:
+	@echo starting daemon....
+	-hsd start
+
+start.rest.windows:
+	@echo starting rest server...
+	-hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 
 
 stop:
 	@pkill hsd
