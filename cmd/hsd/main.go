@@ -1,10 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/orientwalt/htdf/codec"
@@ -92,8 +97,9 @@ func versionCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		Use:   "version",
 		Short: "print version, api security level",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("GoVersion=%s|GitCommit=%s|version=%s|GitBranch=%s|\n",
-				runtime.Version(), GitCommit, params.Version, GitBranch)
+			md5Sum, _ := getCurrentExeMd5Sum()
+			fmt.Printf("GoVersion=%s|GitCommit=%s|version=%s|GitBranch=%s|md5sum=%s\n",
+				runtime.Version(), GitCommit, params.Version, GitBranch, md5Sum)
 		},
 	}
 
@@ -173,4 +179,29 @@ func startNodeAndReplay(ctx *server.Context, app *bam.HtdfServiceApp, height int
 		err = nil
 	}
 	return nil, err
+}
+
+func getCurrentExeMd5Sum() (string, error) {
+	file, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return "", err
+	}
+	filePath, err := filepath.Abs(file)
+	if err != nil {
+		return "", err
+	}
+	var md5Sum string
+	fp, err := os.Open(filePath)
+	if err != nil {
+		return md5Sum, err
+	}
+	defer fp.Close()
+	hash := md5.New()
+	if _, err := io.Copy(hash, fp); err != nil {
+		return md5Sum, err
+	}
+	hashInBytes := hash.Sum(nil)[:4] // only show 4 bytes
+	// hashInBytes := hash.Sum(nil)
+	md5Sum = hex.EncodeToString(hashInBytes)
+	return md5Sum, nil
 }
