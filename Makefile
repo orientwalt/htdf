@@ -204,12 +204,16 @@ stop:
 	@pkill hsd
 	@pkill hscli
 
-# clean part
 clean:
-	@find build -name bin | xargs rm -rf
+	@rm -rf build/bin
 
 clear: clean
+ifeq ($(CURRENT_OS),Windows)
+	@rm -rf \.hsd
+	@rm -rf \.hscli
+else
 	@rm -rf ~/.hs*
+endif
 
 DOCKER_VALIDATOR_IMAGE = falcon0125/hsdnode
 DOCKER_CLIENT_IMAGE = falcon0125/hsclinode
