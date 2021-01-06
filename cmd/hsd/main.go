@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/params"
@@ -27,8 +28,8 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	cfg "github.com/tendermint/tendermint/config"
 	dbm "github.com/tendermint/tendermint/libs/db"
-	tmtypes "github.com/tendermint/tendermint/types"
 	pvm "github.com/tendermint/tendermint/privval"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 const (
@@ -71,7 +72,7 @@ func main() {
 	rootCmd.AddCommand(hsinit.ValidateGenesisCmd(ctx, cdc))
 	rootCmd.AddCommand(lite.Commands())
 	rootCmd.AddCommand(versionCmd(ctx, cdc))
-	rootCmd.AddCommand(server.ResetCmd(ctx, cdc,  resetAppState) ) 
+	rootCmd.AddCommand(server.ResetCmd(ctx, cdc, resetAppState))
 
 	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators)
 
@@ -91,7 +92,8 @@ func versionCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		Use:   "version",
 		Short: "print version, api security level",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("GitCommit=%s|version=%s|GitBranch=%s|\n", GitCommit, params.Version, GitBranch)
+			fmt.Printf("GoVersion=%s|GitCommit=%s|version=%s|GitBranch=%s|\n",
+				runtime.Version(), GitCommit, params.Version, GitBranch)
 		},
 	}
 
@@ -123,7 +125,7 @@ func exportAppStateAndTMValidators(ctx *server.Context,
 
 func resetAppState(ctx *server.Context,
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64) error {
-	gApp :=  bam.NewHtdfServiceApp(logger, ctx.Config.Instrumentation, db, traceStore, false, uint(1))
+	gApp := bam.NewHtdfServiceApp(logger, ctx.Config.Instrumentation, db, traceStore, false, uint(1))
 	if height > 0 {
 		if replay, replayHeight := gApp.ResetOrReplay(height); replay {
 			_, err := startNodeAndReplay(ctx, gApp, replayHeight)

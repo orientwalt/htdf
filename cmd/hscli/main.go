@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 
 	"github.com/orientwalt/htdf/client/bech32"
 
@@ -136,7 +137,8 @@ func versionCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {
 		Use:   "version",
 		Short: "print version, api security level",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("GitCommit=%s|version=%s|GitBranch=%s|DEBUGAPI=%s|ApiSecurityLevel=%s\n", GitCommit, params.Version, GitBranch, DEBUGAPI, svrConfig.ApiSecurityLevel)
+			fmt.Printf("GoVersion=%s|GitCommit=%s|version=%s|GitBranch=%s|DEBUGAPI=%s|ApiSecurityLevel=%s\n",
+				runtime.Version(), GitCommit, params.Version, GitBranch, DEBUGAPI, svrConfig.ApiSecurityLevel)
 		},
 	}
 
