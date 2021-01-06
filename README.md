@@ -23,7 +23,11 @@ hscli
 ```
 ## [Quick Start](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
 
-You can follow the below steps. You should type password for your genesis account after runing first command.
+> Install compiler and tools
+> - Install `go` (requires go12.9+): https://golang.google.cn/doc/install
+> - Install `make` and `gcc` by `sudo apt install make gcc -y` or  `yum install make gcc -y`
+
+You can follow the below steps. You should type password for your genesis account after runing `make new`.
 
 ```
 git clone https://github.com/orientwalt/htdf.git
