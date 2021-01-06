@@ -198,7 +198,10 @@ func testChainConfig(t *testing.T, evm *vm.EVM) {
 func TestNewEvm(t *testing.T) {
 
 	//---------------------stateDB test--------------------------------------
-	dataPath := "/tmp/htdfNewEvmTestData3"
+	// dataPath := "/tmp/htdfNewEvmTestData3"
+	dbName := "htdfnewevmtestdata3"
+	dataPath, err := ioutil.TempDir("", dbName)
+	require.NoError(t, err)
 	db := dbm.NewDB("state", dbm.LevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
@@ -216,7 +219,7 @@ func TestNewEvm(t *testing.T) {
 
 	cms.SetPruning(store.PruneNothing)
 
-	err := cms.LoadLatestVersion()
+	err = cms.LoadLatestVersion()
 	require.NoError(t, err)
 
 	ms := cms.CacheMultiStore()
@@ -345,7 +348,7 @@ func TestNewEvm(t *testing.T) {
 	}
 
 	//reopen DB
-	err = reOpenDB(t, contractCode, contractAddr.String(), toAddressBalance)
+	err = reOpenDB(t, contractCode, contractAddr.String(), toAddressBalance, dataPath)
 	must(err)
 
 	//remove DB dir
@@ -357,7 +360,7 @@ func cleanup(dataDir string) {
 	os.RemoveAll(dataDir)
 }
 
-func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, lastBalance []byte) (err error) {
+func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, lastBalance []byte, dataPath string) (err error) {
 	fmt.Printf("strContractAddress=%s\n", strContractAddress)
 
 	lastContractAddress := common.HexToAddress(strContractAddress)
@@ -365,7 +368,9 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	fmt.Printf("reOpenDB...\n")
 
 	//---------------------stateDB test--------------------------------------
-	dataPath := "/tmp/htdfNewEvmTestData3"
+	// dataPath := "/tmp/htdfNewEvmTestData3"
+
+	require.NoError(t, err)
 	db := dbm.NewDB("state", dbm.LevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
