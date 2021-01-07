@@ -3,6 +3,7 @@ package params
 import (
 	"testing"
 
+	"github.com/orientwalt/htdf/types"
 	sdk "github.com/orientwalt/htdf/types"
 
 	"github.com/orientwalt/htdf/x/params/subspace"
@@ -21,6 +22,6 @@ type (
 func NewKeyTable(keytypes ...interface{}) KeyTable {
 	return subspace.NewKeyTable(keytypes...)
 }
-func DefaultTestComponents(t *testing.T) (sdk.Context, Subspace, func() sdk.CommitID) {
+func DefaultTestComponents(t *testing.T) (sdk.Context, Subspace, func([]*types.KVStoreKey) sdk.CommitID) {
 	return subspace.DefaultTestComponents(t)
 }

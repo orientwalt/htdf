@@ -42,7 +42,7 @@ func newAlohaTree(t *testing.T, db dbm.DB) (*iavl.MutableTree, types.CommitID) {
 	}
 	hash, ver, err := tree.SaveVersion()
 	require.Nil(t, err)
-	return tree, types.CommitID{ver, hash}
+	return tree, types.CommitID{Version: ver, Hash: hash}
 }
 
 func TestIAVLStoreGetSetHasDelete(t *testing.T) {
@@ -306,7 +306,7 @@ func nextVersion(iavl *Store) {
 	key := []byte(fmt.Sprintf("Key for tree: %d", iavl.LastCommitID().Version))
 	value := []byte(fmt.Sprintf("Value for tree: %d", iavl.LastCommitID().Version))
 	iavl.Set(key, value)
-	iavl.Commit()
+	iavl.Commit(nil)
 }
 
 func TestIAVLDefaultPruning(t *testing.T) {
@@ -373,9 +373,14 @@ func testPruning(t *testing.T, numRecent int64, storeEvery int64, states []prune
 				ver, step, numRecent, storeEvery)
 		}
 		for _, ver := range state.deleted {
-			require.False(t, iavlStore.VersionExists(ver),
-				"Unpruned version %d with latest version %d. Should prune all but last %d and every %d",
-				ver, step, numRecent, storeEvery)
+			if 1 == ver {
+				// yqq 2020-12-30
+				require.True(t, iavlStore.VersionExists(ver), "version 1 should be kept for block reset or replay")
+			} else {
+				require.False(t, iavlStore.VersionExists(ver),
+					"Unpruned version %d with latest version %d. Should prune all but last %d and every %d",
+					ver, step, numRecent, storeEvery)
+			}
 		}
 		nextVersion(iavlStore)
 	}
@@ -403,9 +408,14 @@ func TestIAVLPruneEverything(t *testing.T) {
 	nextVersion(iavlStore)
 	for i := 1; i < 100; i++ {
 		for j := 1; j < i; j++ {
-			require.False(t, iavlStore.VersionExists(int64(j)),
-				"Unpruned version %d with latest version %d. Should prune all old versions",
-				j, i)
+			if 1 == j {
+				// yqq 2020-12-30
+				require.True(t, iavlStore.VersionExists(int64(j)), "version 1 should be kept for block reset or replay")
+			} else {
+				require.False(t, iavlStore.VersionExists(int64(j)),
+					"Unpruned version %d with latest version %d. Should prune all old versions",
+					j, i)
+			}
 		}
 		require.True(t, iavlStore.VersionExists(int64(i)),
 			"Missing current version on step %d, should not prune current state tree",
@@ -437,7 +447,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	valExpSub1 := cdc.MustMarshalBinaryLengthPrefixed(KVs1)
 	valExpSub2 := cdc.MustMarshalBinaryLengthPrefixed(KVs2)
 
-	cid := iavlStore.Commit()
+	cid := iavlStore.Commit(nil)
 	ver := cid.Version
 	query := abci.RequestQuery{Path: "/key", Data: k1, Height: ver}
 	querySub := abci.RequestQuery{Path: "/subspace", Data: ksub, Height: ver}
@@ -457,7 +467,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 	require.Nil(t, qres.Value)
 
 	// commit it, but still don't see on old version
-	cid = iavlStore.Commit()
+	cid = iavlStore.Commit(nil)
 	qres = iavlStore.Query(query)
 	require.Equal(t, uint32(errors.CodeOK), qres.Code)
 	require.Nil(t, qres.Value)
@@ -475,7 +485,7 @@ func TestIAVLStoreQuery(t *testing.T) {
 
 	// modify
 	iavlStore.Set(k1, v3)
-	cid = iavlStore.Commit()
+	cid = iavlStore.Commit(nil)
 
 	// query will return old values, as height is fixed
 	qres = iavlStore.Query(query)

@@ -23,6 +23,8 @@ const (
 	flagTraceStore     = "trace-store"
 	flagPruning        = "pruning"
 	FlagMinGasPrices   = "minimum-gas-prices"
+
+	FlagReplay = "replay-last-block"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -43,6 +45,8 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 			return err
 		},
 	}
+
+	cmd.Flags().Bool(FlagReplay, false, "Replay the last block")
 
 	// core flags for the ABCI application
 	cmd.Flags().Bool(flagWithTendermint, true, "Run abci app embedded in-process with tendermint")

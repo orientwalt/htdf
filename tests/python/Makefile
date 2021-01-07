@@ -18,6 +18,7 @@ clean:
 	-rm -rf .pytest_cache
 	-rm -rf __pycache__
 	-rm -f *.pyc
+	-rm -f tests.log
 
 test_normal_tx:clean
 	pytest -v --disable-warnings -s ./test_normal_tx.py  --cache-clear
@@ -30,3 +31,10 @@ test_htdf_faucet_contract:clean
 
 test:clean
 	pytest -v ./ --disable-warnings -s --cache-clear
+
+stop:
+	-pkill loop
+	-ps aux | grep python3 | grep -v grep |awk '{print $$2}' | xargs kill
+
+startloop:
+	-nohup ./loop.sh > tests.log 2>&1 &

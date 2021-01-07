@@ -61,7 +61,7 @@ func TestMultistoreCommitLoad(t *testing.T) {
 	// Make a few commits and check them.
 	nCommits := int64(3)
 	for i := int64(0); i < nCommits; i++ {
-		commitID = store.Commit()
+		commitID = store.Commit([]*types.KVStoreKey{})
 		expectedCommitID := getExpectedCommitID(store, i+1)
 		checkStore(t, store, expectedCommitID, commitID)
 	}
@@ -74,7 +74,7 @@ func TestMultistoreCommitLoad(t *testing.T) {
 	checkStore(t, store, commitID, commitID)
 
 	// Commit and check version.
-	commitID = store.Commit()
+	commitID = store.Commit([]*types.KVStoreKey{})
 	expectedCommitID := getExpectedCommitID(store, nCommits+1)
 	checkStore(t, store, expectedCommitID, commitID)
 
@@ -87,7 +87,7 @@ func TestMultistoreCommitLoad(t *testing.T) {
 	checkStore(t, store, commitID, commitID)
 
 	// XXX: commit this older version
-	commitID = store.Commit()
+	commitID = store.Commit([]*types.KVStoreKey{})
 	expectedCommitID = getExpectedCommitID(store, ver+1)
 	checkStore(t, store, expectedCommitID, commitID)
 
@@ -131,7 +131,7 @@ func TestMultiStoreQuery(t *testing.T) {
 	k2, v2 := []byte("water"), []byte("flows")
 	// v3 := []byte("is cold")
 
-	cid := multi.Commit()
+	cid := multi.Commit([]*types.KVStoreKey{})
 
 	// Make sure we can get by name.
 	garbage := multi.getStoreByName("bad-name")
@@ -146,7 +146,7 @@ func TestMultiStoreQuery(t *testing.T) {
 	store2.Set(k2, v2)
 
 	// Commit the multistore.
-	cid = multi.Commit()
+	cid = multi.Commit([]*types.KVStoreKey{})
 	ver := cid.Version
 
 	// Reload multistore from database

@@ -71,10 +71,10 @@ func NewUpgradeConfig(proposalID uint64, protocol ProtocolDefinition) UpgradeCon
 	}
 }
 
-func DefaultUpgradeConfig(software string) UpgradeConfig {
+func DefaultUpgradeConfig(protocolVersion uint64, software string) UpgradeConfig {
 	return UpgradeConfig{
 		ProposalID: uint64(0),
-		Protocol:   NewProtocolDefinition(uint64(0), software, uint64(1), NewDecWithPrec(9, 1)),
+		Protocol:   NewProtocolDefinition(protocolVersion, software, uint64(1), NewDecWithPrec(9, 1)),
 	}
 }
 

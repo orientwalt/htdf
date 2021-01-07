@@ -15,11 +15,19 @@ type Store interface { //nolint
 }
 
 // something that can persist to disk
+// type Committer interface {
+// 	Commit() CommitID
+// 	LastCommitID() CommitID
+// 	SetPruning(PruningOptions)
+// }
+
 type Committer interface {
-	Commit() CommitID
+	Commit([]*KVStoreKey) CommitID
+	CommitWithVersion([]*KVStoreKey, int64) CommitID
 	LastCommitID() CommitID
 	SetPruning(PruningOptions)
 }
+
 
 // Stores of MultiStore must implement CommitStore.
 type CommitStore interface {

@@ -1,6 +1,7 @@
 package keys
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/orientwalt/htdf/tests"
@@ -44,7 +45,11 @@ func Test_runListCmd(t *testing.T) {
 		{"keybase: empty", kbHome1, args{cmdBasic, []string{}}, false},
 		{"keybase: w/key", kbHome2, args{cmdBasic, []string{}}, false},
 	}
-	for _, tt := range testData {
+	for i, tt := range testData {
+		if i == 0 && runtime.GOOS == "windows" {
+			continue;
+		}
+
 		t.Run(tt.name, func(t *testing.T) {
 			viper.Set(cli.HomeFlag, tt.kbDir)
 			if err := runListCmd(tt.args.cmd, tt.args.args); (err != nil) != tt.wantErr {

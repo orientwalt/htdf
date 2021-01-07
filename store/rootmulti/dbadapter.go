@@ -16,12 +16,20 @@ type commitDBStoreAdapter struct {
 	dbadapter.Store
 }
 
-func (cdsa commitDBStoreAdapter) Commit() types.CommitID {
+func (cdsa commitDBStoreAdapter) Commit([]*types.KVStoreKey) types.CommitID {
 	return types.CommitID{
 		Version: -1,
 		Hash:    commithash,
 	}
 }
+
+func (cdsa commitDBStoreAdapter) CommitWithVersion(_ []*types.KVStoreKey, _ int64) types.CommitID {
+	return types.CommitID{
+		Version: -1,
+		Hash:    commithash,
+	}
+}
+
 
 func (cdsa commitDBStoreAdapter) LastCommitID() types.CommitID {
 	return types.CommitID{

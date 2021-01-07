@@ -12,9 +12,9 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/common"
 
+	"github.com/orientwalt/htdf/app"
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/app"
 	"github.com/orientwalt/htdf/server"
 )
 

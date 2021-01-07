@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/magiconair/properties/assert"
-	"github.com/orientwalt/htdf/utils"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/big"
 	"os"
+
+	"github.com/magiconair/properties/assert"
+	"github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/utils"
+	"github.com/stretchr/testify/require"
 
 	ec "github.com/orientwalt/htdf/evm/core"
 	"github.com/orientwalt/htdf/evm/vm"
@@ -196,7 +198,10 @@ func testChainConfig(t *testing.T, evm *vm.EVM) {
 func TestNewEvm(t *testing.T) {
 
 	//---------------------stateDB test--------------------------------------
-	dataPath := "/tmp/htdfNewEvmTestData3"
+	// dataPath := "/tmp/htdfNewEvmTestData3"
+	dbName := "htdfnewevmtestdata3"
+	dataPath, err := ioutil.TempDir("", dbName)
+	require.NoError(t, err)
 	db := dbm.NewDB("state", dbm.LevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
@@ -214,7 +219,7 @@ func TestNewEvm(t *testing.T) {
 
 	cms.SetPruning(store.PruneNothing)
 
-	err := cms.LoadLatestVersion()
+	err = cms.LoadLatestVersion()
 	require.NoError(t, err)
 
 	ms := cms.CacheMultiStore()
@@ -334,7 +339,7 @@ func TestNewEvm(t *testing.T) {
 	//commit
 	stateDB.Commit(false)
 	ms.Write()
-	cms.Commit()
+	cms.Commit([]*types.KVStoreKey{})
 	db.Close()
 
 	if !bytes.Equal(contractCode, stateDB.GetCode(contractAddr)) {
@@ -343,7 +348,7 @@ func TestNewEvm(t *testing.T) {
 	}
 
 	//reopen DB
-	err = reOpenDB(t, contractCode, contractAddr.String(), toAddressBalance)
+	err = reOpenDB(t, contractCode, contractAddr.String(), toAddressBalance, dataPath)
 	must(err)
 
 	//remove DB dir
@@ -355,7 +360,7 @@ func cleanup(dataDir string) {
 	os.RemoveAll(dataDir)
 }
 
-func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, lastBalance []byte) (err error) {
+func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, lastBalance []byte, dataPath string) (err error) {
 	fmt.Printf("strContractAddress=%s\n", strContractAddress)
 
 	lastContractAddress := common.HexToAddress(strContractAddress)
@@ -363,7 +368,9 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	fmt.Printf("reOpenDB...\n")
 
 	//---------------------stateDB test--------------------------------------
-	dataPath := "/tmp/htdfNewEvmTestData3"
+	// dataPath := "/tmp/htdfNewEvmTestData3"
+
+	require.NoError(t, err)
 	db := dbm.NewDB("state", dbm.LevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
@@ -444,7 +451,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	//commit
 	stateDB.Commit(false)
 	ms.Write()
-	cms.Commit()
+	cms.Commit([]*types.KVStoreKey{})
 	db.Close()
 
 	return nil

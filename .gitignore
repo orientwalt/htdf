@@ -9,6 +9,7 @@
 vendor
 build
 .idea/
+.vscode/
 
 utils/keystores
 accounts/keystore/keystores

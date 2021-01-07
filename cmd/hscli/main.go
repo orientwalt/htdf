@@ -1,9 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path"
+	"path/filepath"
+	"runtime"
 
 	"github.com/orientwalt/htdf/client/bech32"
 
@@ -136,7 +142,9 @@ func versionCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {
 		Use:   "version",
 		Short: "print version, api security level",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("GitCommit=%s|version=%s|GitBranch=%s|DEBUGAPI=%s|ApiSecurityLevel=%s\n", GitCommit, params.Version, GitBranch, DEBUGAPI, svrConfig.ApiSecurityLevel)
+			md5Sum, _ := getCurrentExeMd5Sum()
+			fmt.Printf("GoVersion=%s|GitCommit=%s|version=%s|GitBranch=%s|DEBUGAPI=%s|ApiSecurityLevel=%s|md5sum=%s\n",
+				runtime.Version(), GitCommit, params.Version, GitBranch, DEBUGAPI, svrConfig.ApiSecurityLevel, md5Sum)
 		},
 	}
 
@@ -219,4 +227,29 @@ func initConfig(cmd *cobra.Command) error {
 		return err
 	}
 	return viper.BindPFlag(cli.OutputFlag, cmd.PersistentFlags().Lookup(cli.OutputFlag))
+}
+
+func getCurrentExeMd5Sum() (string, error) {
+	file, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return "", err
+	}
+	filePath, err := filepath.Abs(file)
+	if err != nil {
+		return "", err
+	}
+	var md5Sum string
+	fp, err := os.Open(filePath)
+	if err != nil {
+		return md5Sum, err
+	}
+	defer fp.Close()
+	hash := md5.New()
+	if _, err := io.Copy(hash, fp); err != nil {
+		return md5Sum, err
+	}
+	hashInBytes := hash.Sum(nil)[:4] // only show 4 bytes
+	// hashInBytes := hash.Sum(nil)
+	md5Sum = hex.EncodeToString(hashInBytes)
+	return md5Sum, nil
 }

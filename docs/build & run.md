@@ -78,10 +78,6 @@ hscli version
     # Initialize configuration files and genesis file
     hsd init [moniker] --chain-id testchain
 
-    # set flags in config.toml
-    [consensus]
-    create_empty_blocks = false
-
     # Copy the `Address` output here and save it for later use
     hscli accounts new  [password] (password can not null)
     or
@@ -91,7 +87,8 @@ hscli version
     hscli accounts list
 
     # Add both accounts, with coins to the genesis file
-    hsd add-genesis-account [addr] [amount] (amount:xxxstake,xxxhtdf)
+    hsd add-genesis-account [addr] [amount] (amount:xxxstake,xxxsatoshi  , e.g: 10000000000000stake,1000000000000000satoshi)
+    hsd add-guardian-account  [addr] 
     hsd gentx [genesis-account]
     hsd collect-gentxs
 

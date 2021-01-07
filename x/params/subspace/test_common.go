@@ -12,6 +12,7 @@ import (
 
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/store"
+	"github.com/orientwalt/htdf/types"
 	sdk "github.com/orientwalt/htdf/types"
 )
 
@@ -21,7 +22,7 @@ const (
 )
 
 // Returns components for testing
-func DefaultTestComponents(t *testing.T) (sdk.Context, Subspace, func() sdk.CommitID) {
+func DefaultTestComponents(t *testing.T) (sdk.Context, Subspace, func([]*types.KVStoreKey) sdk.CommitID) {
 	cdc := codec.New()
 	key := sdk.NewKVStoreKey(StoreKey)
 	tkey := sdk.NewTransientStoreKey(TStoreKey)

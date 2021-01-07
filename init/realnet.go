@@ -26,7 +26,7 @@ import (
 	cmn "github.com/tendermint/tendermint/libs/common"
 
 	"github.com/orientwalt/htdf/accounts/keystore"
-	v0 "github.com/orientwalt/htdf/app/v0"
+	appver "github.com/orientwalt/htdf/app/v2"
 	"github.com/orientwalt/htdf/server"
 	hsutils "github.com/orientwalt/htdf/utils"
 )
@@ -102,7 +102,7 @@ func initRealNet(config *tmconfig.Config, cdc *codec.Codec) error {
 	hsConfig.MinGasPrices = viper.GetString(server.FlagMinGasPrices)
 
 	var (
-		accs     []v0.GenesisAccount
+		accs     []appver.GenesisAccount
 		genFiles []string
 	)
 	// read accounts from account.list
@@ -119,7 +119,7 @@ func initRealNet(config *tmconfig.Config, cdc *codec.Codec) error {
 		if !ok {
 			continue
 		}
-		accs = append(accs, v0.GenesisAccount{
+		accs = append(accs, appver.GenesisAccount{
 			Address: issuerAccAddr,
 			Coins: sdk.Coins{
 				sdk.NewCoin(DefaultDenom, balance),
@@ -236,7 +236,7 @@ func initRealNet(config *tmconfig.Config, cdc *codec.Codec) error {
 			return err
 		}
 
-		accs = append(accs, v0.GenesisAccount{
+		accs = append(accs, appver.GenesisAccount{
 			Address: accaddr,
 			Coins: sdk.Coins{
 				sdk.NewCoin(sdk.DefaultBondDenom, validatorStakingTokens),
