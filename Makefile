@@ -19,7 +19,7 @@ DEBUGAPI=ON  # disable DEBUGAPI by default
 
 PACKAGES = $(shell go list ./... | grep -Ev 'vendor|importer')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
-GIT_BRANCH :=$(shell git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //")
+GIT_BRANCH :=$(shell git branch  --show-current )
 # tool checking
 DEP_CHK := $(shell command -v dep 2> /dev/null)
 GOLINT_CHK := $(shell command -v golint 2> /dev/null)

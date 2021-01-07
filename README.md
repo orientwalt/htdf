@@ -21,6 +21,7 @@ HTDF main chain had been released at 2020-03-01.This project is now under active
 hsd
 hscli
 ```
+
 ## [Quick Start](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
 
 > Install compiler and tools
@@ -37,11 +38,13 @@ make start
 tail -f ~/.hsd/app.log
 ```
 
-## More Resources
+##  Resources
 
 - Official Website: https://www.orientwalt.com/
 - Chinese API documents: https://gitee.com/orientwalt/apidoc_2020 
 - Blockchain explorer: https://www.htdfscan.com/
+- Build and run on Windows: [build_run_on_windows.md](./docs/build_run_on_windows.md)
+
 
 ## Contributions
-We always welcome any issue and PR.
+We always welcome any issues and Pull Requests.
