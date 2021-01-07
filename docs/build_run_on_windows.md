@@ -21,8 +21,8 @@
     go build -mod=readonly -tags netgo -ldflags "-X main.DEBUGAPI=ON" -o build/bin/hscli.exe ./cmd/hscli
     ```
 
-## run prebuild execuable
-- Download the latest release from github. The release package shoud contains `hsd.exe` and `hscli.exe` .
-- Please refer the `win_script.bat` label `new` to nitialize the node and start node.
+## download execuable 
+- Download the latest release from github. The release package shoud contains `hsd.exe` , `hscli.exe` and `run.bat`.
+- Please run `run.bat` in `cmd` nitialize the node and start node.
 
 
