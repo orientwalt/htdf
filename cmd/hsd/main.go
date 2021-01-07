@@ -1,9 +1,16 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/params"
@@ -15,6 +22,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/node"
+	"github.com/tendermint/tendermint/p2p"
+	"github.com/tendermint/tendermint/proxy"
 
 	bam "github.com/orientwalt/htdf/app"
 	hsinit "github.com/orientwalt/htdf/init"
@@ -23,6 +33,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	cfg "github.com/tendermint/tendermint/config"
 	dbm "github.com/tendermint/tendermint/libs/db"
+	pvm "github.com/tendermint/tendermint/privval"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -53,6 +64,7 @@ func main() {
 		Short:             "HtdfService App Daemon (server)",
 		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
 	}
+	// rootCmd
 
 	rootCmd.AddCommand(hsinit.InitCmd(ctx, cdc))
 	rootCmd.AddCommand(hsinit.CollectGenTxsCmd(ctx, cdc))
@@ -65,6 +77,7 @@ func main() {
 	rootCmd.AddCommand(hsinit.ValidateGenesisCmd(ctx, cdc))
 	rootCmd.AddCommand(lite.Commands())
 	rootCmd.AddCommand(versionCmd(ctx, cdc))
+	rootCmd.AddCommand(server.ResetCmd(ctx, cdc, resetAppState))
 
 	server.AddCommands(ctx, cdc, rootCmd, newApp, exportAppStateAndTMValidators)
 
@@ -84,7 +97,9 @@ func versionCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		Use:   "version",
 		Short: "print version, api security level",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("GitCommit=%s|version=%s|GitBranch=%s|\n", GitCommit, params.Version, GitBranch)
+			md5Sum, _ := getCurrentExeMd5Sum()
+			fmt.Printf("GoVersion=%s|GitCommit=%s|version=%s|GitBranch=%s|md5sum=%s\n",
+				runtime.Version(), GitCommit, params.Version, GitBranch, md5Sum)
 		},
 	}
 
@@ -112,4 +127,81 @@ func exportAppStateAndTMValidators(ctx *server.Context,
 	}
 	gApp := bam.NewHtdfServiceApp(logger, ctx.Config.Instrumentation, db, traceStore, true, uint(1))
 	return gApp.ExportAppStateAndValidators(forZeroHeight)
+}
+
+func resetAppState(ctx *server.Context,
+	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64) error {
+	gApp := bam.NewHtdfServiceApp(logger, ctx.Config.Instrumentation, db, traceStore, false, uint(1))
+	if height > 0 {
+		if replay, replayHeight := gApp.ResetOrReplay(height); replay {
+			_, err := startNodeAndReplay(ctx, gApp, replayHeight)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if height == 0 {
+		return errors.New("No need to reset to zero height, it is always consistent with genesis.json")
+	}
+	return nil
+}
+
+func startNodeAndReplay(ctx *server.Context, app *bam.HtdfServiceApp, height int64) (n *node.Node, err error) {
+	cfg := ctx.Config
+	cfg.BaseConfig.ReplayHeight = height
+
+	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
+	if err != nil {
+		return nil, err
+	}
+	newNode := func(c chan int) {
+		defer func() {
+			c <- 0
+		}()
+		n, err = node.NewNode(
+			cfg,
+			pvm.LoadOrGenFilePV(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
+			nodeKey,
+			proxy.NewLocalClientCreator(app),
+			node.DefaultGenesisDocProviderFunc(cfg),
+			node.DefaultDBProvider,
+			node.DefaultMetricsProvider(cfg.Instrumentation),
+			ctx.Logger.With("module", "node"),
+		)
+		if err != nil {
+			c <- 1
+		}
+	}
+	ch := make(chan int)
+	go newNode(ch)
+	v := <-ch
+	if v == 0 {
+		err = nil
+	}
+	return nil, err
+}
+
+func getCurrentExeMd5Sum() (string, error) {
+	file, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return "", err
+	}
+	filePath, err := filepath.Abs(file)
+	if err != nil {
+		return "", err
+	}
+	var md5Sum string
+	fp, err := os.Open(filePath)
+	if err != nil {
+		return md5Sum, err
+	}
+	defer fp.Close()
+	hash := md5.New()
+	if _, err := io.Copy(hash, fp); err != nil {
+		return md5Sum, err
+	}
+	hashInBytes := hash.Sum(nil)[:4] // only show 4 bytes
+	// hashInBytes := hash.Sum(nil)
+	md5Sum = hex.EncodeToString(hashInBytes)
+	return md5Sum, nil
 }

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/app"
+	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/server"
 	"github.com/orientwalt/htdf/server/mock"
 	"github.com/spf13/viper"
@@ -66,9 +66,6 @@ func TestEmptyState(t *testing.T) {
 	os.Stdout = w
 	cmd = server.ExportCmd(ctx, cdc, nil)
 
-	err = cmd.RunE(nil, nil)
-	require.NoError(t, err)
-
 	outC := make(chan string)
 	go func() {
 		var buf bytes.Buffer
@@ -76,7 +73,10 @@ func TestEmptyState(t *testing.T) {
 		outC <- buf.String()
 	}()
 
+	err = cmd.RunE(nil, nil)
+	require.NoError(t, err)
 	w.Close()
+
 	os.Stdout = old
 	out := <-outC
 	require.Contains(t, out, "genesis_time")

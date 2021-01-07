@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/orientwalt/htdf/app/protocol"
@@ -18,8 +19,6 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/x/auth"
 
-	//"github.com/orientwalt/htdf/x/mint"
-
 	sdk "github.com/orientwalt/htdf/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
@@ -27,6 +26,7 @@ import (
 	v0 "github.com/orientwalt/htdf/app/v0"
 	v1 "github.com/orientwalt/htdf/app/v1"
 	v2 "github.com/orientwalt/htdf/app/v2"
+	"github.com/orientwalt/htdf/server"
 	cfg "github.com/tendermint/tendermint/config"
 	cmn "github.com/tendermint/tendermint/libs/common"
 )
@@ -56,8 +56,6 @@ const (
 	RouterKey = "htdfservice"
 	// DefaultKeyPass contains the default key password for genesis transactions
 	DefaultKeyPass = "12345678"
-
-	FlagReplay = "replay-last-block"
 
 	DefaultCacheSize = 100 // Multistore saves last 100 blocks
 
@@ -98,7 +96,7 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	app.MountStoresTransient(engine.GetTransientStoreKeys())
 
 	var err error
-	if viper.GetBool(FlagReplay) {
+	if viper.GetBool(server.FlagReplay) {
 		lastHeight := Replay(app.logger)
 		err = app.LoadVersion(lastHeight, protocol.KeyMain, true)
 	} else {
@@ -167,28 +165,107 @@ func (app *HtdfServiceApp) LoadHeight(height int64) error {
 
 // MakeCodec generates the necessary codecs for Amino
 func MakeLatestCodec() *codec.Codec {
+	// TODO: replace v0 with v2 ??
 	var cdc = v0.MakeLatestCodec() // replace with latest protocol version
 	return cdc
 }
 
 func (app *HtdfServiceApp) replayToHeight(replayHeight int64, logger log.Logger) int64 {
 	loadHeight := int64(0)
-	logger.Info("Please make sure the replay height is smaller than the latest block height.")
 	if replayHeight >= DefaultSyncableHeight {
 		loadHeight = replayHeight - replayHeight%DefaultSyncableHeight
 	} else {
-		// version 1 will always be kept
+		// version 1 will always be kept for block reset
 		loadHeight = 1
 	}
-	logger.Info("This replay operation will change the application store, backup your node home directory before proceeding!!")
-	logger.Info("Are you sure to proceed? (y/n)")
+	return loadHeight
+}
+
+// ResetOrReplay returns whether you need to reset or replay
+func (app *HtdfServiceApp) ResetOrReplay(replayHeight int64) (replay bool, height int64) {
+	lastBlockHeight := app.BaseApp.LastBlockHeight()
+	if replayHeight > lastBlockHeight {
+		replayHeight = lastBlockHeight
+	}
+
+	fmt.Println("NOTE: This Reset operation will change the application store!")
+	fmt.Println("️NOTE: Backup(备份,備份,지원,Apoyo,Резервный) your node home directory before proceeding!")
+
+	// for safety, ask user input the reset height again
+	fmt.Println("Please input reset height again:")
+	inputHeight, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+	resetHeight, err := strconv.ParseInt(strings.TrimSpace(inputHeight), 10, 64)
+	if resetHeight != replayHeight {
+		cmn.Exit(fmt.Sprintf("The second input reset height(%v) does not match first input height(%v)!", resetHeight, replayHeight))
+	}
+
+	// for safety, check backup dir exists
+	fmt.Println("Please input absolute path of your backuped node home directory for check it's exists:")
+	backupPath, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+	backupPath = strings.TrimSpace(backupPath)
+	s, err := os.Stat(backupPath)
+	if err != nil {
+		cmn.Exit("Backup path doesn't exists: " + err.Error())
+	}
+	if !s.IsDir() {
+		cmn.Exit(fmt.Sprintf("Backup path '%v' is not a directory!", backupPath))
+	}
+
+	// last confirm
+	fmt.Printf("The last block height is %v, will reset height to %v.\n", lastBlockHeight, replayHeight)
+	fmt.Println("Are you sure to proceed? (yes/n)")
 	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
 	confirm := strings.ToLower(strings.TrimSpace(input))
-	if confirm != "y" && confirm != "yes" {
-		cmn.Exit("Replay operation aborted.")
+	if confirm != "yes" {
+		cmn.Exit("Reset operation aborted.")
 	}
-	return loadHeight
+
+	if lastBlockHeight-replayHeight <= DefaultCacheSize {
+		err := app.LoadVersion(replayHeight, protocol.KeyMain, true)
+
+		if err != nil {
+			if strings.Contains(err.Error(), fmt.Sprintf("wanted to load target %v but only found up to", replayHeight)) {
+				app.logger.Info(fmt.Sprintf("Can not find the target version %d, trying to load an earlier version and replay blocks", replayHeight))
+			} else {
+				cmn.Exit(err.Error())
+			}
+		} else {
+			app.logger.Info(fmt.Sprintf("The last block height is %d, loaded store at %d", lastBlockHeight, replayHeight))
+			return false, replayHeight
+		}
+	}
+
+	loadHeight := app.replayToHeight(replayHeight, app.logger)
+	err = app.LoadVersion(loadHeight, protocol.KeyMain, true)
+	if err != nil {
+		cmn.Exit(err.Error())
+	}
+
+	// If reset to another protocol version, should reload Protocol and reset txDecoder
+	loaded, current := app.Engine.LoadCurrentProtocol(app.GetKVStore(protocol.KeyMain))
+	if !loaded {
+		cmn.Exit(fmt.Sprintf("Your software doesn't support the required protocol (version %d)!", current))
+	}
+	app.BaseApp.txDecoder = auth.DefaultTxDecoder(app.Engine.GetCurrentProtocol().GetCodec())
+
+	app.logger.Info(fmt.Sprintf("The last block height is %d, want to load store at %d", lastBlockHeight, replayHeight))
+
+	// Version 1 does not need replay
+	if replayHeight == 1 {
+		app.logger.Info(fmt.Sprintf("Loaded store at %d", loadHeight))
+		return false, replayHeight
+	}
+
+	app.logger.Info(fmt.Sprintf("Loaded store at %d, start to replay to %d", loadHeight, replayHeight))
+	return true, replayHeight
+
 }

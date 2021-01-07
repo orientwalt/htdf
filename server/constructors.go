@@ -21,6 +21,9 @@ type (
 	// AppExporter is a function that dumps all app state to
 	// JSON-serializable structure and returns the current validator set.
 	AppExporter func(*Context, log.Logger, dbm.DB, io.Writer, int64, bool, []string) (json.RawMessage, []tmtypes.GenesisValidator, error)
+
+	// AppReset is a function that reset all app state to particular height
+	AppReset func(*Context, log.Logger, dbm.DB, io.Writer, int64) error
 )
 
 func openDB(rootDir string) (dbm.DB, error) {

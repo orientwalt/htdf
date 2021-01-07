@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"time"
 
+	amino "github.com/tendermint/go-amino"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/types"
-	amino "github.com/tendermint/go-amino"
 
-	"github.com/orientwalt/htdf/app/v0"
+	appver "github.com/orientwalt/htdf/app/v2"
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/server"
 )
@@ -110,5 +110,5 @@ func initializeEmptyGenesis(
 		return nil, fmt.Errorf("genesis.json file already exists: %v", genFile)
 	}
 
-	return codec.MarshalJSONIndent(cdc, v0.NewDefaultGenesisState())
+	return codec.MarshalJSONIndent(cdc, appver.NewDefaultGenesisState())
 }

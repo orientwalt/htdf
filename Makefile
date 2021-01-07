@@ -19,7 +19,7 @@ DEBUGAPI=ON  # disable DEBUGAPI by default
 
 PACKAGES = $(shell go list ./... | grep -Ev 'vendor|importer')
 COMMIT_HASH := $(shell git rev-parse --short HEAD)
-GIT_BRANCH :=$(shell git branch 2>/dev/null | grep "^\*" | sed -e "s/^\*\ //")
+GIT_BRANCH :=$(shell git branch  --show-current )
 # tool checking
 DEP_CHK := $(shell command -v dep 2> /dev/null)
 GOLINT_CHK := $(shell command -v golint 2> /dev/null)
@@ -62,7 +62,7 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
+BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
 BUILD_FLAGS_STATIC_LINK = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH} -linkmode external -w -extldflags "-static"'
 
 all: build
@@ -168,13 +168,14 @@ new: install clear hsinit accs conf vals
 new.pure: clear hsinit accs conf vals
 
 hsinit:
-	@hsd init yjy --chain-id $(CHAIN_ID)
+	@hsd init mynode --chain-id $(CHAIN_ID)
 
 accs:
 	@echo create new accounts....;\
     $(eval ACC1=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))\
-	$(eval ACC2=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))\
-	hsd add-genesis-account $(ACC1) $(GENESIS_ACCOUNT_BALANCE)
+	$(eval ACC2=$(shell hscli accounts new $(GENESIS_ACCOUNT_PASSWORD)))
+	@hsd add-genesis-account $(ACC1) $(GENESIS_ACCOUNT_BALANCE)
+	@hsd add-guardian-account $(ACC1) 
 	@hsd add-genesis-account $(ACC2) $(GENESIS_ACCOUNT_BALANCE)
 
 conf:
@@ -192,23 +193,44 @@ vals:
 start: start.daemon start.rest
 
 start.daemon:
+ifeq ($(CURRENT_OS),Windows)
+	@echo "use 'make start.daemon.windows' instead"
+else
 	@echo starting daemon....
 	@nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
+endif
 
 start.rest:
+ifeq ($(CURRENT_OS),Windows)
+	@echo "use 'make start.rest.windows' instead"
+else
 	@echo starting rest server...
 	@nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
+endif
+
+
+start.daemon.windows:
+	@echo starting daemon....
+	-hsd start
+
+start.rest.windows:
+	@echo starting rest server...
+	-hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 
 
 stop:
 	@pkill hsd
 	@pkill hscli
 
-# clean part
 clean:
-	@find build -name bin | xargs rm -rf
+	@rm -rf build/bin
 
 clear: clean
+ifeq ($(CURRENT_OS),Windows)
+	@rm -rf \.hsd
+	@rm -rf \.hscli
+else
 	@rm -rf ~/.hs*
+endif
 
 DOCKER_VALIDATOR_IMAGE = falcon0125/hsdnode
 DOCKER_CLIENT_IMAGE = falcon0125/hsclinode
