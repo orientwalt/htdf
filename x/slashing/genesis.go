@@ -2,13 +2,14 @@ package slashing
 
 import (
 	sdk "github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/x/slashing/types"
 )
 
 // GenesisState - all slashing state that must be provided at genesis
 type GenesisState struct {
-	Params       Params                          `json:"params"`
-	SigningInfos map[string]ValidatorSigningInfo `json:"signing_infos"`
-	MissedBlocks map[string][]MissedBlock        `json:"missed_blocks"`
+	Params       types.Params                          `json:"params"`
+	SigningInfos map[string]types.ValidatorSigningInfo `json:"signing_infos"`
+	MissedBlocks map[string][]MissedBlock              `json:"missed_blocks"`
 }
 
 // MissedBlock
@@ -20,8 +21,8 @@ type MissedBlock struct {
 // DefaultGenesisState - default GenesisState used by Cosmos Hub
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		Params:       DefaultParams(),
-		SigningInfos: make(map[string]ValidatorSigningInfo),
+		Params:       types.DefaultParams(),
+		SigningInfos: make(map[string]types.ValidatorSigningInfo),
 		MissedBlocks: make(map[string][]MissedBlock),
 	}
 }
@@ -57,7 +58,7 @@ func ValidateGenesis(data GenesisState) error {
 	// if signedWindow < 10 {
 	// 	return fmt.Errorf("Signed blocks window must be at least 10, is %d", signedWindow)
 	// }
-	err := validateParams(data.Params)
+	err := types.ValidateParams(data.Params)
 	if err != nil {
 		return err
 	}
@@ -96,12 +97,12 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState, validators [
 // to a genesis file, which can be imported again
 // with InitGenesis
 func ExportGenesis(ctx sdk.Context, keeper Keeper) (data GenesisState) {
-	var params Params
+	var params types.Params
 	keeper.paramspace.GetParamSet(ctx, &params)
 
-	signingInfos := make(map[string]ValidatorSigningInfo)
+	signingInfos := make(map[string]types.ValidatorSigningInfo)
 	missedBlocks := make(map[string][]MissedBlock)
-	keeper.IterateValidatorSigningInfos(ctx, func(address sdk.ConsAddress, info ValidatorSigningInfo) (stop bool) {
+	keeper.IterateValidatorSigningInfos(ctx, func(address sdk.ConsAddress, info types.ValidatorSigningInfo) (stop bool) {
 		bechAddr := address.String()
 		signingInfos[bechAddr] = info
 		localMissedBlocks := []MissedBlock{}

@@ -23,4 +23,5 @@ type PeerFilter func(info string) abci.ResponseQuery
 // initialize application state at genesis
 type InitChainer1 func(ctx Context, deliverTx DeliverTx, req abci.RequestInitChain) abci.ResponseInitChain
 
-type DeliverTx func(txBytes []byte) abci.ResponseDeliverTx
+// type DeliverTx func(txBytes []byte) abci.ResponseDeliverTx
+type DeliverTx func(req abci.RequestDeliverTx) abci.ResponseDeliverTx

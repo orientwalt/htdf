@@ -120,7 +120,7 @@ func GetValidators(cliCtx context.CLIContext, height *int64) (ResultValidatorsOu
 		return ResultValidatorsOutput{}, err
 	}
 
-	validatorsRes, err := node.Validators(height)
+	validatorsRes, err := node.Validators(height, 10, 10)
 	if err != nil {
 		return ResultValidatorsOutput{}, err
 	}

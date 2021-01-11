@@ -5,13 +5,14 @@ import (
 	"strconv"
 
 	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/gov/tags"
+	"github.com/orientwalt/htdf/x/gov/types"
 )
 
 // Handle all "gov" type messages.
 func NewHandler(keeper Keeper) sdk.Handler {
 
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
 		case MsgDeposit:
 			return handleMsgDeposit(ctx, keeper, msg)
@@ -48,20 +49,42 @@ func handleMsgSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitPropos
 		return err.Result()
 	}
 
-	resTags := sdk.NewTags(
-		tags.Proposer, []byte(msg.Proposer.String()),
-		tags.ProposalID, proposalIDStr,
+	// resTags := sdk.NewTags(
+	// 	tags.Proposer, []byte(msg.Proposer.String()),
+	// 	tags.ProposalID, proposalIDStr,
+	// )
+
+	// if votingStarted {
+	// 	resTags = resTags.AppendTag(tags.VotingPeriodStart, proposalIDStr)
+	// }
+
+	// return sdk.Result{
+	// 	Data: keeper.cdc.MustMarshalBinaryLengthPrefixed(proposalID),
+	// 	Tags: resTags,
+	// }
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyIndex, proposalIDStr), // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Proposer.String()),
+		),
 	)
 
+	submitEvent := sdk.NewEvent(types.EventTypeSubmitProposal, sdk.NewAttribute(types.AttributeKeyProposalType, proposal.String()))
 	if votingStarted {
-		resTags = resTags.AppendTag(tags.VotingPeriodStart, proposalIDStr)
+		submitEvent = submitEvent.AppendAttributes(
+			sdk.NewAttribute(types.AttributeKeyVotingPeriodStart, fmt.Sprintf("%d", proposal.GetProposalID())),
+		)
 	}
 
+	ctx.EventManager().EmitEvent(submitEvent)
+
 	return sdk.Result{
-		Data: keeper.cdc.MustMarshalBinaryLengthPrefixed(proposalID),
-		Tags: resTags,
+		Data:   types.GetProposalIDBytes(proposal.GetProposalID()),
+		Events: ctx.EventManager().ABCIEvents(),
 	}
-	return sdk.Result{}
 }
 
 //Submit upgrade software proposal
@@ -88,19 +111,42 @@ func handleMsgSubmitSoftwareUpgradeProposal(ctx sdk.Context, keeper Keeper, msg 
 	}
 	proposalIDBytes := strconv.FormatUint(proposal.GetProposalID(), 10)
 
-	resTags := sdk.NewTags(
-		tags.Proposer, []byte(msg.Proposer.String()),
-		tags.ProposalID, proposalIDBytes,
+	// resTags := sdk.NewTags(
+	// 	tags.Proposer, []byte(msg.Proposer.String()),
+	// 	tags.ProposalID, proposalIDBytes,
+	// )
+
+	// if votingStarted {
+	// 	resTags = resTags.AppendTag(tags.VotingPeriodStart, proposalIDBytes)
+	// }
+
+	// // keeper.AddProposalNum(ctx, proposal)
+	// return sdk.Result{
+	// 	Data: []byte(proposalIDBytes),
+	// 	Tags: resTags,
+	// }
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyIndex, proposalIDBytes), // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Proposer.String()),
+		),
 	)
 
+	submitEvent := sdk.NewEvent(types.EventTypeSubmitProposal, sdk.NewAttribute(types.AttributeKeyProposalType, proposal.String()))
 	if votingStarted {
-		resTags = resTags.AppendTag(tags.VotingPeriodStart, proposalIDBytes)
+		submitEvent = submitEvent.AppendAttributes(
+			sdk.NewAttribute(types.AttributeKeyVotingPeriodStart, fmt.Sprintf("%d", proposal.GetProposalID())),
+		)
 	}
 
-	// keeper.AddProposalNum(ctx, proposal)
+	ctx.EventManager().EmitEvent(submitEvent)
+
 	return sdk.Result{
-		Data: []byte(proposalIDBytes),
-		Tags: resTags,
+		Data:   types.GetProposalIDBytes(proposal.GetProposalID()),
+		Events: ctx.EventManager().ABCIEvents(),
 	}
 }
 
@@ -110,19 +156,38 @@ func handleMsgDeposit(ctx sdk.Context, keeper Keeper, msg MsgDeposit) sdk.Result
 		return err.Result()
 	}
 
-	proposalIDStr := fmt.Sprintf("%d", msg.ProposalID)
-	resTags := sdk.NewTags(
-		tags.Depositor, []byte(msg.Depositor.String()),
-		tags.ProposalID, proposalIDStr,
+	// resTags := sdk.NewTags(
+	// 	tags.Depositor, []byte(msg.Depositor.String()),
+	// 	tags.ProposalID, proposalIDStr,
+	// )
+
+	// if votingStarted {
+	// 	resTags = resTags.AppendTag(tags.VotingPeriodStart, proposalIDStr)
+	// }
+
+	// return sdk.Result{
+	// 	Tags: resTags,
+	// }
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyIndex, fmt.Sprintf("%d", msg.ProposalID)), // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Depositor.String()),
+		),
 	)
 
 	if votingStarted {
-		resTags = resTags.AppendTag(tags.VotingPeriodStart, proposalIDStr)
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeProposalDeposit,
+				sdk.NewAttribute(types.AttributeKeyVotingPeriodStart, fmt.Sprintf("%d", msg.ProposalID)),
+			),
+		)
 	}
 
-	return sdk.Result{
-		Tags: resTags,
-	}
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }
 
 func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
@@ -131,10 +196,21 @@ func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
 		return err.Result()
 	}
 
-	return sdk.Result{
-		Tags: sdk.NewTags(
-			tags.Voter, msg.Voter.String(),
-			tags.ProposalID, fmt.Sprintf("%d", msg.ProposalID),
+	// return sdk.Result{
+	// 	Tags: sdk.NewTags(
+	// 		tags.Voter, msg.Voter.String(),
+	// 		tags.ProposalID, fmt.Sprintf("%d", msg.ProposalID),
+	// 	),
+	// }
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyIndex, fmt.Sprintf("%d", msg.ProposalID)), // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Voter.String()),
 		),
-	}
+	)
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }

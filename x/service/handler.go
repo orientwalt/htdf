@@ -2,12 +2,13 @@ package service
 
 import (
 	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/service/tags"
+	"github.com/orientwalt/htdf/x/service/types"
 )
 
 // handle all "service" type messages.
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
 		case MsgSvcDef:
 			return handleMsgSvcDef(ctx, k, msg)
@@ -147,15 +148,28 @@ func handleMsgSvcRequest(ctx sdk.Context, k Keeper, msg MsgSvcRequest) sdk.Resul
 		"provider", msg.Provider.String(), "consumer", request.Consumer.String(), "method_id", msg.MethodID,
 		"service_fee", msg.ServiceFee, "request_id", request.RequestID())
 
-	resTags := sdk.NewTags(
-		tags.RequestID, []byte(request.RequestID()),
-		tags.Provider, []byte(request.Provider.String()),
-		tags.Consumer, []byte(request.Consumer.String()),
-		tags.ServiceFee, []byte(request.ServiceFee.String()),
+	// resTags := sdk.NewTags(
+	// 	tags.RequestID, []byte(request.RequestID()),
+	// 	tags.Provider, []byte(request.Provider.String()),
+	// 	tags.Consumer, []byte(request.Consumer.String()),
+	// 	tags.ServiceFee, []byte(request.ServiceFee.String()),
+	// )
+	// return sdk.Result{
+	// 	Tags: resTags,
+	// }
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyIndex, request.RequestID()),          // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeyProvider, request.Provider.String()), // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeyConsumer, request.Consumer.String()), // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeyFee, request.ServiceFee.String()),
+		),
 	)
-	return sdk.Result{
-		Tags: resTags,
-	}
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }
 
 func handleMsgSvcResponse(ctx sdk.Context, k Keeper, msg MsgSvcResponse) sdk.Result {
@@ -190,14 +204,26 @@ func handleMsgSvcResponse(ctx sdk.Context, k Keeper, msg MsgSvcResponse) sdk.Res
 	ctx.Logger().Debug("Service response", "def_name", "request_id", request.RequestID(),
 		"consumer", response.Consumer.String())
 
-	resTags := sdk.NewTags(
-		tags.RequestID, []byte(request.RequestID()),
-		tags.Consumer, []byte(response.Consumer.String()),
-		tags.Provider, []byte(response.Provider.String()),
+	// resTags := sdk.NewTags(
+	// 	tags.RequestID, []byte(request.RequestID()),
+	// 	tags.Consumer, []byte(response.Consumer.String()),
+	// 	tags.Provider, []byte(response.Provider.String()),
+	// )
+	// return sdk.Result{
+	// 	Tags: resTags,
+	// }
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyIndex, request.RequestID()),          // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeyProvider, request.Provider.String()), // inserted by junying
+			sdk.NewAttribute(sdk.AttributeKeyConsumer, request.Consumer.String()), // inserted by junying
+		),
 	)
-	return sdk.Result{
-		Tags: resTags,
-	}
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }
 
 func handleMsgSvcRefundFees(ctx sdk.Context, k Keeper, msg MsgSvcRefundFees) sdk.Result {
@@ -271,10 +297,19 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 		keeper.metrics.ActiveRequests.Add(-1)
 		keeper.DeleteRequestExpiration(ctx, req)
 
-		resTags = resTags.AppendTag(tags.Action, tags.ActionSvcCallTimeOut)
-		resTags = resTags.AppendTag(tags.RequestID, req.RequestID())
-		resTags = resTags.AppendTag(tags.Provider, req.Provider.String())
-		resTags = resTags.AppendTag(tags.SlashCoins, slashCoins.String())
+		// resTags = resTags.AppendTag(tags.Action, tags.ActionSvcCallTimeOut)
+		// resTags = resTags.AppendTag(tags.RequestID, req.RequestID())
+		// resTags = resTags.AppendTag(tags.Provider, req.Provider.String())
+		// resTags = resTags.AppendTag(tags.SlashCoins, slashCoins.String())
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				sdk.EventTypeMessage,
+				sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+				sdk.NewAttribute(sdk.AttributeKeyIndex, req.RequestID()),          // inserted by junying
+				sdk.NewAttribute(sdk.AttributeKeyProvider, req.Provider.String()), // inserted by junying
+				sdk.NewAttribute(sdk.AttributeKeyAmount, slashCoins.String()),     // inserted by junying
+			),
+		)
 		logger.Info("Remove timeout request", "request_id", req.RequestID(), "consumer", req.Consumer.String())
 	}
 

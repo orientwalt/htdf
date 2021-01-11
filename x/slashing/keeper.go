@@ -9,6 +9,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/params"
+	"github.com/orientwalt/htdf/x/slashing/types"
 	stake "github.com/orientwalt/htdf/x/staking/types"
 )
 
@@ -31,7 +32,7 @@ func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, vs sdk.ValidatorSet, paramspa
 		storeKey:     key,
 		cdc:          cdc,
 		validatorSet: vs,
-		paramspace:   paramspace.WithKeyTable(ParamKeyTable()),
+		paramspace:   paramspace.WithKeyTable(types.ParamKeyTable()),
 		codespace:    codespace,
 		metrics:      metrics,
 	}
@@ -120,7 +121,7 @@ func (k Keeper) handleDoubleSign(ctx sdk.Context, addr crypto.Address, infractio
 	signInfo.Tombstoned = true
 
 	// Set jailed until to be forever (max time)
-	signInfo.JailedUntil = DoubleSignJailEndTime
+	signInfo.JailedUntil = types.DoubleSignJailEndTime
 
 	// Set validator signing info
 	k.SetValidatorSigningInfo(ctx, consAddr, signInfo)
@@ -261,7 +262,7 @@ func (k Keeper) addPubkey(ctx sdk.Context, pubkey crypto.PubKey) {
 func (k Keeper) getPubkey(ctx sdk.Context, address crypto.Address) (crypto.PubKey, error) {
 	store := ctx.KVStore(k.storeKey)
 	var pubkey crypto.PubKey
-	err := k.cdc.UnmarshalBinaryLengthPrefixed(store.Get(getAddrPubkeyRelationKey(address)), &pubkey)
+	err := k.cdc.UnmarshalBinaryLengthPrefixed(store.Get(types.GetAddrPubkeyRelationKey(address)), &pubkey)
 	if err != nil {
 		return nil, fmt.Errorf("address %v not found", address)
 	}
@@ -271,10 +272,153 @@ func (k Keeper) getPubkey(ctx sdk.Context, address crypto.Address) (crypto.PubKe
 func (k Keeper) setAddrPubkeyRelation(ctx sdk.Context, addr crypto.Address, pubkey crypto.PubKey) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryLengthPrefixed(pubkey)
-	store.Set(getAddrPubkeyRelationKey(addr), bz)
+	store.Set(types.GetAddrPubkeyRelationKey(addr), bz)
 }
 
 func (k Keeper) deleteAddrPubkeyRelation(ctx sdk.Context, addr crypto.Address) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(getAddrPubkeyRelationKey(addr))
+	store.Delete(types.GetAddrPubkeyRelationKey(addr))
+}
+
+// MaxEvidenceAge - max age for evidence
+func (k Keeper) MaxEvidenceAge(ctx sdk.Context) (res time.Duration) {
+	k.paramspace.Get(ctx, types.KeyMaxEvidenceAge, &res)
+	return
+}
+
+// SignedBlocksWindow - sliding window for downtime slashing
+func (k Keeper) SignedBlocksWindow(ctx sdk.Context) (res int64) {
+	k.paramspace.Get(ctx, types.KeySignedBlocksWindow, &res)
+	return
+}
+
+// Downtime slashing threshold
+func (k Keeper) MinSignedPerWindow(ctx sdk.Context) int64 {
+	var minSignedPerWindow sdk.Dec
+	k.paramspace.Get(ctx, types.KeyMinSignedPerWindow, &minSignedPerWindow)
+	signedBlocksWindow := k.SignedBlocksWindow(ctx)
+
+	// NOTE: RoundInt64 will never panic as minSignedPerWindow is
+	//       less than 1.
+	return minSignedPerWindow.MulInt64(signedBlocksWindow).RoundInt64()
+}
+
+// Downtime unbond duration
+func (k Keeper) DowntimeJailDuration(ctx sdk.Context) (res time.Duration) {
+	k.paramspace.Get(ctx, types.KeyDowntimeJailDuration, &res)
+	return
+}
+
+// SlashFractionDoubleSign
+func (k Keeper) SlashFractionDoubleSign(ctx sdk.Context) (res sdk.Dec) {
+	k.paramspace.Get(ctx, types.KeySlashFractionDoubleSign, &res)
+	return
+}
+
+// Censorship jail duration
+func (k Keeper) CensorshipJailDuration(ctx sdk.Context) (res time.Duration) {
+	k.paramspace.Get(ctx, types.KeyCensorshipJailDuration, &res)
+	return
+}
+
+// SlashFractionDowntime
+func (k Keeper) SlashFractionDowntime(ctx sdk.Context) (res sdk.Dec) {
+	k.paramspace.Get(ctx, types.KeySlashFractionDowntime, &res)
+	return
+}
+
+// Slash fraction for Censorship
+func (k Keeper) SlashFractionCensorship(ctx sdk.Context) (res sdk.Dec) {
+	k.paramspace.Get(ctx, types.KeySlashFractionCensorship, &res)
+	return
+}
+
+// GetParams returns the total set of slashing parameters.
+func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
+	k.paramspace.GetParamSet(ctx, &params)
+	return params
+}
+
+/////////////////////
+// Stored by *validator* address (not operator address)
+func (k Keeper) getValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress) (info types.ValidatorSigningInfo, found bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.GetValidatorSigningInfoKey(address))
+	if bz == nil {
+		found = false
+		return
+	}
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &info)
+	found = true
+	return
+}
+
+// Stored by *validator* address (not operator address)
+func (k Keeper) IterateValidatorSigningInfos(ctx sdk.Context, handler func(address sdk.ConsAddress, info types.ValidatorSigningInfo) (stop bool)) {
+	store := ctx.KVStore(k.storeKey)
+	iter := sdk.KVStorePrefixIterator(store, types.ValidatorSigningInfoKey)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		address := types.GetValidatorSigningInfoAddress(iter.Key())
+		var info types.ValidatorSigningInfo
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(iter.Value(), &info)
+		if handler(address, info) {
+			break
+		}
+	}
+}
+
+// Stored by *validator* address (not operator address)
+func (k Keeper) SetValidatorSigningInfo(ctx sdk.Context, address sdk.ConsAddress, info types.ValidatorSigningInfo) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryLengthPrefixed(info)
+	store.Set(types.GetValidatorSigningInfoKey(address), bz)
+}
+
+// Stored by *validator* address (not operator address)
+func (k Keeper) getValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress, index int64) (missed bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.GetValidatorMissedBlockBitArrayKey(address, index))
+	if bz == nil {
+		// lazy: treat empty key as not missed
+		missed = false
+		return
+	}
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &missed)
+	return
+}
+
+// Stored by *validator* address (not operator address)
+func (k Keeper) IterateValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress, handler func(index int64, missed bool) (stop bool)) {
+	store := ctx.KVStore(k.storeKey)
+	index := int64(0)
+	// Array may be sparse
+	for ; index < k.SignedBlocksWindow(ctx); index++ {
+		var missed bool
+		bz := store.Get(types.GetValidatorMissedBlockBitArrayKey(address, index))
+		if bz == nil {
+			continue
+		}
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &missed)
+		if handler(index, missed) {
+			break
+		}
+	}
+}
+
+// Stored by *validator* address (not operator address)
+func (k Keeper) setValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress, index int64, missed bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryLengthPrefixed(missed)
+	store.Set(types.GetValidatorMissedBlockBitArrayKey(address, index), bz)
+}
+
+// Stored by *validator* address (not operator address)
+func (k Keeper) clearValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress) {
+	store := ctx.KVStore(k.storeKey)
+	iter := sdk.KVStorePrefixIterator(store, types.GetValidatorMissedBlockBitArrayPrefixKey(address))
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		store.Delete(iter.Key())
+	}
 }

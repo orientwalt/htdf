@@ -7,6 +7,7 @@ import (
 
 	ics23iavl "github.com/confio/ics23-iavl"
 	ics23 "github.com/confio/ics23/go"
+
 	"github.com/pkg/errors"
 	"github.com/tendermint/iavl"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -15,10 +16,9 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/store/cachekv"
-	"github.com/orientwalt/htdf/store/errors"
+	// "github.com/orientwalt/htdf/store/errors"
 	"github.com/orientwalt/htdf/store/tracekv"
 	"github.com/orientwalt/htdf/store/types"
-	cmnerr "github.com/pkg/errors"
 	sdk "github.com/orientwalt/htdf/types"
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
 )

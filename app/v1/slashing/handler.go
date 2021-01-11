@@ -1,8 +1,8 @@
 package slashing
 
 import (
-	"github.com/orientwalt/htdf/app/v1/slashing/tags"
 	sdk "github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/x/staking/types"
 )
 
 func NewHandler(k Keeper) sdk.Handler {
@@ -60,12 +60,22 @@ func handleMsgUnjail(ctx sdk.Context, msg MsgUnjail, k Keeper) sdk.Result {
 	// unjail the validator
 	k.validatorSet.Unjail(ctx, consAddr)
 
-	tags := sdk.NewTags(
-		tags.Action, tags.ActionValidatorUnjailed,
-		tags.Validator, msg.ValidatorAddr.String(),
+	// tags := sdk.NewTags(
+	// 	tags.Action, tags.ActionValidatorUnjailed,
+	// 	tags.Validator, msg.ValidatorAddr.String(),
+	// )
+
+	// return sdk.Result{
+	// 	Tags: tags,
+	// }
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddr.String()),
+		),
 	)
 
-	return sdk.Result{
-		Tags: tags,
-	}
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }

@@ -118,9 +118,9 @@ func NewInt(n int64) Int {
 }
 
 // junying-todo, 2019-11-14
-func (i Int) Uint64() uint64 {
-	return i.i.Uint64()
-}
+// func (i Int) Uint64() uint64 {
+// 	return i.i.Uint64()
+// }
 
 // NewIntFromBigInt constructs Int from big.Int
 func NewIntFromBigInt(i *big.Int) Int {
@@ -184,6 +184,20 @@ func (i Int) Int64() int64 {
 // IsInt64 returns true if Int64() not panics
 func (i Int) IsInt64() bool {
 	return i.i.IsInt64()
+}
+
+// Uint64 converts Int to uint64
+// Panics if the value is out of range
+func (i Int) Uint64() uint64 {
+	if !i.i.IsUint64() {
+		panic("Uint64() out of bounds")
+	}
+	return i.i.Uint64()
+}
+
+// IsUint64 returns true if Uint64() not panics
+func (i Int) IsUint64() bool {
+	return i.i.IsUint64()
 }
 
 // IsZero returns true if Int is zero

@@ -5,9 +5,9 @@ import (
 	amino "github.com/tendermint/go-amino"
 
 	"github.com/orientwalt/htdf/client"
-	"github.com/orientwalt/htdf/x/slashing"
-	slashingcli "github.com/orientwalt/htdf/x/slashing/client/cli"
 	hslashingcli "github.com/orientwalt/htdf/x/slashing/client/cli"
+	slashingcli "github.com/orientwalt/htdf/x/slashing/client/cli"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 )
 
 // ModuleClient exports all client functionality from this module
@@ -24,7 +24,7 @@ func NewModuleClient(storeKey string, cdc *amino.Codec) ModuleClient {
 func (mc ModuleClient) GetQueryCmd() *cobra.Command {
 	// Group slashing queries under a subcommand
 	slashingQueryCmd := &cobra.Command{
-		Use:   slashing.ModuleName,
+		Use:   slashingtypes.ModuleName,
 		Short: "Querying commands for the slashing module",
 	}
 
@@ -42,7 +42,7 @@ func (mc ModuleClient) GetQueryCmd() *cobra.Command {
 // GetTxCmd returns the transaction commands for this module
 func (mc ModuleClient) GetTxCmd() *cobra.Command {
 	slashingTxCmd := &cobra.Command{
-		Use:   slashing.ModuleName,
+		Use:   slashingtypes.ModuleName,
 		Short: "Slashing transactions subcommands",
 	}
 

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -48,6 +49,28 @@ func NewInt64Coin(denom string, amount int64) Coin {
 // String provides a human-readable representation of a coin
 func (coin Coin) String() string {
 	return fmt.Sprintf("%v%v", coin.Amount, coin.Denom)
+}
+
+// validate returns an error if the Coin has a negative amount or if
+// the denom is invalid.
+func validate(denom string, amount Int) error {
+	if err := ValidateDenom(denom); err != nil {
+		return err
+	}
+
+	if amount.IsNegative() {
+		return fmt.Errorf("negative coin amount: %v", amount)
+	}
+
+	return nil
+}
+
+// IsValid returns true if the Coin has a non-negative amount and the denom is vaild.
+func (coin Coin) IsValid() bool {
+	if err := validate(coin.Denom, coin.Amount); err != nil {
+		return false
+	}
+	return true
 }
 
 // IsZero returns if this represents no money
@@ -103,7 +126,7 @@ func (coin Coin) Sub(coinB Coin) Coin {
 
 	res := Coin{coin.Denom, coin.Amount.Sub(coinB.Amount)}
 	if res.IsNegative() {
-		panic("negative count amount")
+		panic("negative coin amount")
 	}
 
 	return res
@@ -151,6 +174,18 @@ func NewCoins(coins ...Coin) Coins {
 	return newCoins
 }
 
+type coinsJSON Coins
+
+// MarshalJSON implements a custom JSON marshaller for the Coins type to allow
+// nil Coins to be encoded as an empty array.
+func (coins Coins) MarshalJSON() ([]byte, error) {
+	if coins == nil {
+		return json.Marshal(coinsJSON(Coins{}))
+	}
+
+	return json.Marshal(coinsJSON(coins))
+}
+
 func (coins Coins) String() string {
 	if len(coins) == 0 {
 		return ""
@@ -170,7 +205,7 @@ func (coins Coins) IsValid() bool {
 	case 0:
 		return true
 	case 1:
-		if err := validateDenom(coins[0].Denom); err != nil {
+		if err := ValidateDenom(coins[0].Denom); err != nil {
 			return false
 		}
 		return coins[0].IsPositive()
@@ -368,7 +403,30 @@ func (coins Coins) IsAllLTE(coinsB Coins) bool {
 	return coinsB.IsAllGTE(coins)
 }
 
-// IsAnyGTE returns true if coins contains at least one denom that is present
+// IsAnyGT returns true iff for any denom in coins, the denom is present at a
+// greater amount in coinsB.
+//
+// e.g.
+// {2A, 3B}.IsAnyGT{A} = true
+// {2A, 3B}.IsAnyGT{5C} = false
+// {}.IsAnyGT{5C} = false
+// {2A, 3B}.IsAnyGT{} = false
+func (coins Coins) IsAnyGT(coinsB Coins) bool {
+	if len(coinsB) == 0 {
+		return false
+	}
+
+	for _, coin := range coins {
+		amt := coinsB.AmountOf(coin.Denom)
+		if coin.Amount.GT(amt) && !amt.IsZero() {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsAnyGTE returns true iff coins contains at least one denom that is present
 // at a greater or equal amount in coinsB; it returns false otherwise.
 //
 // NOTE: IsAnyGTE operates under the invariant that both coin sets are sorted
@@ -439,15 +497,20 @@ func (coins Coins) AmountOf(denom string) Int {
 	default:
 		midIdx := len(coins) / 2 // 2:1, 3:1, 4:2
 		coin := coins[midIdx]
-
-		if denom < coin.Denom {
+		switch {
+		case denom < coin.Denom:
 			return coins[:midIdx].AmountOf(denom)
-		} else if denom == coin.Denom {
+		case denom == coin.Denom:
 			return coin.Amount
-		} else {
+		default:
 			return coins[midIdx+1:].AmountOf(denom)
 		}
 	}
+}
+
+// GetDenomByIndex returns the Denom of the certain coin to make the findDup generic
+func (coins Coins) GetDenomByIndex(i int) string {
+	return coins[i].Denom
 }
 
 // IsAllPositive returns true if there is at least one coin and all currencies
@@ -549,7 +612,7 @@ var (
 	reDecCoin   = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reDecAmt, reSpc, reDnmString))
 )
 
-func validateDenom(denom string) error {
+func ValidateDenom(denom string) error {
 	if !reDnm.MatchString(denom) {
 		return fmt.Errorf("invalid denom: %s", denom)
 	}
@@ -557,7 +620,7 @@ func validateDenom(denom string) error {
 }
 
 func mustValidateDenom(denom string) {
-	if err := validateDenom(denom); err != nil {
+	if err := ValidateDenom(denom); err != nil {
 		panic(err)
 	}
 }
@@ -579,7 +642,7 @@ func ParseCoin(coinStr string) (coin Coin, err error) {
 		return Coin{}, fmt.Errorf("failed to parse coin amount: %s", amountStr)
 	}
 
-	if err := validateDenom(denomStr); err != nil {
+	if err := ValidateDenom(denomStr); err != nil {
 		return Coin{}, fmt.Errorf("invalid denom cannot contain upper case characters or spaces: %s", err)
 	}
 

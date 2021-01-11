@@ -236,12 +236,12 @@ type Error interface {
 	// Implements cmn.Error
 	// Error() string
 	// Stacktrace() cmn.Error
-	// Trace(offset int, format string, args ...interface{}) cmn.Error
+	// Trace(offset int, format string, args ...interface{}) cmnError
 	// Data() interface{}
 	cmnError
 
 	// convenience
-	TraceSDK(format string, args ...interface{}) Error
+	// TraceSDK(format string, args ...interface{}) Error
 
 	// set codespace
 	WithDefaultCodespace(CodespaceType) Error
@@ -292,12 +292,30 @@ func (err *sdkError) WithDefaultCodespace(cs CodespaceType) Error {
 	}
 }
 
-// Implements ABCIError.
-// nolint: errcheck
-func (err *sdkError) TraceSDK(format string, args ...interface{}) Error {
-	// err.Trace(1, format, args...)
-	return err
-}
+// // Implements ABCIError.
+// // nolint: errcheck
+// func (err *sdkError) TraceSDK(format string, args ...interface{}) Error {
+// 	err.Trace(1, format, args...)
+// 	return err
+// }
+
+// // Add tracing information with msg.
+// // Set n=0 unless wrapped with some function, then n > 0.
+// func (err *sdkError) Trace(offset int, format string, args ...interface{}) Error {
+// 	msg := fmt.Sprintf(format, args...)
+// 	return err.doTrace(msg, offset)
+// }
+
+// func (err *sdkError) doTrace(msg string, n int) Error {
+// 	pc, _, _, _ := runtime.Caller(n + 2) // +1 for doTrace().  +1 for the caller.
+// 	// Include file & line number & msg.
+// 	// Do not include the whole stack trace.
+// 	err.msgtraces = append(err.msgtraces, msgtraceItem{
+// 		pc:  pc,
+// 		msg: msg,
+// 	})
+// 	return err
+// }
 
 // Implements ABCIError.
 func (err *sdkError) Error() string {
@@ -340,9 +358,9 @@ func (err *sdkError) ABCILog() string {
 
 func (err *sdkError) Result() Result {
 	return Result{
-		Code:      err.Code(),
-		Codespace: err.Codespace(),
-		Log:       err.ABCILog(),
+		// Code:      err.Code(),
+		// Codespace: err.Codespace(),
+		Log: err.ABCILog(),
 	}
 }
 

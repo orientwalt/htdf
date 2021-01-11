@@ -7,13 +7,14 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 
 	sdk "github.com/orientwalt/htdf/types"
+	"github.com/orientwalt/htdf/x/slashing/types"
 )
 
 func (k Keeper) AfterValidatorBonded(ctx sdk.Context, address sdk.ConsAddress, _ sdk.ValAddress) {
 	// Update the signing info start height or create a new signing info
 	_, found := k.getValidatorSigningInfo(ctx, address)
 	if !found {
-		signingInfo := ValidatorSigningInfo{
+		signingInfo := types.ValidatorSigningInfo{
 			StartHeight:         ctx.BlockHeight(),
 			IndexOffset:         0,
 			JailedUntil:         time.Unix(0, 0),

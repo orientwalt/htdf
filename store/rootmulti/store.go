@@ -174,19 +174,19 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 
 	// Convert StoreInfos slice to map
-	infos := make(map[types.StoreKey]storeInfo)
-	for _, storeInfo := range cInfo.StoreInfos {
-		infos[rs.nameToKey(storeInfo.Name)] = storeInfo
-	}
+	// infos := make(map[types.StoreKey]storeInfo)
+	// for _, storeInfo := range cInfo.StoreInfos {
+	// 	infos[rs.nameToKey(storeInfo.Name)] = storeInfo
+	// }
 
-	// Load each Store
-	var newStores = make(map[types.StoreKey]types.CommitStore)
+	// // Load each Store
+	// var newStores = make(map[types.StoreKey]types.CommitStore)
 	for key, storeParams := range rs.storesParams {
+		// Load it
 		store, err := rs.loadCommitStoreFromParams(key, rs.getCommitID(infos, key.Name()), storeParams)
 		if err != nil {
 			return errors.Wrap(err, "failed to load store")
 		}
-
 		newStores[key] = store
 
 		// If it was deleted, remove all data
@@ -324,7 +324,7 @@ func (rs *Store) Commit() types.CommitID {
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
 	}
-	rs.lastCommitID = commitID
+	// rs.lastCommitID = commitID
 	return commitID
 }
 
@@ -711,7 +711,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		Version:    version,
 		StoreInfos: storeInfos,
 	}
-	return ci
+	// return ci
 }
 
 // Gets commitInfo from disk.

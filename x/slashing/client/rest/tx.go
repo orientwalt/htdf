@@ -12,7 +12,7 @@ import (
 	"github.com/orientwalt/htdf/crypto/keys"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/types/rest"
-	"github.com/orientwalt/htdf/x/slashing"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 )
 
 func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec, kb keys.Keybase) {
@@ -60,7 +60,7 @@ func unjailRequestHandlerFn(cdc *codec.Codec, kb keys.Keybase, cliCtx context.CL
 			return
 		}
 
-		msg := slashing.NewMsgUnjail(valAddr)
+		msg := slashingtypes.NewMsgUnjail(valAddr)
 		err = msg.ValidateBasic()
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())

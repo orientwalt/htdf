@@ -5,9 +5,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/prometheus/common/log"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/multisig"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
@@ -15,7 +18,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	txparam "github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -35,14 +38,26 @@ func init() {
 		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
 	}
 	// parse string, this is built-in feature of logrus
-	ll, err := log.ParseLevel(lvl)
+	ll, err := logrus.ParseLevel(lvl)
 	if err != nil {
-		ll = log.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+		ll = logrus.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
 	}
 	// set global log level
-	log.SetLevel(ll)
+	logrus.SetLevel(ll)
 
-	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
+	logrus.SetFormatter(&logrus.TextFormatter{}) //&log.JSONFormatter{})
+}
+
+func logger() *logrus.Entry {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		panic("Could not get context info for logger!")
+	}
+
+	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
+	funcname := runtime.FuncForPC(pc).Name()
+	fn := funcname[strings.LastIndex(funcname, ".")+1:]
+	return logrus.WithField("file", filename).WithField("function", fn)
 }
 
 // Check if EVM Tx exists
@@ -69,14 +84,14 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 	) (newCtx sdk.Context, res sdk.Result, abort bool) {
 		// all transactions must be of type auth.StdTx
 		stdTx, ok := tx.(StdTx)
-		log.Debugln("NewAnteHandler:tx", tx)
-		log.Debugln("NewAnteHandler:tx.GetMsgs()[0].GetSignBytes()", tx.GetMsgs()[0].GetSignBytes())
-		log.Debugln("NewAnteHandler:stdTx.Msgs", stdTx.Msgs)
-		log.Debugln("NewAnteHandler:stdTx.Memo", stdTx.Memo)
-		log.Debugln("NewAnteHandler:stdTx.Fee.Amount", stdTx.Fee.Amount())
-		log.Debugln("NewAnteHandler:stdTx.Fee.GasWanted", stdTx.Fee.GasWanted)
-		log.Debugln("NewAnteHandler:stdTx.Fee.GasPrices", stdTx.Fee.GasPrice)
-		log.Debugln("NewAnteHandler:stdTx.Fee", stdTx.Fee)
+		logger().Debugln("tx", tx)
+		logger().Debugln("tx.GetMsgs()[0].GetSignBytes()", tx.GetMsgs()[0].GetSignBytes())
+		logger().Debugln("stdTx.Msgs", stdTx.Msgs)
+		logger().Debugln("stdTx.Memo", stdTx.Memo)
+		logger().Debugln("stdTx.Fee.Amount", stdTx.Fee.Amount())
+		logger().Debugln("stdTx.Fee.GasWanted", stdTx.Fee.GasWanted)
+		logger().Debugln("stdTx.Fee.GasPrices", stdTx.Fee.GasPrice)
+		logger().Debugln("stdTx.Fee", stdTx.Fee)
 		if !ok {
 			// Set a gas meter with limit 0 as to prevent an infinite gas meter attack
 			// during runTx.
@@ -187,7 +202,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 					return newCtx, res, true
 				}
 			}
-			log.Debugln("&&&&&&&&&&&&&&&&&&&&", newCtx.ChainID())
+			logger().Debugln("&&&&&&&&&&&&&&&&&&&&", newCtx.ChainID())
 			// check signature, return account with incremented nonce
 			signBytes := GetSignBytes(newCtx.ChainID(), stdTx, signerAccs[i], isGenesis)
 			signerAccs[i], res = processSig(newCtx, signerAccs[i], stdSigs[i], signBytes, simulate, params)
@@ -199,7 +214,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 		}
 
 		// TODO: tx tags (?)
-		log.Debugln("NewAnteHandler:FINISHED")
+		logger().Debugln("FINISHED")
 		return newCtx, sdk.Result{GasWanted: stdTx.Fee.GasWanted}, false //, GasUsed: newCtx.GasMeter().GasConsumed()}, false // continue...
 	}
 }

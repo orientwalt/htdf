@@ -2,6 +2,7 @@ package crisis
 
 import (
 	sdk "github.com/orientwalt/htdf/types"
+	// "github.com/orientwalt/htdf/x/crisis/types"
 )
 
 // ModuleName is the module name for this module
@@ -10,9 +11,16 @@ const (
 	RouterKey  = ModuleName
 )
 
+const (
+	EventTypeInvariant = "invariant"
+
+	AttributeValueCrisis = ModuleName
+	AttributeKeyRoute    = "route"
+)
+
 func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
-
+		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
 		case MsgVerifyInvariant:
 			return handleMsgVerifyInvariant(ctx, msg, k)
@@ -70,11 +78,25 @@ func handleMsgVerifyInvariant(ctx sdk.Context, msg MsgVerifyInvariant, k Keeper)
 		panic(invarianceErr)
 	}
 
-	tags := sdk.NewTags(
-		"sender", msg.Sender.String(),
-		"invariant", msg.InvariantRoute,
-	)
-	return sdk.Result{
-		Tags: tags,
-	}
+	// tags := sdk.NewTags(
+	// 	"sender", msg.Sender.String(),
+	// 	"invariant", msg.InvariantRoute,
+	// )
+	// return sdk.Result{
+	// 	Tags: tags,
+	// }
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			EventTypeInvariant,
+			sdk.NewAttribute(AttributeKeyRoute, msg.InvariantRoute),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, AttributeValueCrisis),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender.String()),
+		),
+	})
+
+	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
 }

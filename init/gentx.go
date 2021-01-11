@@ -20,7 +20,8 @@ import (
 
 	"github.com/orientwalt/htdf/accounts/keystore"
 	"github.com/orientwalt/htdf/app"
-	"github.com/orientwalt/htdf/app/v0"
+
+	// "github.com/orientwalt/htdf/app/v0"
 	v0 "github.com/orientwalt/htdf/app/v0"
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/context"

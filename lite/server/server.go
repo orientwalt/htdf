@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/lite/proxy"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
+	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 	"github.com/tendermint/tmlibs/cli"
 )
 
@@ -88,7 +88,10 @@ func (s *Server) RunProxy() error {
 
 	// First, connect a client
 	logger.Info("Connecting to source HTTP client...")
-	node := rpcclient.NewHTTP(nodeAddr, "/websocket")
+	node, err := rpchttp.New(nodeAddr, "/websocket")
+	if err != nil {
+		return errors.Wrap(err, "websocket establishing failed!")
+	}
 
 	logger.Info("Constructing Verifier...")
 	cert, err := proxy.NewVerifier(s.chainID, s.home, node, logger, s.cacheSize)

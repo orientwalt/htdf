@@ -9,7 +9,7 @@ import (
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/codec" // XXX fix
 	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/slashing"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 )
 
 // GetCmdQuerySigningInfo implements the command to query signing info.
@@ -31,7 +31,7 @@ $ hscli query slashing signing-info cosmosvalconspub1zcjduepqfhvwcmt7p06fvdgexxh
 			}
 
 			consAddr := sdk.ConsAddress(pk.Address())
-			key := slashing.GetValidatorSigningInfoKey(consAddr)
+			key := slashingtypes.GetValidatorSigningInfoKey(consAddr)
 
 			res, err := cliCtx.QueryStore(key, storeName)
 			if err != nil {
@@ -42,7 +42,7 @@ $ hscli query slashing signing-info cosmosvalconspub1zcjduepqfhvwcmt7p06fvdgexxh
 				return fmt.Errorf("Validator %s not found in slashing store", consAddr)
 			}
 
-			var signingInfo slashing.ValidatorSigningInfo
+			var signingInfo slashingtypes.ValidatorSigningInfo
 			cdc.MustUnmarshalBinaryLengthPrefixed(res, &signingInfo)
 			return cliCtx.PrintOutput(signingInfo)
 		},
@@ -62,13 +62,13 @@ $ hscli query slashing params
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			route := fmt.Sprintf("custom/%s/parameters", slashing.QuerierRoute)
+			route := fmt.Sprintf("custom/%s/parameters", slashingtypes.QuerierRoute)
 			res, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
 			}
 
-			var params slashing.Params
+			var params slashingtypes.Params
 			cdc.MustUnmarshalJSON(res, &params)
 			return cliCtx.PrintOutput(params)
 		},
