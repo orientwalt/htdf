@@ -11,7 +11,6 @@ require (
 	github.com/confio/ics23-tendermint v0.6.1
 	github.com/confio/ics23/go v0.0.0-20200604202538-6e2c36a74465
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
-	github.com/cosmos/cosmos-sdk v0.39.1
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
 	github.com/cosmos/ledger-cosmos-go v0.11.1
 	github.com/cpuguy83/go-md2man v1.0.10 // indirect
