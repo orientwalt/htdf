@@ -22,6 +22,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.0
 	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/jinzhu/gorm v1.9.11 // indirect
 	github.com/magiconair/properties v1.8.1
