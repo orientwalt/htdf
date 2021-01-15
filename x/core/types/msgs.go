@@ -1,4 +1,4 @@
-package htdfservice
+package types
 
 import (
 	"encoding/hex"
@@ -7,7 +7,6 @@ import (
 	"math"
 
 	"github.com/orientwalt/htdf/evm/vm"
-	"github.com/orientwalt/htdf/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethparams "github.com/ethereum/go-ethereum/params"
@@ -18,10 +17,10 @@ import (
 // junying-todo, 2019-11-06
 // from x/core/transition.go
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, homestead bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
-	if len(data) > 0 && homestead {
+	if contractCreation && homestead {
 		gas = params.DefaultMsgGasContractCreation // 53000 -> 60000
 	} else {
 		gas = params.DefaultMsgGas // 21000 -> 30000
@@ -49,6 +48,11 @@ func IntrinsicGas(data []byte, homestead bool) (uint64, error) {
 	}
 	return gas, nil
 }
+
+const (
+	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
+	TypeMsgSend = "send"
+)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MsgSend defines a SendFrom message /////////////////////////////////////////////////////////////////////
@@ -138,7 +142,7 @@ func (msg MsgSend) ValidateBasic() sdk.Error {
 			return sdk.ErrTxDecode("decoding msg.data failed. you should check msg.data")
 		}
 		//Intrinsic gas calc
-		itrsGas, err := IntrinsicGas(inputCode, true)
+		itrsGas, err := IntrinsicGas(inputCode, msg.To == nil, true)
 		if err != nil {
 			return sdk.ErrOutOfGas("intrinsic out of gas")
 		}
@@ -172,7 +176,7 @@ func (msg MsgSend) GetSigners() []sdk.AccAddress {
 
 //
 func (msg MsgSend) FromAddress() common.Address {
-	return types.ToEthAddress(msg.From)
+	return sdk.ToEthAddress(msg.From)
 }
 
 // junying-todo, 2019-11-06
