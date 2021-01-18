@@ -13,7 +13,7 @@ import (
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	htdfservice "github.com/orientwalt/htdf/x/core"
+	coretypes "github.com/orientwalt/htdf/x/core/types"
 )
 
 // CreateReq defines the properties of a send request's body.
@@ -68,7 +68,7 @@ func CreateTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.
 			return
 		}
 
-		msg := htdfservice.NewMsgSendDefault(fromAddr, toAddr, unit_convert.BigCoinsToDefaultCoins(mreq.Amount))
+		msg := coretypes.NewMsgSendDefault(fromAddr, toAddr, unit_convert.BigCoinsToDefaultCoins(mreq.Amount))
 		WriteGenerateStdTxResponse(w, cdc, cliCtx, BaseReq, []sdk.Msg{msg}, req.Encode)
 
 		return
@@ -137,7 +137,7 @@ func WriteGenerateStdTxResponse(w http.ResponseWriter, cdc *codec.Codec,
 	if !encodeflag {
 		w.Write(output)
 	} else {
-		encoded := htdfservice.Encode_Hex(output)
+		encoded := coretypes.Encode_Hex(output)
 		w.Write([]byte(encoded))
 	}
 

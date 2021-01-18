@@ -12,8 +12,8 @@ import (
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	htdfservice "github.com/orientwalt/htdf/x/core"
 	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
+	coretypes "github.com/orientwalt/htdf/x/core/types"
 )
 
 // SignBody defines the properties of a sign request's body.
@@ -61,7 +61,7 @@ func SignTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.Ha
 			req.Tx.GetMemo(),
 			req.Tx.Fee.GasPrice,
 		)
-		
+
 		var signedTx auth.StdTx
 		addr := req.BaseReq.From
 		ksw := keystore.NewKeyStoreWallet(keystore.DefaultKeyStoreHome())
@@ -100,7 +100,7 @@ func SignTxRawRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http
 		}
 
 		// load sign tx from string
-		stdTx, err := htdfservice.ReadStdTxFromRawData(cliCtx.Codec, req.Tx)
+		stdTx, err := coretypes.ReadStdTxFromRawData(cliCtx.Codec, req.Tx)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "transaction decode failed")
 			return
@@ -122,7 +122,7 @@ func SignTxRawRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http
 		if !req.Encode {
 			w.Write(res)
 		} else {
-			w.Write([]byte(htdfservice.Encode_Hex(res)))
+			w.Write([]byte(coretypes.Encode_Hex(res)))
 		}
 	}
 }
