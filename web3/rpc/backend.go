@@ -9,9 +9,10 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	evmtypes "github.com/orientwalt/htdf/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/core/types"
 
 	"github.com/orientwalt/htdf/client/context"
+	legacyrpc "github.com/orientwalt/htdf/client/rpc"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -73,16 +74,17 @@ func NewEthermintBackend(cliCtx context.CLIContext) *EthermintBackend {
 
 // BlockNumber returns the current block number.
 func (e *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
-	res, height, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", ModuleName), nil)
+	height, err := legacyrpc.GetChainHeight(e.cliCtx)
+	// res, height, err := e.cliCtx.Get.QueryWithData(fmt.Sprintf("custom/%s/blockNumber", ModuleName), nil)
 	if err != nil {
 		return hexutil.Uint64(0), err
 	}
 
-	var out evmtypes.QueryResBlockNumber
-	e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
+	// var out evmtypes.QueryResBlockNumber
+	// e.cliCtx.Codec.MustUnmarshalJSON(res, &out)
 
-	e.cliCtx.WithHeight(height)
-	return hexutil.Uint64(out.Number), nil
+	// e.cliCtx.WithHeight(height)
+	return hexutil.Uint64(height), nil
 }
 
 // GetBlockByNumber returns the block identified by number.
@@ -91,41 +93,41 @@ func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (
 	return e.getEthBlockByNumber(value, fullTx)
 }
 
-// GetBlockByHash returns the block identified by hash.
-func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
-	res, height, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
-	if err != nil {
-		return nil, err
-	}
+// // GetBlockByHash returns the block identified by hash.
+// func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+// 	res, height, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var out evmtypes.QueryResBlockNumber
-	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
+// 	var out evmtypes.QueryResBlockNumber
+// 	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+// 		return nil, err
+// 	}
 
-	e.cliCtx = e.cliCtx.WithHeight(height)
-	return e.getEthBlockByNumber(out.Number, fullTx)
-}
+// 	e.cliCtx = e.cliCtx.WithHeight(height)
+// 	return e.getEthBlockByNumber(out.Number, fullTx)
+// }
 
 // HeaderByNumber returns the block header identified by height.
 func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (*ethtypes.Header, error) {
 	return e.getBlockHeader(blockNum.Int64())
 }
 
-// HeaderByHash returns the block header identified by hash.
-func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error) {
-	res, height, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
-	if err != nil {
-		return nil, err
-	}
-	var out evmtypes.QueryResBlockNumber
-	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
+// // HeaderByHash returns the block header identified by hash.
+// func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error) {
+// 	res, height, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	var out evmtypes.QueryResBlockNumber
+// 	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+// 		return nil, err
+// 	}
 
-	e.cliCtx = e.cliCtx.WithHeight(height)
-	return e.getBlockHeader(out.Number)
-}
+// 	e.cliCtx = e.cliCtx.WithHeight(height)
+// 	return e.getBlockHeader(out.Number)
+// }
 
 func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error) {
 	if height <= 0 {

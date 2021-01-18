@@ -4,6 +4,8 @@ import (
 	"github.com/orientwalt/htdf/codec"
 )
 
+var ModuleCdc = codec.New()
+
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgSend{}, "htdfservice/send", nil)

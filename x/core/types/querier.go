@@ -1,4 +1,4 @@
-package htdfservice
+package types
 
 import (
 	"fmt"
@@ -35,6 +35,10 @@ func init() {
 	log.SetLevel(ll)
 	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
 }
+
+const (
+	QuerierRoute = "htdfservice"
+)
 
 // Query endpoints supported by the core querier
 const (

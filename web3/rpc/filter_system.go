@@ -18,7 +18,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 
-	evmtypes "github.com/orientwalt/htdf/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/core/types"
 )
 
 var (

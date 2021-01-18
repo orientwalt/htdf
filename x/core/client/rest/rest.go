@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/orientwalt/htdf/x/auth"
-	htdfservice "github.com/orientwalt/htdf/x/core"
+	coretypes "github.com/orientwalt/htdf/x/core/types"
 )
 
 const (
@@ -51,14 +51,14 @@ func QueryContractRequestHandlerFn(
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		bz, err := cliCtx.Codec.MarshalJSON(htdfservice.NewQueryContractParams(contractaddr, code))
+		bz, err := cliCtx.Codec.MarshalJSON(coretypes.NewQueryContractParams(contractaddr, code))
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusNotFound,
 				"ERROR: height must be integer.")
 			return
 		}
 		//
-		route := fmt.Sprintf("custom/%s/%s", htdfservice.QuerierRoute, htdfservice.QueryContract)
+		route := fmt.Sprintf("custom/%s/%s", coretypes.QuerierRoute, coretypes.QueryContract)
 		res, err := cliCtx.QueryWithData(route, bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())

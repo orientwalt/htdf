@@ -1,9 +1,5 @@
 package htdfservice
 
-const (
-	QuerierRoute = "htdfservice"
-)
-
 // import (
 // 	"github.com/orientwalt/htdf/codec"
 // 	sdk "github.com/orientwalt/htdf/types"

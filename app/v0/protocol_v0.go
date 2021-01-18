@@ -326,7 +326,7 @@ func (p *ProtocolV0) configRouters() {
 
 	p.queryRouter.
 		AddRoute(protocol.AccountRoute, auth.NewQuerier(p.accountMapper)).
-		AddRoute(RouterKey, htdfservice.NewQuerier(p.accountMapper, protocol.KeyStorage, protocol.KeyCode)).
+		AddRoute(RouterKey, coretypes.NewQuerier(p.accountMapper, protocol.KeyStorage, protocol.KeyCode)).
 		AddRoute(protocol.GovRoute, gov.NewQuerier(p.govKeeper)).
 		AddRoute(protocol.StakeRoute, stake.NewQuerier(p.StakeKeeper, p.cdc)).
 		AddRoute(protocol.DistrRoute, distr.NewQuerier(p.distrKeeper)).
