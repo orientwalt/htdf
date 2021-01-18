@@ -20,6 +20,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
 	"github.com/orientwalt/htdf/x/auth"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 //
@@ -35,11 +36,13 @@ type StateTransition struct {
 	msg              MsgSend
 	sender           common.Address
 	recipient        *common.Address
-	contractCreation bool
+	ContractCreation bool
+	ContractAddress  *common.Address
 	payload          []byte
 	amount           *big.Int
 	gasLimit         uint64   //unit: gallon
 	gasPrice         *big.Int //unit: satoshi/gallon
+	GasUsed          uint64
 }
 
 ///
@@ -48,21 +51,23 @@ func NewStateTransition(ctx sdk.Context, msg MsgSend) *StateTransition {
 	st := &StateTransition{
 		gpGasWanted:      new(ethcore.GasPool).AddGas(msg.GasWanted),
 		msg:              msg,
-		contractCreation: true,
+		ContractCreation: true,
+		ContractAddress:  nil,
 		sender:           sdk.ToEthAddress(msg.From),
 		amount:           big.NewInt(0),
 		gasLimit:         msg.GasWanted,
 		gasPrice:         big.NewInt(int64(msg.GasPrice)),
+		GasUsed:          0,
 		simulate:         ctx.IsCheckTx(),
 	}
 	var to common.Address
 	if msg.To != nil {
 		to = common.BytesToAddress(msg.To.Bytes())
 		st.recipient = &to
-		st.contractCreation = false
+		st.ContractCreation = false
 	}
 
-	if st.contractCreation {
+	if st.ContractCreation {
 		st.amount = msg.Amount.AmountOf(sdk.DefaultDenom).BigInt()
 	}
 
@@ -70,6 +75,7 @@ func NewStateTransition(ctx sdk.Context, msg MsgSend) *StateTransition {
 	if err != nil {
 		return nil
 	}
+	st.payload = payload
 	return st
 
 }
@@ -136,23 +142,7 @@ func (st *StateTransition) tokenUsed() uint64 {
 	return new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice).Uint64()
 }
 
-// GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
-// execution
-type GasInfo struct {
-	GasLimit    uint64
-	GasConsumed uint64
-	GasRefunded uint64
-}
-
-// ExecutionResult represents what's returned from a transition
-type ExecutionResult struct {
-	Logs    []*ethtypes.Log
-	Bloom   *big.Int
-	Result  *sdk.Result
-	GasInfo GasInfo
-}
-
-func (st StateTransition) newEVM(ctx sdk.Context, stateDB *vm.StateDB) *vm.EVM {
+func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
 	// Create context for evm
 	config := appParams.MainnetChainConfig
 	logConfig := vm.LogConfig{}
@@ -160,29 +150,33 @@ func (st StateTransition) newEVM(ctx sdk.Context, stateDB *vm.StateDB) *vm.EVM {
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()))
-	return vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+	st.evm = evm
+	return evm
 }
 
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.AccountKeeper, feeCollectionKeeper auth.FeeCollectionKeeper) (*ExecutionResult, error) {
-	cost, err := IntrinsicGas(st.payload, st.contractCreation, true)
+func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.AccountKeeper, feeCollectionKeeper auth.FeeCollectionKeeper) (*ExecutionResult, error) {
+	cost, err := IntrinsicGas(st.payload, st.ContractCreation, true)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "invalid intrinsic gas for transaction")
 	}
-
+	err = st.useGas(cost)
+	if err != nil {
+		return nil, sdkerrors.Wrapf(err, "useGas error")
+	}
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
 	gasLimit := st.gasLimit - ctx.GasMeter().GasConsumed()
 
 	stateDB, err := state.NewCommitStateDB(ctx, &accountKeeper, protocol.KeyStorage, protocol.KeyCode)
 	if err != nil {
-		evmOutput := fmt.Sprintf("newStateDB error\n")
 		return nil, sdkerrors.Wrapf(err, "newStateDB error")
 	}
 
 	st.stateDB = stateDB
-	st.evm = newEVM(ctx, stateDB)
+	evm := st.newEVM(ctx, stateDB)
 
 	var (
 		ret             []byte
@@ -198,7 +192,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 	// st.stateDB.SetNonce(st.sender, st.AccountNonce)
 
 	// create contract or execute call
-	switch st.contractCreation {
+	switch st.ContractCreation {
 	case true:
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.payload, gasLimit, st.amount)
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
@@ -209,27 +203,27 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 		recipientLog = fmt.Sprintf("recipient address %s", st.recipient.String())
 	}
 
-	gasConsumed := gasLimit - leftOverGas
+	st.GasUsed = gasLimit - leftOverGas
 
 	if err != nil {
-		gasUsed = msg.GasWanted
-		evmOutput = fmt.Sprintf("evm Create error|err=%s\n", err)
+		st.GasUsed = st.gasLimit //? this waste-all part is still necessary
+		// evmOutput = fmt.Sprintf("evm Create error|err=%s\n", err)
 	} else {
-		st.gas = gasLeftover
 		st.refundGas()
-		gasUsed = st.gasUsed()
-		evmOutput = sdk.ToAppAddress(contractAddress).String() //for contract creation
+		st.GasUsed = st.gasUsed()
+		st.ContractAddress = &contractAddress
+		// evmOutput = sdk.ToAppAddress(contractAddress).String() //for contract creation
 		// evmOutput = hex.EncodeToString(ret)//for contract call
 	}
 
 	if err != nil {
 		// Consume gas before returning
-		ctx.GasMeter().ConsumeGas(gasConsumed, "evm execution consumption")
+		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
 		return nil, err
 	}
 
 	// Resets nonce to value pre state transition
-	st.stateDB.SetNonce(st.sender, currentNonce)
+	stateDB.SetNonce(st.sender, currentNonce)
 
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
@@ -239,6 +233,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 		logs        []*ethtypes.Log
 	)
 
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	ethHash := common.BytesToHash(txHash)
+	st.txhash = &ethHash
+
 	if st.txhash != nil && !st.simulate {
 		logs = stateDB.GetLogs(*st.txhash)
 		bloomInt = ethtypes.LogsBloom(logs)
@@ -246,11 +244,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 	}
 
 	if !st.simulate {
-		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(gasused), gasprice)
+		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed), st.gasPrice)
 		feeCollectionKeeper.AddCollectedFees(ctx, sdk.Coins{sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(gasUsed))})
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
-		if _, err := st.stateDB.Commit(false); err != nil {
+		if _, err := stateDB.Commit(false); err != nil {
 			return nil, err
 		}
 	}
@@ -260,10 +258,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 		Bloom:  bloomFilter,
 		Logs:   logs,
 		Ret:    ret,
-		TxHash: *st.TxHash,
+		TxHash: *st.txhash,
 	}
 
-	if st.contractCreation {
+	if st.ContractCreation {
 		resultData.ContractAddress = contractAddress
 	}
 
@@ -273,7 +271,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 	}
 
 	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", st.Sender.String(), recipientLog,
+		"executed EVM state transition; sender address %s; %s", st.sender.String(), recipientLog,
 	)
 
 	executionResult := &ExecutionResult{
@@ -284,7 +282,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 			Log:  resultLog,
 		},
 		GasInfo: GasInfo{
-			GasConsumed: gasConsumed,
+			GasConsumed: st.GasUsed,
 			GasLimit:    gasLimit,
 			GasRefunded: leftOverGas,
 		},
@@ -294,7 +292,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Accou
 
 	// Consume gas from evm execution
 	// Out of gas check does not need to be done here since it is done within the EVM execution
-	ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
+	// ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
 	return executionResult, nil
 }

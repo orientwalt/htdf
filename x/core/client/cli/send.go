@@ -12,7 +12,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	htdfservice "github.com/orientwalt/htdf/x/core"
+	coretypes "github.com/orientwalt/htdf/x/core/types"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +60,7 @@ func GetCmdSend(cdc *codec.Codec) *cobra.Command {
 
 			gas := txBldr.GasWanted()
 			fmt.Println("GetCmdSend:txBldr.GasPrices():", txBldr.GasPrice())
-			msg := htdfservice.NewMsgSend(fromaddr, toaddr, coins, txBldr.GasPrice(), gas)
+			msg := coretypes.NewMsgSend(fromaddr, toaddr, coins, txBldr.GasPrice(), gas)
 
 			cliCtx.PrintResponse = true
 

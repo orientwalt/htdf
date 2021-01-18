@@ -1,22 +1,56 @@
 package types
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
 
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/sha3"
+
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
+	"github.com/orientwalt/htdf/x/auth"
+	"github.com/tendermint/go-amino"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
 )
+
+func Decode_Hex(str string) ([]byte, error) {
+	b, err := hex.DecodeString(strings.Replace(str, " ", "", -1))
+	if err != nil {
+		//panic(fmt.Sprintf("invalid hex string: %q", str))
+		return nil, err
+	}
+	return b, nil
+}
+
+//
+func Encode_Hex(str []byte) string {
+	return hex.EncodeToString(str)
+}
+
+// Read and decode a StdTx from rawdata
+func ReadStdTxFromRawData(cdc *amino.Codec, str string) (stdTx auth.StdTx, err error) {
+	bytes, err := Decode_Hex(str)
+	if err = cdc.UnmarshalJSON(bytes, &stdTx); err != nil {
+		return stdTx, err
+	}
+	return stdTx, err
+}
+
+// Read and decode a StdTx from rawdata
+func ReadStdTxFromString(cdc *amino.Codec, str string) (stdTx auth.StdTx, err error) {
+	bytes := []byte(str)
+	if err = cdc.UnmarshalJSON(bytes, &stdTx); err != nil {
+		return stdTx, err
+	}
+	return stdTx, err
+}
 
 // ValidateSigner attempts to validate a signer for a given slice of bytes over
 // which a signature and signer is given. An error is returned if address
@@ -42,36 +76,16 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return hash
 }
 
-// ResultData represents the data returned in an sdk.Result
-type ResultData struct {
-	ContractAddress ethcmn.Address  `json:"contract_address"`
-	Bloom           ethtypes.Bloom  `json:"bloom"`
-	Logs            []*ethtypes.Log `json:"logs"`
-	Ret             []byte          `json:"ret"`
-	TxHash          ethcmn.Hash     `json:"tx_hash"`
-}
-
-// String implements fmt.Stringer interface.
-func (rd ResultData) String() string {
-	return strings.TrimSpace(fmt.Sprintf(`ResultData:
-	ContractAddress: %s
-	Bloom: %s
-	Logs: %v
-	Ret: %v
-	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
-}
-
 // EncodeResultData takes all of the necessary data from the EVM execution
 // and returns the data as a byte slice encoded with amino
 func EncodeResultData(data ResultData) ([]byte, error) {
-	return ModuleCdc.MarshalBinaryLengthPrefixed(data)
+	return codec.New().MarshalBinaryLengthPrefixed(data)
 }
 
 // DecodeResultData decodes an amino-encoded byte slice into ResultData
 func DecodeResultData(in []byte) (ResultData, error) {
 	var data ResultData
-	err := ModuleCdc.UnmarshalBinaryLengthPrefixed(in, &data)
+	err := codec.New().UnmarshalBinaryLengthPrefixed(in, &data)
 	if err != nil {
 		return ResultData{}, err
 	}

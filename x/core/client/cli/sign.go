@@ -6,14 +6,14 @@ import (
 	"github.com/orientwalt/htdf/accounts/keystore"
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/context"
+	"github.com/orientwalt/htdf/client/keys"
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	htdfservice "github.com/orientwalt/htdf/x/core"
+	coretypes "github.com/orientwalt/htdf/x/core/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/orientwalt/htdf/client/keys"
 )
 
 // junying-todo-20190327
@@ -34,7 +34,7 @@ func GetCmdSign(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
 
 			// load sign tx from string
-			stdTx, err := htdfservice.ReadStdTxFromRawData(cliCtx.Codec, args[0])
+			stdTx, err := coretypes.ReadStdTxFromRawData(cliCtx.Codec, args[0])
 			if err != nil {
 				return err
 			}
@@ -43,13 +43,13 @@ func GetCmdSign(cdc *codec.Codec) *cobra.Command {
 			if len(stdTx.GetSigners()) == 0 {
 				return err //err.
 			}
-			
+
 			passphrase, err := keys.ReadShortPassphraseFromStdin(sdk.AccAddress.String(stdTx.GetSigners()[0]))
 			if err != nil {
 				return err
 			}
 
-			offlineflag := viper.GetBool(htdfservice.FlagOffline)
+			offlineflag := viper.GetBool(coretypes.FlagOffline)
 
 			// sign
 			res, err := SignTransaction(authtxb.NewTxBuilderFromCLI(), cliCtx, stdTx, passphrase, offlineflag)
@@ -58,17 +58,17 @@ func GetCmdSign(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// print
-			encodeflag := viper.GetBool(htdfservice.FlagEncode)
+			encodeflag := viper.GetBool(coretypes.FlagEncode)
 			if !encodeflag {
 				fmt.Printf("%s\n", res)
 			} else {
-				fmt.Printf("%s\n", htdfservice.Encode_Hex(res))
+				fmt.Printf("%s\n", coretypes.Encode_Hex(res))
 			}
 			return nil
 		},
 	}
-	cmd.Flags().Bool(htdfservice.FlagEncode, true, "encode enabled")
-	cmd.Flags().Bool(htdfservice.FlagOffline, false, "offline disabled")
+	cmd.Flags().Bool(coretypes.FlagEncode, true, "encode enabled")
+	cmd.Flags().Bool(coretypes.FlagOffline, false, "offline disabled")
 	return client.PostCommands(cmd)[0]
 }
 
@@ -110,7 +110,7 @@ func SignStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, stdTx auth.S
 	ksw := keystore.NewKeyStoreWallet(keystore.DefaultKeyStoreHome())
 
 	// signature
-	return ksw.SignStdTx(txBldr,stdTx,sdk.AccAddress.String(fromaddr), passphrase)
+	return ksw.SignStdTx(txBldr, stdTx, sdk.AccAddress.String(fromaddr), passphrase)
 }
 
 //

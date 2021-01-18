@@ -1,18 +1,16 @@
 package htdfservice
 
 import (
-	"encoding/json"
+	"fmt"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	"github.com/orientwalt/htdf/x/core/types"
 	log "github.com/sirupsen/logrus"
-	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 func init() {
@@ -44,21 +42,6 @@ func logger() *log.Entry {
 	return log.WithField("file", filename).WithField("function", fn)
 }
 
-//
-type SendTxResp struct {
-	ErrCode         sdk.CodeType `json:"code"`
-	ErrMsg          string       `json:"message"`
-	ContractAddress string       `json:"contract_address"`
-	EvmOutput       string       `json:"evm_output"`
-}
-
-//
-func (rsp SendTxResp) String() string {
-	rsp.ErrMsg = sdk.GetErrMsg(rsp.ErrCode)
-	data, _ := json.Marshal(&rsp)
-	return string(data)
-}
-
 // New HTDF Message Handler
 // connected to handler.go
 // HandleMsgSend, HandleMsgAdd upgraded to EVM version
@@ -81,7 +64,7 @@ func NewHandler(accountKeeper auth.AccountKeeper,
 
 // junying-todo, 2019-08-26
 func HandleUnknownMsg(msg sdk.Msg) sdk.Result {
-	var sendTxResp SendTxResp
+	var sendTxResp types.SendTxResp
 	logger().Debugf("msgType error|mstType=%v\n", msg.Type())
 	sendTxResp.ErrCode = sdk.ErrCode_Param
 	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String()}
@@ -95,28 +78,19 @@ func HandleMsgSend(ctx sdk.Context,
 	keyCode *sdk.KVStoreKey,
 	msg types.MsgSend) sdk.Result {
 	// initialize
-	var sendTxResp SendTxResp
-	var gasUsed uint64
-	var evmOutput string
-	var err error
+	var sendTxResp types.SendTxResp
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := common.BytesToHash(txHash)
+	st := types.NewStateTransition(ctx, msg)
+	evmResult, err := st.TransitionDb(ctx, accountKeeper, feeCollectionKeeper)
 
-	if !msg.To.Empty() {
-		// open smart contract
-		evmOutput, gasUsed, err = HandleOpenContract(ctx, accountKeeper, feeCollectionKeeper, keyStorage, keyCode, msg)
-		if err != nil {
+	if evmResult == nil {
+		sendTxResp.EvmOutput = fmt.Sprintf("%s\n", err)
+		if st.ContractCreation {
+			sendTxResp.ErrCode = sdk.ErrCode_CreateContract
+		} else {
 			sendTxResp.ErrCode = sdk.ErrCode_OpenContract
 		}
-		sendTxResp.EvmOutput = evmOutput
-	} else {
-		// create smart contract
-		evmOutput, gasUsed, err = HandleCreateContract(ctx, accountKeeper, feeCollectionKeeper, keyStorage, keyCode, msg)
-		if err != nil {
-			sendTxResp.ErrCode = sdk.ErrCode_CreateContract
-		}
-		sendTxResp.ContractAddress = evmOutput
+		return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed}
 	}
 
 	ctx.EventManager().EmitEvents(sdk.Events{
@@ -139,7 +113,8 @@ func HandleMsgSend(ctx sdk.Context,
 			),
 		)
 	}
-
+	sendTxResp.ContractAddress = sdk.ToAppAddress(*st.ContractAddress).String()
+	evmResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
 	// set the events to the result
-	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: gasUsed, Events: ctx.EventManager().ABCIEvents()}
+	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed, Events: ctx.EventManager().Events().ToABCIEvents()}
 }

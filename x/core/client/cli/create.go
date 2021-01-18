@@ -11,7 +11,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	htdfservice "github.com/orientwalt/htdf/x/core"
+	coretypes "github.com/orientwalt/htdf/x/core/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -50,14 +50,14 @@ func GetCmdCreate(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			encodeflag := viper.GetBool(htdfservice.FlagEncode)
+			encodeflag := viper.GetBool(coretypes.FlagEncode)
 
-			msg := htdfservice.NewMsgSendDefault(fromaddr, toaddr, coins)
+			msg := coretypes.NewMsgSendDefault(fromaddr, toaddr, coins)
 
 			return PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, encodeflag)
 		},
 	}
-	cmd.Flags().Bool(htdfservice.FlagEncode, true, "encode enabled")
+	cmd.Flags().Bool(coretypes.FlagEncode, true, "encode enabled")
 	return client.PostCommands(cmd)[0]
 }
 
@@ -89,7 +89,7 @@ func PrintUnsignedStdTx(txBldr authtxb.TxBuilder, cliCtx context.CLIContext, msg
 	if !encodeflag {
 		fmt.Fprintf(cliCtx.Output, "%s\n", json)
 	} else {
-		encoded := htdfservice.Encode_Hex(json)
+		encoded := coretypes.Encode_Hex(json)
 		fmt.Fprintf(cliCtx.Output, "%s\n", encoded)
 	}
 

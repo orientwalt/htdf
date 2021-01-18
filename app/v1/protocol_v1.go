@@ -15,6 +15,7 @@ import (
 	"github.com/orientwalt/htdf/x/auth"
 	"github.com/orientwalt/htdf/x/bank"
 	htdfservice "github.com/orientwalt/htdf/x/core"
+	coretypes "github.com/orientwalt/htdf/x/core/types"
 	"github.com/orientwalt/htdf/x/crisis"
 	distr "github.com/orientwalt/htdf/x/distribution"
 	"github.com/orientwalt/htdf/x/gov"
@@ -138,7 +139,7 @@ func (p *ProtocolV1) configCodec() {
 func MakeLatestCodec() *codec.Codec {
 	var cdc = codec.New()
 	newevmtypes.RegisterCodec(cdc)
-	htdfservice.RegisterCodec(cdc)
+	coretypes.RegisterCodec(cdc)
 	params.RegisterCodec(cdc) // only used by querier
 	mint.RegisterCodec(cdc)   // only used by querier
 	// bank.RegisterCodec(cdc)
