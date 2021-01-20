@@ -93,41 +93,41 @@ func (e *EthermintBackend) GetBlockByNumber(blockNum BlockNumber, fullTx bool) (
 	return e.getEthBlockByNumber(value, fullTx)
 }
 
-// // GetBlockByHash returns the block identified by hash.
-// func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
-// 	res, height, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
-// 	if err != nil {
-// 		return nil, err
-// 	}
+// GetBlockByHash returns the block identified by hash.
+func (e *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (map[string]interface{}, error) {
+	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()), nil)
+	if err != nil {
+		return nil, err
+	}
 
-// 	var out evmtypes.QueryResBlockNumber
-// 	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-// 		return nil, err
-// 	}
+	var out evmtypes.QueryResBlockNumber
+	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+		return nil, err
+	}
 
-// 	e.cliCtx = e.cliCtx.WithHeight(height)
-// 	return e.getEthBlockByNumber(out.Number, fullTx)
-// }
+	e.cliCtx = e.cliCtx.WithHeight(out.Number)
+	return e.getEthBlockByNumber(out.Number, fullTx)
+}
 
 // HeaderByNumber returns the block header identified by height.
 func (e *EthermintBackend) HeaderByNumber(blockNum BlockNumber) (*ethtypes.Header, error) {
 	return e.getBlockHeader(blockNum.Int64())
 }
 
-// // HeaderByHash returns the block header identified by hash.
-// func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error) {
-// 	res, height, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var out evmtypes.QueryResBlockNumber
-// 	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-// 		return nil, err
-// 	}
+// HeaderByHash returns the block header identified by hash.
+func (e *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error) {
+	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()), nil)
+	if err != nil {
+		return nil, err
+	}
+	var out evmtypes.QueryResBlockNumber
+	if err := e.cliCtx.Codec.UnmarshalJSON(res, &out); err != nil {
+		return nil, err
+	}
 
-// 	e.cliCtx = e.cliCtx.WithHeight(height)
-// 	return e.getBlockHeader(out.Number)
-// }
+	e.cliCtx = e.cliCtx.WithHeight(out.Number)
+	return e.getBlockHeader(out.Number)
+}
 
 func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error) {
 	if height <= 0 {
@@ -145,7 +145,7 @@ func (e *EthermintBackend) getBlockHeader(height int64) (*ethtypes.Header, error
 		return nil, err
 	}
 
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryBloom, strconv.FormatInt(height, 10)))
+	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryBloom, strconv.FormatInt(height, 10)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (e *EthermintBackend) getEthBlockByNumber(height int64, fullTx bool) (map[s
 		}
 	}
 
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryBloom, strconv.FormatInt(block.Block.Height, 10)))
+	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryBloom, strconv.FormatInt(block.Block.Height, 10)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +240,7 @@ func (e *EthermintBackend) getGasLimit() (int64, error) {
 func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	ctx := e.cliCtx
 
-	res, height, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryTransactionLogs, txHash.Hex()), nil)
+	res, err := ctx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryTransactionLogs, txHash.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -250,12 +250,12 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 		return nil, err
 	}
 
-	e.cliCtx = e.cliCtx.WithHeight(height)
+	// e.cliCtx = e.cliCtx.WithHeight(height)
 	return out.Logs, nil
 }
 
-// PendingTransactions returns the transactions that are in the transaction pool
-// and have a from address that is one of the accounts this node manages.
+// // PendingTransactions returns the transactions that are in the transaction pool
+// // and have a from address that is one of the accounts this node manages.
 // func (e *EthermintBackend) PendingTransactions() ([]*Transaction, error) {
 // 	pendingTxs, err := e.cliCtx.Client.UnconfirmedTxs(100)
 // 	if err != nil {
@@ -283,7 +283,7 @@ func (e *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 
 // GetLogs returns all the logs from all the ethreum transactions in a block.
 func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
+	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (e *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	var blockLogs = [][]*ethtypes.Log{}
 	for _, tx := range block.Block.Txs {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		res, _, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryTransactionLogs, common.BytesToHash(tx.Hash()).Hex()), nil)
+		res, err := e.cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryTransactionLogs, common.BytesToHash(tx.Hash()).Hex()), nil)
 		if err != nil {
 			continue
 		}

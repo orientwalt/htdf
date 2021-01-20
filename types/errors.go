@@ -84,6 +84,7 @@ const (
 	CodePaginationParams  CodeType = 23
 	CodeGasPriceTooLow    CodeType = 24
 	CodeOutOfService      CodeType = 25
+	CodeJsonMarshal       CodeType = 26
 	// CodespaceRoot is a codespace for error codes in this file only.
 	// Notice that 0 is an "unset" codespace, which can be overridden with
 	// Error.WithDefaultCodespace().
@@ -166,6 +167,7 @@ func ErrInsufficientFunds(msg string) Error {
 func ErrUnknownRequest(msg string) Error {
 	return newErrorWithRootCodespace(CodeUnknownRequest, msg)
 }
+
 func ErrInvalidAddress(msg string) Error {
 	return newErrorWithRootCodespace(CodeInvalidAddress, msg)
 }
@@ -219,6 +221,10 @@ func ErrExceedsTxSize(msg string) Error {
 
 func ErrServiceTxLimit(msg string) Error {
 	return newErrorWithRootCodespace(CodeServiceTxLimit, msg)
+}
+
+func ErrJsonMarshal(msg string) Error {
+	return newErrorWithRootCodespace(CodeJsonMarshal, msg)
 }
 
 func ErrInvalidLength(codespace CodespaceType, codeType CodeType, descriptor string, got, max int) Error {
