@@ -9,7 +9,10 @@
 3. 将node1中的可执行文件`hsd`和`hscli`复制到node2上, 在node2上运行命令 `hsd unsafe-reset-all`
 4. 在node2上使用命令 `hsd start` 启动
 5. 观察node2节点日志输出
-6. 在node2上使用命令`hscli query staking validators` 查看node2节点是否被`jailed`; 如果被jailed则需要使用命令`hscli tx slashing unjail $VARLIDATOR`进行`unjail`
+6. 在node2上使用命令`hscli query staking validators` 查看node2节点是否被`jailed`;如果被jailed则:
+    - 先获取`operator_address`记为VALOPER, 
+    - (hscli v1.3.2及以上, 支持两种格式地址, 不需要转换, 可略过此步) 使用`hscli bech32 v2b $VALOPER`将`htdfvaloper`开头的地址转为`htdf1`开头的地址,记为`VARLIDATOR`, 
+    - 再使用命令`hscli tx slashing unjail $VARLIDATOR`进行`unjail`
 7. 在node2上运行命令 `curl -s http://192.168.0.171:1317/blocks/latest | grep validator_address` 观察node2验证节点地址是否存在
 8. (可选)修改`$HOME/.hsd/config/config.toml`中的 `persistent_peers`, 将node1的IP为node2的IP. 方便起见, 可以待所有验证节点迁移成功后再修改, 所有验证节点可以使用同一份`config.toml` (前提是没有复杂的网络拓扑!). 最后, 将修改后的`config.toml`上传至gitee以便其他用户搭建新的节点.
 
