@@ -31,7 +31,7 @@ MISSPELL_CHK := $(shell command -v misspell 2> /dev/null)
 ERRCHECK_CHK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHK := $(shell command -v unparam 2> /dev/null)
 #
-LEDGER_ENABLED ?= true
+LEDGER_ENABLED ?= false
 
 build_tags = netgo
 ifeq ($(LEDGER_ENABLED),true)
