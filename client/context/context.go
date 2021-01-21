@@ -38,6 +38,7 @@ type CLIContext struct {
 	Codec         *codec.Codec
 	AccDecoder    auth.AccountDecoder
 	Client        rpcclient.Client
+	ChainID       string
 	Keybase       cryptokeys.Keybase
 	Output        io.Writer
 	OutputFormat  string
@@ -89,6 +90,7 @@ func NewCLIContext() CLIContext {
 
 	return CLIContext{
 		Client:        rpc,
+		ChainID:       viper.GetString(client.FlagChainID),
 		Output:        os.Stdout,
 		NodeURI:       nodeURI,
 		AccountStore:  auth.StoreKey,
@@ -243,6 +245,12 @@ func (ctx CLIContext) WithUseLedger(useLedger bool) CLIContext {
 // WithVerifier returns a copy of the context with an updated Verifier.
 func (ctx CLIContext) WithVerifier(verifier tmlite.Verifier) CLIContext {
 	ctx.Verifier = verifier
+	return ctx
+}
+
+// WithChainID returns a copy of the context with an updated chain ID.
+func (ctx CLIContext) WithChainID(chainID string) CLIContext {
+	ctx.ChainID = chainID
 	return ctx
 }
 

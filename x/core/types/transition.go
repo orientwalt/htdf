@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -11,8 +12,10 @@ import (
 	"github.com/orientwalt/htdf/evm/state"
 	evmstate "github.com/orientwalt/htdf/evm/state"
 	"github.com/orientwalt/htdf/evm/vm"
+	"github.com/orientwalt/htdf/params"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ethparams "github.com/ethereum/go-ethereum/params"
 	"github.com/orientwalt/htdf/app/protocol"
 	vmcore "github.com/orientwalt/htdf/evm/core"
 	appParams "github.com/orientwalt/htdf/params"
@@ -22,6 +25,39 @@ import (
 	"github.com/orientwalt/htdf/x/auth"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
+
+// IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
+func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
+	// Set the starting gas for the raw transaction
+	var gas uint64
+	if contractCreation && homestead {
+		gas = params.DefaultMsgGasContractCreation // 53000 -> 60000
+	} else {
+		gas = params.DefaultMsgGas // 21000 -> 30000
+	}
+	// Bump the required gas by the amount of transactional data
+	if len(data) > 0 {
+		// Zero and non-zero bytes are priced differently
+		var nz uint64
+		for _, byt := range data {
+			if byt != 0 {
+				nz++
+			}
+		}
+		// Make sure we don't exceed uint64 for all data combinations
+		if (math.MaxUint64-gas)/ethparams.TxDataNonZeroGas < nz {
+			return 0, vm.ErrOutOfGas
+		}
+		gas += nz * ethparams.TxDataNonZeroGas
+
+		z := uint64(len(data)) - nz
+		if (math.MaxUint64-gas)/ethparams.TxDataZeroGas < z {
+			return 0, vm.ErrOutOfGas
+		}
+		gas += z * ethparams.TxDataZeroGas
+	}
+	return gas, nil
+}
 
 //
 type StateTransition struct {

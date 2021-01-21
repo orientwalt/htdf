@@ -6,10 +6,8 @@ import (
 
 	"github.com/orientwalt/htdf/client/lcd"
 	"github.com/orientwalt/htdf/codec"
-	authrest "github.com/orientwalt/htdf/x/auth/client/rest"
 
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/orientwalt/htdf/app"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -80,9 +78,9 @@ func registerRoutes(rs *lcd.RestServer) {
 	rs.Mux.HandleFunc("/", s.ServeHTTP).Methods("POST", "OPTIONS")
 
 	// Register all other Cosmos routes
-	client.RegisterRoutes(rs.CliCtx, rs.Mux)
-	authrest.RegisterTxRoutes(rs.CliCtx, rs.Mux)
-	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
+	// client.RegisterRoutes(rs.CliCtx, rs.Mux)
+	// authrest.RegisterTxRoutes(rs.CliCtx, rs.Mux)
+	// app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 
 	// start websockets server
 	websocketAddr := viper.GetString(flagWebsocket)

@@ -4,50 +4,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
-
-	"github.com/orientwalt/htdf/evm/vm"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethparams "github.com/ethereum/go-ethereum/params"
+
 	"github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
 )
-
-// junying-todo, 2019-11-06
-// from x/core/transition.go
-// IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
-	// Set the starting gas for the raw transaction
-	var gas uint64
-	if contractCreation && homestead {
-		gas = params.DefaultMsgGasContractCreation // 53000 -> 60000
-	} else {
-		gas = params.DefaultMsgGas // 21000 -> 30000
-	}
-	// Bump the required gas by the amount of transactional data
-	if len(data) > 0 {
-		// Zero and non-zero bytes are priced differently
-		var nz uint64
-		for _, byt := range data {
-			if byt != 0 {
-				nz++
-			}
-		}
-		// Make sure we don't exceed uint64 for all data combinations
-		if (math.MaxUint64-gas)/ethparams.TxDataNonZeroGas < nz {
-			return 0, vm.ErrOutOfGas
-		}
-		gas += nz * ethparams.TxDataNonZeroGas
-
-		z := uint64(len(data)) - nz
-		if (math.MaxUint64-gas)/ethparams.TxDataZeroGas < z {
-			return 0, vm.ErrOutOfGas
-		}
-		gas += z * ethparams.TxDataZeroGas
-	}
-	return gas, nil
-}
 
 const (
 	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
@@ -83,7 +46,7 @@ func NewMsgSendDefault(fromaddr sdk.AccAddress, toaddr sdk.AccAddress, amount sd
 
 // Normal Transaction
 // Default GasWanted, Customized GasPrice
-func NewMsgSend(fromaddr sdk.AccAddress, toaddr sdk.AccAddress, amount sdk.Coins, gasPrice uint64, gasWanted uint64) MsgSend {
+func NewMsgSend(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, gasPrice, gasWanted uint64) MsgSend {
 	return MsgSend{
 		From:      fromaddr,
 		To:        toaddr,
@@ -94,7 +57,7 @@ func NewMsgSend(fromaddr sdk.AccAddress, toaddr sdk.AccAddress, amount sdk.Coins
 }
 
 // Contract Transaction
-func NewMsgSendForData(fromaddr sdk.AccAddress, toaddr sdk.AccAddress, amount sdk.Coins, data string, gasPrice uint64, gasWanted uint64) MsgSend {
+func NewMsgSendForData(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, data string, gasPrice, gasWanted uint64) MsgSend {
 	return MsgSend{
 		From:      fromaddr,
 		To:        toaddr,
@@ -179,9 +142,40 @@ func (msg MsgSend) FromAddress() common.Address {
 	return sdk.ToEthAddress(msg.From)
 }
 
+func (msg MsgSend) ToAddress() common.Address {
+	return sdk.ToEthAddress(msg.To)
+}
+
 // junying-todo, 2019-11-06
 func (msg MsgSend) GetData() string {
 	return msg.Data
+}
+
+// GetMsgs returns a single MsgSend as an sdk.Msg.
+func (msg MsgSend) GetMsgs() []sdk.Msg {
+	return []sdk.Msg{msg}
+}
+
+// Fee returns gasprice * gaslimit.
+func (msg MsgSend) Fee() *big.Int {
+	return new(big.Int).SetUint64(msg.GasWanted * msg.GasPrice)
+}
+
+func (msg *MsgSend) ChainID() *big.Int {
+	return deriveChainID(msg.Data.V)
+}
+
+// deriveChainID derives the chain id from the given v parameter
+func deriveChainID(v *big.Int) *big.Int {
+	if v.BitLen() <= 64 {
+		v := v.Uint64()
+		if v == 27 || v == 28 {
+			return new(big.Int)
+		}
+		return new(big.Int).SetUint64((v - 35) / 2)
+	}
+	v = new(big.Int).Sub(v, big.NewInt(35))
+	return v.Div(v, big.NewInt(2))
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
