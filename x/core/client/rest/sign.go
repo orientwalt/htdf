@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/orientwalt/htdf/accounts/keystore"
@@ -115,6 +116,7 @@ func SignTxRawRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http
 		// sign
 		res, err := hscorecli.SignTransaction(authtxb.NewTxBuilderFromCLI(), cliCtx, stdTx, req.Passphrase, req.Offline)
 		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("%v:%v", res, err))
 			return
 		}
 

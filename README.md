@@ -22,7 +22,7 @@ hsd
 hscli
 ```
 
-## [Quick Start](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
+## Quick Start
 
 > Install compiler and tools
 > - Install `go` (requires go12.9+): https://golang.google.cn/doc/install
@@ -41,10 +41,10 @@ tail -f ~/.hsd/app.log
 ##  Resources
 
 - Official Website: https://www.orientwalt.com/
-- Chinese API documents: https://gitee.com/orientwalt/apidoc_2020 
+- Chinese API documents: https://gitee.com/orientwalt/docs
 - Blockchain explorer: https://www.htdfscan.com/
 - Build and run on Windows: [build_run_on_windows.md](./docs/build_run_on_windows.md)
 
 
 ## Contributions
-We always welcome any issues and Pull Requests.
+We always welcome any issues and PR.

@@ -12,8 +12,9 @@ import (
 
 func GetExportPivKeyCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "export",
-		Short: "Export all private key list",
+		Use:   "export [accaddr] [password] ",
+		Example: "hscli accounts export htdf1gunuljykyrm0429n87tlduaq8ue6e22lltqxma 12345678",
+		Short: "Export account's private key ",
 		Long:  "export private key from .hscli/keystores",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {

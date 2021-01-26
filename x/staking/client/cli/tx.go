@@ -26,8 +26,9 @@ const (
 // TODO: Add full description
 func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create-validator [accaddr]",
+		Use:   "create-validator [accaddr] [flags]",
 		Short: "create new validator initialized with a self-delegation to it",
+		Example: "hscli tx staking create-validator $(hscli accounts list | head -n 1) --amount=10000000000satoshi --moniker=YourNodeName --pubkey=$(hsd tendermint show-validator) --node-id=$(hsd tendermint show-node-id) --commission-rate=0.1 --commission-max-rate=0.2 --commission-max-change-rate=0.01 --min-self-delegation=1 --gas-price=100",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
@@ -52,7 +53,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(FsMinSelfDelegation)
 	cmd.Flags().AddFlagSet(fsDelegator)
 	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", client.FlagGenerateOnly))
-	cmd.Flags().String(FlagNodeID, "", "The node's ID")
+	cmd.Flags().String(FlagNodeID, "", "The node's ID, get the node-id: hsd tendermint show-node-id")
 
 	cmd.MarkFlagRequired(FlagAmount)
 	cmd.MarkFlagRequired(FlagPubKey)

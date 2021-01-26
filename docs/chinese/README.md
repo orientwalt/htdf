@@ -20,11 +20,18 @@ hsd
 hscli
 ```
 
-## [快速启动](https://github.com/orientwalt/htdf/blob/master/docs/build%20%26%20run.md)
+## 快速启动
+
+> 安装编译器
+> - 安装最新版的 `go` (requires go12.9+): https://golang.google.cn/doc/install
+> - 安装`make` 和 `gcc`, 通过命令 `sudo apt install make gcc -y` 或者  `yum install make gcc -y`
 
 在htdf目录下,按照以下命令启动. 在执行 `make new` 命令之后需要输入设置的密码
 
+
+
 ```
+# 国内可以使用gitee下载, git clone https://gitee.com/orientwalt/htdf.git
 git clone https://github.com/orientwalt/htdf.git
 cd htdf
 make new
@@ -35,8 +42,9 @@ tail -f ~/.hsd/app.log
 ## 更多资源
 
 - 官网: https://www.orientwalt.com/
-- 中文API文档: https://gitee.com/orientwalt/apidoc_2020 
+- 中文API文档: https://gitee.com/orientwalt/docs
 - 区块链浏览器: https://www.htdfscan.com/
+- 在Windows上构建和运行: [build_run_on_windows.md](./docs/build_run_on_windows.md)
 
 
 ## 贡献

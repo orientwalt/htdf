@@ -49,7 +49,7 @@ var (
 )
 
 func init() {
-	FsPk.String(FlagPubKey, "", "The Bech32 encoded PubKey of the validator")
+	FsPk.String(FlagPubKey, "", "The Bech32 encoded PubKey of the validator.(get the key by: hsd tendermint show-validator")
 	FsAmount.String(FlagAmount, "", "Amount of coins to bond")
 	fsShares.String(FlagSharesAmount, "", "Amount of source-shares to either unbond or redelegate as a positive integer or decimal")
 	fsShares.String(FlagSharesFraction, "", "Fraction of source-shares to either unbond or redelegate as a positive integer or decimal >0 and <=1")

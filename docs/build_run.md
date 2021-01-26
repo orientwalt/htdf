@@ -35,11 +35,6 @@
     # ... after download orientwalt/tendermint success, turn on proxy again
     export GOPROXY=https://goproxy.io
     make install
-    
-    # if turn off proxy not work for orientwalt/tendermint
-    #  copy directory $GOPATH/pkg/mod/github.com/orientwalt/tendermint@vXX.X.X+incompatible from your workmate
-    #  and setup GOPRIVATE
-    export GOPRIVATE=github.com/orientwalt/tendermint 
 
     # print the version and ApiSecuritylevel
     # make sure the version, git commit hash, ApiSecuritylevel is what you need
