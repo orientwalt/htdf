@@ -40,6 +40,13 @@
     ```
 
 - 验证节点的地址
+
+    获取所有验证节点的地址
+    ```shell
+    hscli query staking validators | jq | grep operator_address | awk '{print $2}' | sed 's/[",]//g' | xargs -i hscli bech32 v2b {}
+    ```
+
+    设置变量
     ```shell
     VARLIDATOR_1=htdf1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     VARLIDATOR_2=htdf1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -99,11 +106,11 @@
     hscli tx gov submit-proposal $GUARDIAN \
     --gas-price=100  \
     --switch-height=$SWITCH_HEIGHT \
-    --description="$HTDF_VERSION upgrade"\
-    --title="$HTDF_VERSION"\
-    --type="software_upgrade"\
-    --deposit="1000000000satoshi"\
-    --version="$PROTOCOL_VERSION"\
+    --description="$HTDF_VERSION upgrade" \
+    --title="$HTDF_VERSION" \
+    --type="software_upgrade" \
+    --deposit="1000000000satoshi" \
+    --version="$PROTOCOL_VERSION" \
     --software="https://github.com/orientwalt/htdf/releases/tag/$HTDF_VERSION"
     ```
 
