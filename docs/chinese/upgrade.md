@@ -97,7 +97,7 @@
 - 获取最新高度, 升级高度在最新高度上加上100即可
 
     ```shell
-    SWITCH_HEIGHT=$(expr $(curl -s http://localhost:1317/blocks/latest | jq .block_meta.header.height | sed 's/"//g') + 1 )
+    SWITCH_HEIGHT=$(expr $(curl -s http://localhost:1317/blocks/latest | jq .block_meta.header.height | sed 's/"//g') + 100 )
     ```
 
 - 提交提案
