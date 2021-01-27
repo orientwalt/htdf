@@ -58,7 +58,7 @@
     ```
 
 
-- 本次升级的协议版本号
+- 升级的协议版本号
     |版本号|协议版本号|
     |------|-------|
     |v1.1.x|0|
@@ -78,15 +78,14 @@
 - 获取最大的提案编号, 本次提案将在此基础上加1
 
     ```shell
-    PROPOSAL_ID=$(hscli query gov proposals | jq | grep proposal_id | awk '{print $2}' | sed 's/[",]//g' | sort -nr | head -1)
+    PROPOSAL_ID=$(expr $(hscli query gov proposals | jq | grep proposal_id | awk '{print $2}' | sed 's/[",]//g' | sort -nr | head -1) + 1)
     ```
 
 
 - 获取最新高度, 升级高度在最新高度上加上100即可
 
     ```shell
-    LATEST_HEIGHT=$(curl -s http://localhost:1317/blocks/latest | jq .block_meta.header.height | sed 's/"//g')
-    SWITCH_HEIGHT=`expr $LATEST_HEIGHT + 100`
+    SWITCH_HEIGHT=$(expr $(curl -s http://localhost:1317/blocks/latest | jq .block_meta.header.height | sed 's/"//g') + 1 )
     ```
 
 - 提交提案
@@ -106,10 +105,10 @@
 - 投票
 
     ```shell
-    hscli tx gov vote  $(VARLIDATOR_1)  $(PROPOSAL_ID) yes --gas-price=100
-    hscli tx gov vote  $(VARLIDATOR_2)  $(PROPOSAL_ID) yes --gas-price=100
-    hscli tx gov vote  $(VARLIDATOR_3)  $(PROPOSAL_ID) yes --gas-price=100
-    hscli tx gov vote  $(VARLIDATOR_4)  $(PROPOSAL_ID) yes --gas-price=100
+    hscli tx gov vote  $VARLIDATOR_1  $PROPOSAL_ID yes --gas-price=100
+    hscli tx gov vote  $VARLIDATOR_2  $PROPOSAL_ID yes --gas-price=100
+    hscli tx gov vote  $VARLIDATOR_3  $PROPOSAL_ID yes --gas-price=100
+    hscli tx gov vote  $VARLIDATOR_4  $PROPOSAL_ID yes --gas-price=100
 
     # 如果还有其他继续添加即可
     ```
