@@ -7,7 +7,7 @@
 - 在这里下载最新发布版: https://gitee.com/orientwalt/htdf/releases/
 - 选择几个验证节点,其总委托的占比超过`80%`, 最好能超过`85%`
 - 将上一步选择的验证节点的私钥文件准备好, 最好放在同一机器上, 方便后续操作
-- 给每个投票验证节点转账`11HTDF`, 用于后面提案的投票
+- 给超级管理员地址转账`11HTDF`, 给每个投票的验证节点地址分别转账`1HTDF` 用于后面的提案和投票
 - 将超级管理员(guardian)的私钥文件准备好
 - 参考下文中的[操作指南](#操作指南)编写好命令, 形成文档, 方便后续操作
 
@@ -49,12 +49,17 @@
     # 其他验证节点地址.....
     ```
 
-- 给上面的每个验证节点转账`11HTDF`
+- 给超级管理员转账`11HTDF`, 给每个投票的验证节点转账`1HTDF`
     ```shell
-    hscli tx send $FROM_ADDR $VARLIDATOR_1 1100000000satoshi  --gas-price=100
-    hscli tx send $FROM_ADDR $VARLIDATOR_2 1100000000satoshi  --gas-price=100
-    hscli tx send $FROM_ADDR $VARLIDATOR_3 1100000000satoshi  --gas-price=100
-    hscli tx send $FROM_ADDR $VARLIDATOR_4 1100000000satoshi  --gas-price=100
+
+    hscli tx send $FROM_ADDR $GUARDIAN 1100000000satoshi  --gas-price=100
+
+    hscli tx send $FROM_ADDR $VARLIDATOR_1 100000000satoshi  --gas-price=100
+    hscli tx send $FROM_ADDR $VARLIDATOR_2 100000000satoshi  --gas-price=100
+    hscli tx send $FROM_ADDR $VARLIDATOR_3 100000000satoshi  --gas-price=100
+    hscli tx send $FROM_ADDR $VARLIDATOR_4 100000000satoshi  --gas-price=100
+
+    # 其他...
     ```
 
 
