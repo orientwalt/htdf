@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 
 	emintcrypto "github.com/orientwalt/htdf/crypto"
-	emint "github.com/orientwalt/htdf/types"
+	htdfparams "github.com/orientwalt/htdf/params"
 	"github.com/orientwalt/htdf/utils"
 	"github.com/orientwalt/htdf/version"
 	params "github.com/orientwalt/htdf/web3/rpc/args"
@@ -156,7 +156,6 @@ func (e *PublicEthAPI) Accounts() ([]common.Address, error) {
 		if err != nil {
 			continue
 		}
-		addressBytes := sdk.ToEthAddress(addr)
 		addresses = append(addresses, sdk.ToEthAddress(addr))
 	}
 
@@ -222,7 +221,7 @@ func (e *PublicEthAPI) GetTransactionCount(address common.Address, blockNum Bloc
 
 // GetBlockTransactionCountByHash returns the number of transactions in the block identified by hash.
 func (e *PublicEthAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
-	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()), nil)
 	if err != nil {
 		// Return nil if block does not exist
 		return nil
@@ -324,7 +323,7 @@ func (e *PublicEthAPI) Sign(address common.Address, data hexutil.Bytes) (hexutil
 func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, error) {
 	// TODO: Change this functionality to find an unlocked account by address
 
-	key, exist := checkKeyInKeyring(e.keys, args.From)
+	_, exist := checkKeyInKeyring(e.keys, args.From)
 	if !exist {
 		return common.Hash{}, keystore.ErrLocked
 	}
@@ -344,15 +343,16 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 	// ChainID must be set as flag to send transaction
 	chainID := viper.GetString(htdfclient.FlagChainID)
 	// parse the chainID from a string to a base-10 integer
-	intChainID, ok := new(big.Int).SetString(chainID, 10)
+	_, ok := new(big.Int).SetString(chainID, 10)
 	if !ok {
 		return common.Hash{}, fmt.Errorf("invalid chainID: %s, must be integer format", chainID)
 	}
 
 	// Sign transaction
-	if err := tx.Sign(intChainID, key.ToECDSA()); err != nil {
-		return common.Hash{}, err
-	}
+	// temporary commented
+	// if err := tx.Sign(intChainID, key.ToECDSA()); err != nil {
+	// 	return common.Hash{}, err
+	// }
 
 	// Encode transaction by default Tx encoder
 	txEncoder := clientutils.GetTxEncoder(e.cliCtx.Codec)
@@ -496,7 +496,7 @@ func (e *PublicEthAPI) doCall(
 	// Set destination address for call
 	var fromAddr sdk.AccAddress
 	if args.To != nil {
-		fromAddr = sdk.AccAddress(args.From.Bytes())
+		fromAddr = sdk.AccAddress(addr.Bytes())
 	}
 
 	var toAddr sdk.AccAddress
@@ -505,7 +505,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Create new call message
-	msg := evmtypes.NewMsgSendForData(sdk.AccAddress(addr.Bytes()), toAddr, sdk.NewCoins(sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(value))), hex.Dump(data),
+	msg := evmtypes.NewMsgSendForData(fromAddr, toAddr, sdk.NewCoins(sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(value))), hex.Dump(data),
 		gasPrice, gas)
 
 	// Generate tx to be used to simulate (signature isn't needed)
@@ -612,16 +612,17 @@ type Transaction struct {
 	BlockNumber      *hexutil.Big    `json:"blockNumber"`
 	From             common.Address  `json:"from"`
 	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
+	GasPrice         hexutil.Uint64  `json:"gasPrice"`
 	Hash             common.Hash     `json:"hash"`
 	Input            hexutil.Bytes   `json:"input"`
 	Nonce            hexutil.Uint64  `json:"nonce"`
 	To               *common.Address `json:"to"`
 	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
 	Value            *hexutil.Big    `json:"value"`
-	V                *hexutil.Big    `json:"v"`
-	R                *hexutil.Big    `json:"r"`
-	S                *hexutil.Big    `json:"s"`
+
+	// V                *hexutil.Big    `json:"v"`
+	// R                *hexutil.Big    `json:"r"`
+	// S                *hexutil.Big    `json:"s"`
 }
 
 func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgSend, error) {
@@ -642,23 +643,25 @@ func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgSend, erro
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx evmtypes.MsgSend, txHash, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
-	from, err := tx.VerifySig(tx.ChainID())
-	if err != nil {
-		return nil, err
-	}
+	// from, err := tx.VerifySig(tx.ChainID())
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	var toaddr = tx.ToAddress()
 
 	result := Transaction{
-		From:     from,
+		From:     tx.FromAddress(),
 		Gas:      hexutil.Uint64(tx.GasWanted),
-		GasPrice: (*hexutil.Big)(tx.GasPrice),
+		GasPrice: hexutil.Uint64(tx.GasPrice),
 		Hash:     txHash,
 		Input:    hexutil.Bytes(tx.Data),
 		Nonce:    hexutil.Uint64(0),
-		To:       (*common.Address)(&(tx.ToAddress())),
-		Value:    (*hexutil.Big)(tx.Amount[0].Amount),
-		V:        (*hexutil.Big)(tx.Data.V),
-		R:        (*hexutil.Big)(tx.Data.R),
-		S:        (*hexutil.Big)(tx.Data.S),
+		To:       &toaddr,
+		Value:    (*hexutil.Big)(tx.Amount[0].Amount.BigInt()),
+		// V:        (*hexutil.Big)(tx.Data.V),
+		// R:        (*hexutil.Big)(tx.Data.R),
+		// S:        (*hexutil.Big)(tx.Data.S),
 	}
 
 	if blockHash != (common.Hash{}) {
@@ -696,7 +699,7 @@ func (e *PublicEthAPI) GetTransactionByHash(hash common.Hash) (*Transaction, err
 
 // GetTransactionByBlockHashAndIndex returns the transaction identified by hash and index.
 func (e *PublicEthAPI) GetTransactionByBlockHashAndIndex(hash common.Hash, idx hexutil.Uint) (*Transaction, error) {
-	res, _, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
+	res, err := e.cliCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -753,10 +756,11 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 		return nil, err
 	}
 
-	from, err := ethTx.VerifySig(ethTx.ChainID())
-	if err != nil {
-		return nil, err
-	}
+	from := ethTx.FromAddress()
+	// from, err := ethTx.VerifySig(ethTx.ChainID())
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// Set status codes based on tx result
 	var status hexutil.Uint
@@ -798,7 +802,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 
 		// sender and receiver (contract or EOA) addreses
 		"from": from,
-		"to":   ethTx.To(),
+		"to":   ethTx.ToAddress(),
 	}
 
 	return receipt, nil
@@ -807,7 +811,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (e *PublicEthAPI) PendingTransactions() ([]*Transaction, error) {
-	return e.backend.PendingTransactions()
+	return []*Transaction{}, nil //e.backend.PendingTransactions()
 }
 
 // GetUncleByBlockHashAndIndex returns the uncle identified by hash and index. Always returns nil.
@@ -847,7 +851,7 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
 	// query eth account at block height
-	resBz, _, err := e.cliCtx.Query(path)
+	resBz, err := e.cliCtx.Query(path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -919,26 +923,27 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgSe
 		gasLimit uint64
 		err      error
 	)
+	nonce = nonce + 1
+	// temporarily commented
+	// amount := (*big.Int)(args.Value)
+	// gasPrice := (*big.Int)(args.GasPrice)
 
-	amount := (*big.Int)(args.Value)
-	gasPrice := (*big.Int)(args.GasPrice)
+	// if args.GasPrice == nil {
 
-	if args.GasPrice == nil {
-
-		// Set default gas price
-		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = big.NewInt(emint.DefaultGasPrice)
-	}
+	// 	// Set default gas price
+	// 	// TODO: Change to min gas price from context once available through server/daemon
+	// 	gasPrice = big.NewInt(htdfparams.DefaultMinGasPrice)
+	// }
 
 	if args.Nonce == nil {
 		// Get nonce (sequence) from account
 		from := sdk.AccAddress(args.From.Bytes())
 
-		if err = ctx.EnsureAccountExistsFromAddr(from); err != nil {
+		if err = e.cliCtx.EnsureAccountExistsFromAddr(from); err != nil {
 			return nil, fmt.Errorf("nonexistent account %s: %s", args.From.Hex(), err)
 		}
 
-		acc, err := ctx.GetAccount(from)
+		acc, err := e.cliCtx.GetAccount(from)
 		if err != nil {
 			return nil, err
 		}
@@ -983,7 +988,12 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgSe
 	} else {
 		gasLimit = (uint64)(*args.Gas)
 	}
-	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, amount, gasLimit, gasPrice, input)
+	//
+	fromaddr := sdk.AccAddress(args.From.Bytes())
+	toaddr := sdk.AccAddress(args.To.Bytes())
+	value := sdk.Coins{}
+	data := string(input)
+	msg := evmtypes.NewMsgSendForData(fromaddr, toaddr, value, data, gasLimit, htdfparams.DefaultMinGasPrice) //nonce, args.To, amount, gasLimit, gasPrice, input)
 
 	return &msg, nil
 }

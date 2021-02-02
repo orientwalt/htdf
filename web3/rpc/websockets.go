@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
-	evmtypes "github.com/orientwalt/htdf/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/core/types"
 
 	context "github.com/orientwalt/htdf/client/context"
 )

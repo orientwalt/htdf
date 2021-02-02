@@ -15,6 +15,10 @@ import (
 const (
 	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
 	TypeMsgSend = "send"
+	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
+	TypeMsgEthereumTx = "ethereum"
+	// TypeMsgEthermint defines the type string of Ethermint message
+	TypeMsgEthermint = "ethermint"
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -161,9 +165,9 @@ func (msg MsgSend) Fee() *big.Int {
 	return new(big.Int).SetUint64(msg.GasWanted * msg.GasPrice)
 }
 
-func (msg *MsgSend) ChainID() *big.Int {
-	return deriveChainID(msg.Data.V)
-}
+// func (msg *MsgSend) ChainID() *big.Int {
+// 	return deriveChainID(msg.Data.V)
+// }
 
 // deriveChainID derives the chain id from the given v parameter
 func deriveChainID(v *big.Int) *big.Int {
