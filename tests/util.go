@@ -8,14 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/orientwalt/htdf/types/errors"
 	"github.com/stretchr/testify/require"
 
 	"strings"
 
 	amino "github.com/tendermint/go-amino"
-	tmclient "github.com/tendermint/tendermint/rpc/client"
+	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	rpcclient "github.com/tendermint/tendermint/rpc/lib/client"
+	rpcclientlib "github.com/tendermint/tendermint/rpc/lib/client"
 )
 
 // Wait for the next tendermint block from the Tendermint RPC
@@ -26,11 +27,14 @@ func WaitForNextHeightTM(port string) {
 
 // Wait for N tendermint blocks to pass using the Tendermint RPC
 // on localhost
-func WaitForNextNBlocksTM(n int64, port string) {
+func WaitForNextNBlocksTM(n int64, port string) (err error) {
 
 	// get the latest block and wait for n more
 	url := fmt.Sprintf("http://localhost:%v", port)
-	cl := tmclient.NewHTTP(url, "/websocket")
+	cl, err := rpchttp.New(url, "/websocket")
+	if err != nil {
+		return errors.Wrap(err, "websocket establishing failed!")
+	}
 	resBlock, err := cl.Block(nil)
 	var height int64
 	if err != nil || resBlock.Block == nil {
@@ -40,7 +44,7 @@ func WaitForNextNBlocksTM(n int64, port string) {
 	} else {
 		height = resBlock.Block.Height + n
 	}
-	waitForHeightTM(height, url)
+	return waitForHeightTM(height, url)
 }
 
 // Wait for the given height from the Tendermint RPC
@@ -50,12 +54,14 @@ func WaitForHeightTM(height int64, port string) {
 	waitForHeightTM(height, url)
 }
 
-func waitForHeightTM(height int64, url string) {
-	cl := tmclient.NewHTTP(url, "/websocket")
+func waitForHeightTM(height int64, url string) (err error) {
+	cl, err := rpchttp.New(url, "/websocket")
+	if err != nil {
+		return errors.Wrap(err, "websocket establishing failed!")
+	}
 	for {
 		// get url, try a few times
 		var resBlock *ctypes.ResultBlock
-		var err error
 	INNER:
 		for i := 0; i < 5; i++ {
 			resBlock, err = cl.Block(nil)
@@ -176,7 +182,10 @@ func WaitForStart(url string) {
 // Wait for the RPC server to respond to /status
 func WaitForRPC(laddr string) {
 	fmt.Println("LADDR", laddr)
-	client := rpcclient.NewJSONRPCClient(laddr)
+	client, err := rpcclientlib.NewJSONRPCClient(laddr)
+	if err != nil {
+		return
+	}
 	ctypes.RegisterAmino(client.Codec())
 	result := new(ctypes.ResultStatus)
 	for {

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/magiconair/properties/assert"
-	"github.com/orientwalt/htdf/utils"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/big"
 	"os"
+
+	"github.com/magiconair/properties/assert"
+	"github.com/orientwalt/htdf/utils"
+	"github.com/stretchr/testify/require"
 
 	ec "github.com/orientwalt/htdf/evm/core"
 	"github.com/orientwalt/htdf/evm/vm"
@@ -24,9 +25,9 @@ import (
 
 	//tendermint
 	abci "github.com/tendermint/tendermint/abci/types"
-	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 
 	//evm
 	newevmtypes "github.com/orientwalt/htdf/evm/types"
@@ -197,7 +198,7 @@ func TestNewEvm(t *testing.T) {
 
 	//---------------------stateDB test--------------------------------------
 	dataPath := "/tmp/htdfNewEvmTestData3"
-	db := dbm.NewDB("state", dbm.LevelDBBackend, dataPath)
+	db := dbm.NewDB("state", dbm.GoLevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
 	cms := store.NewCommitMultiStore(db)
@@ -364,7 +365,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 
 	//---------------------stateDB test--------------------------------------
 	dataPath := "/tmp/htdfNewEvmTestData3"
-	db := dbm.NewDB("state", dbm.LevelDBBackend, dataPath)
+	db := dbm.NewDB("state", dbm.GoLevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
 	cms := store.NewCommitMultiStore(db)

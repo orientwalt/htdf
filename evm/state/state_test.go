@@ -2,6 +2,8 @@ package state
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/magiconair/properties/assert"
 	"github.com/orientwalt/htdf/store"
 	sdk "github.com/orientwalt/htdf/types"
@@ -10,9 +12,8 @@ import (
 	"github.com/orientwalt/htdf/x/params"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
-	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
-	"os"
+	dbm "github.com/tendermint/tm-db"
 
 	newevmtypes "github.com/orientwalt/htdf/evm/types"
 
@@ -70,7 +71,7 @@ func TestStateDB(t *testing.T) {
 
 	//---------------------stateDB test--------------------------------------
 	dataPath := "/tmp/htdfStateDB"
-	db := dbm.NewDB("state", dbm.LevelDBBackend, dataPath)
+	db := dbm.NewDB("state", dbm.GoLevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
 	cms := store.NewCommitMultiStore(db)

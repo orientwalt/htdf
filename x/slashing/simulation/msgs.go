@@ -8,6 +8,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/simulation"
 	"github.com/orientwalt/htdf/x/slashing"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 )
 
 // SimulateMsgUnjail
@@ -17,7 +18,7 @@ func SimulateMsgUnjail(k slashing.Keeper) simulation.Operation {
 
 		acc := simulation.RandomAcc(r, accs)
 		address := sdk.ValAddress(acc.Address)
-		msg := slashing.NewMsgUnjail(address)
+		msg := slashingtypes.NewMsgUnjail(address)
 		if msg.ValidateBasic() != nil {
 			return simulation.NoOpMsg(), nil, fmt.Errorf("expected msg to pass ValidateBasic: %s", msg.GetSignBytes())
 		}
