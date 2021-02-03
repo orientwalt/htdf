@@ -685,6 +685,34 @@ func MustGetAccPubKeyBech32(pubkey string) (pk crypto.PubKey) {
 	return pk
 }
 
+// GetValPubKeyBech32 creates a PubKey for a validator's operator with a given
+// public key string using the Bech32 Bech32PrefixValPub prefix.
+func GetValPubKeyBech32(pubkey string) (pk crypto.PubKey, err error) {
+	bech32PrefixValPub := GetConfig().GetBech32ValidatorPubPrefix()
+	bz, err := GetFromBech32(pubkey, bech32PrefixValPub)
+	if err != nil {
+		return nil, err
+	}
+
+	pk, err = tmamino.PubKeyFromBytes(bz)
+	if err != nil {
+		return nil, err
+	}
+
+	return pk, nil
+}
+
+// MustGetValPubKeyBech32 returns the result of GetValPubKeyBech32 panicing on
+// failure.
+func MustGetValPubKeyBech32(pubkey string) (pk crypto.PubKey) {
+	pk, err := GetValPubKeyBech32(pubkey)
+	if err != nil {
+		panic(err)
+	}
+
+	return pk
+}
+
 // MustBech32ifyPubKey calls Bech32ifyPubKey except it panics on error.
 func MustBech32ifyPubKey(pkt Bech32PubKeyType, pubkey crypto.PubKey) string {
 	res, err := Bech32ifyPubKey(pkt, pubkey)

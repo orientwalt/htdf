@@ -7,6 +7,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/orientwalt/htdf/codec"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 )
 
 func TestNewQuerier(t *testing.T) {
@@ -27,7 +28,7 @@ func TestQueryParams(t *testing.T) {
 	cdc := codec.New()
 	ctx, _, _, _, keeper := createTestInput(t, keeperTestParams())
 
-	var params Params
+	var params slashingtypes.Params
 
 	res, errRes := queryParams(ctx, cdc, keeper)
 	require.NoError(t, errRes)

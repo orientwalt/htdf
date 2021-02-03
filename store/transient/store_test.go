@@ -6,14 +6,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/orientwalt/htdf/store/transient"
+	// "github.com/orientwalt/htdf/store/transient"
 	"github.com/orientwalt/htdf/store/types"
 )
 
 var k, v = []byte("hello"), []byte("world")
 
 func TestTransientStore(t *testing.T) {
-	tstore := transient.NewStore()
+	tstore := NewStore()
 
 	require.Nil(t, tstore.Get(k))
 

@@ -18,6 +18,10 @@ func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 	panic("not implemented")
 }
 
+func (ms multiStore) CacheMultiStoreWithVersion(_ int64) (sdk.CacheMultiStore, error) {
+	panic("cannot cache-wrap cached multi-store with a version")
+}
+
 func (ms multiStore) CacheWrap() sdk.CacheWrap {
 	panic("not implemented")
 }
@@ -25,6 +29,10 @@ func (ms multiStore) CacheWrap() sdk.CacheWrap {
 func (ms multiStore) CacheWrapWithTrace(_ io.Writer, _ sdk.TraceContext) sdk.CacheWrap {
 	panic("not implemented")
 }
+
+// func (ms multiStore) LoadLatestVersionAndUpgrade(upgrades *types.StoreUpgrades) error {
+// 	panic("not implemented")
+// }
 
 func (ms multiStore) TracingEnabled() bool {
 	panic("not implemented")
@@ -149,6 +157,6 @@ func (kv kvStore) ReverseSubspaceIterator(prefix []byte) sdk.Iterator {
 	panic("not implemented")
 }
 
-func NewCommitMultiStore() sdk.CommitMultiStore {
-	return multiStore{kv: make(map[sdk.StoreKey]kvStore)}
-}
+// func NewCommitMultiStore() sdk.CommitMultiStore {
+// 	return multiStore{kv: make(map[sdk.StoreKey]kvStore)}
+// }

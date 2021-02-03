@@ -8,13 +8,14 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	sdk "github.com/orientwalt/htdf/types"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 	"github.com/orientwalt/htdf/x/staking"
 )
 
 // Have to change these parameters for tests
 // lest the tests take forever
-func keeperTestParams() Params {
-	params := DefaultParams()
+func keeperTestParams() slashingtypes.Params {
+	params := slashingtypes.DefaultParams()
 	params.SignedBlocksWindow = 1000
 	params.DowntimeJailDuration = 60 * 60
 	return params
@@ -67,7 +68,7 @@ func TestHandleDoubleSign(t *testing.T) {
 	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(1, 0).Add(sk.GetParams(ctx).UnbondingTime)})
 
 	// Still shouldn't be able to unjail
-	msgUnjail := NewMsgUnjail(operatorAddr)
+	msgUnjail := slashingtypes.NewMsgUnjail(operatorAddr)
 	res := handleMsgUnjail(ctx, msgUnjail, keeper)
 	require.False(t, res.IsOK())
 
@@ -218,12 +219,12 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.Equal(t, amt.Int64()-slashAmt, validator.GetTokens().Int64())
 
 	// unrevocation should fail prior to jail expiration
-	got = slh(ctx, NewMsgUnjail(addr))
+	got = slh(ctx, slashingtypes.NewMsgUnjail(addr))
 	require.False(t, got.IsOK())
 
 	// unrevocation should succeed after jail expiration
 	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(1, 0).Add(keeper.DowntimeJailDuration(ctx))})
-	got = slh(ctx, NewMsgUnjail(addr))
+	got = slh(ctx, slashingtypes.NewMsgUnjail(addr))
 	require.True(t, got.IsOK())
 
 	// end block
@@ -324,7 +325,7 @@ func TestHandleNewValidator(t *testing.T) {
 func TestHandleAlreadyJailed(t *testing.T) {
 
 	// initial setup
-	ctx, _, sk, _, keeper := createTestInput(t, DefaultParams())
+	ctx, _, sk, _, keeper := createTestInput(t, slashingtypes.DefaultParams())
 	power := int64(100)
 	amt := sdk.TokensFromTendermintPower(power)
 	addr, val := addrs[0], pks[0]

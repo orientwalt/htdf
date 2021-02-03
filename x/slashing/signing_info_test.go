@@ -7,13 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/orientwalt/htdf/types"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 )
 
 func TestGetSetValidatorSigningInfo(t *testing.T) {
-	ctx, _, _, _, keeper := createTestInput(t, DefaultParams())
+	ctx, _, _, _, keeper := createTestInput(t, slashingtypes.DefaultParams())
 	info, found := keeper.getValidatorSigningInfo(ctx, sdk.ConsAddress(addrs[0]))
 	require.False(t, found)
-	newInfo := ValidatorSigningInfo{
+	newInfo := slashingtypes.ValidatorSigningInfo{
 		StartHeight:         int64(4),
 		IndexOffset:         int64(3),
 		JailedUntil:         time.Unix(2, 0),
@@ -29,7 +30,7 @@ func TestGetSetValidatorSigningInfo(t *testing.T) {
 }
 
 func TestGetSetValidatorMissedBlockBitArray(t *testing.T) {
-	ctx, _, _, _, keeper := createTestInput(t, DefaultParams())
+	ctx, _, _, _, keeper := createTestInput(t, slashingtypes.DefaultParams())
 	missed := keeper.getValidatorMissedBlockBitArray(ctx, sdk.ConsAddress(addrs[0]), 0)
 	require.False(t, missed) // treat empty key as not missed
 	keeper.setValidatorMissedBlockBitArray(ctx, sdk.ConsAddress(addrs[0]), 0, true)

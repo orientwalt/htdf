@@ -7,12 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/orientwalt/htdf/types"
+	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 	"github.com/orientwalt/htdf/x/staking"
 )
 
 func TestCannotUnjailUnlessJailed(t *testing.T) {
 	// initial setup
-	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
+	ctx, ck, sk, _, keeper := createTestInput(t, slashingtypes.DefaultParams())
 	slh := NewHandler(keeper)
 	amt := sdk.TokensFromTendermintPower(100)
 	addr, val := addrs[0], pks[0]
@@ -28,15 +29,15 @@ func TestCannotUnjailUnlessJailed(t *testing.T) {
 	require.Equal(t, amt, sk.Validator(ctx, addr).GetBondedTokens())
 
 	// assert non-jailed validator can't be unjailed
-	got = slh(ctx, NewMsgUnjail(addr))
+	got = slh(ctx, slashingtypes.NewMsgUnjail(addr))
 	require.False(t, got.IsOK(), "allowed unjail of non-jailed validator")
-	require.EqualValues(t, CodeValidatorNotJailed, got.Code)
-	require.EqualValues(t, DefaultCodespace, got.Codespace)
+	require.EqualValues(t, slashingtypes.CodeValidatorNotJailed, got.Code)
+	require.EqualValues(t, slashingtypes.DefaultCodespace, got.Codespace)
 }
 
 func TestCannotUnjailUnlessMeetMinSelfDelegation(t *testing.T) {
 	// initial setup
-	ctx, ck, sk, _, keeper := createTestInput(t, DefaultParams())
+	ctx, ck, sk, _, keeper := createTestInput(t, slashingtypes.DefaultParams())
 	slh := NewHandler(keeper)
 	amtInt := int64(100)
 	addr, val, amt := addrs[0], pks[0], sdk.TokensFromTendermintPower(amtInt)
@@ -61,14 +62,14 @@ func TestCannotUnjailUnlessMeetMinSelfDelegation(t *testing.T) {
 	require.True(t, sk.Validator(ctx, addr).IsJailed())
 
 	// assert non-jailed validator can't be unjailed
-	got = slh(ctx, NewMsgUnjail(addr))
+	got = slh(ctx, slashingtypes.NewMsgUnjail(addr))
 	require.False(t, got.IsOK(), "allowed unjail of validator with less than MinSelfDelegation")
-	require.EqualValues(t, CodeValidatorNotJailed, got.Code)
-	require.EqualValues(t, DefaultCodespace, got.Codespace)
+	require.EqualValues(t, slashingtypes.CodeValidatorNotJailed, got.Code)
+	require.EqualValues(t, slashingtypes.DefaultCodespace, got.Codespace)
 }
 
 func TestJailedValidatorDelegations(t *testing.T) {
-	ctx, _, stakingKeeper, _, slashingKeeper := createTestInput(t, DefaultParams())
+	ctx, _, stakingKeeper, _, slashingKeeper := createTestInput(t, slashingtypes.DefaultParams())
 
 	stakingParams := stakingKeeper.GetParams(ctx)
 	stakingParams.UnbondingTime = 0
@@ -87,7 +88,7 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	staking.EndBlocker(ctx, stakingKeeper)
 
 	// set dummy signing info
-	newInfo := NewValidatorSigningInfo(0, 0, time.Unix(0, 0), false, 0)
+	newInfo := slashingtypes.NewValidatorSigningInfo(0, 0, time.Unix(0, 0), false, 0)
 	slashingKeeper.SetValidatorSigningInfo(ctx, consAddr, newInfo)
 
 	// delegate tokens to the validator
@@ -116,7 +117,7 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	require.True(t, validator.IsJailed())
 
 	// verify the validator cannot unjail itself
-	got = NewHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
+	got = NewHandler(slashingKeeper)(ctx, slashingtypes.NewMsgUnjail(valAddr))
 	require.False(t, got.IsOK(), "expected jailed validator to not be able to unjail, got: %v", got)
 
 	// self-delegate to validator
@@ -125,6 +126,6 @@ func TestJailedValidatorDelegations(t *testing.T) {
 	require.True(t, got.IsOK(), "expected delegation to not be ok, got %v", got)
 
 	// verify the validator can now unjail itself
-	got = NewHandler(slashingKeeper)(ctx, NewMsgUnjail(valAddr))
+	got = NewHandler(slashingKeeper)(ctx, slashingtypes.NewMsgUnjail(valAddr))
 	require.True(t, got.IsOK(), "expected jailed validator to be able to unjail, got: %v", got)
 }
