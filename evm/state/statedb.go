@@ -15,6 +15,8 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	newevmtypes "github.com/orientwalt/htdf/evm/types"
+	"github.com/orientwalt/htdf/store/prefix"
+	evmtypes "github.com/orientwalt/htdf/x/core/types"
 )
 
 type revision struct {
@@ -46,8 +48,9 @@ type CommitStateDB struct {
 
 	// maps that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects      map[ethcmn.Address]*stateObject
-	stateObjectsDirty map[ethcmn.Address]struct{}
+	stateObjects         map[ethcmn.Address]*stateObject
+	addressToObjectIndex map[ethcmn.Address]int // map from address to the index of the state objects slice
+	stateObjectsDirty    map[ethcmn.Address]struct{}
 
 	// The refund counter, also used by state transitioning.
 	refund uint64
@@ -95,6 +98,12 @@ func NewCommitStateDB(ctx sdk.Context, ak *auth.AccountKeeper, storageKey, codeK
 		preimages:         make(map[ethcmn.Hash][]byte),
 		journal:           newJournal(),
 	}, nil
+}
+
+// WithContext returns a Database with an updated sdk context
+func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
+	csdb.ctx = ctx
+	return csdb
 }
 
 // ----------------------------------------------------------------------------
@@ -147,6 +156,32 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	if so != nil {
 		so.SetCode(ethcrypto.Keccak256Hash(code), code)
 	}
+}
+
+// ----------------------------------------------------------------------------
+// Transaction logs
+// Required for upgrade logic or ease of querying.
+// NOTE: we use BinaryLengthPrefixed since the tx logs are also included on Result data,
+// which can't use BinaryBare.
+// ----------------------------------------------------------------------------
+
+// SetLogs sets the logs for a transaction in the KVStore.
+func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
+	bz, err := newevmtypes.MarshalLogs(logs)
+	if err != nil {
+		return err
+	}
+
+	store.Set(hash.Bytes(), bz)
+	csdb.logSize = uint(len(logs))
+	return nil
+}
+
+// DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
+func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
+	store.Delete(hash.Bytes())
 }
 
 // AddLog adds a new log to the state and sets the log metadata from the state.
@@ -214,6 +249,16 @@ func (csdb *CommitStateDB) GetNonce(addr ethcmn.Address) uint64 {
 	return 0
 }
 
+// TxIndex returns the current transaction index set by Prepare.
+func (csdb *CommitStateDB) TxIndex() int {
+	return csdb.txIndex
+}
+
+// BlockHash returns the current block hash set by Prepare.
+func (csdb *CommitStateDB) BlockHash() ethcmn.Hash {
+	return csdb.bhash
+}
+
 // GetCode returns the code for a given account.
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	so := csdb.getStateObject(addr)
@@ -271,8 +316,20 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 }
 
 // GetLogs returns the current logs for a given hash in the state.
-func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) []*ethtypes.Log {
-	return csdb.logs[hash]
+// func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) []*ethtypes.Log {
+// 	return csdb.logs[hash]
+// }
+
+// GetLogs returns the current logs for a given transaction hash from the KVStore.
+func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
+	bz := store.Get(hash.Bytes())
+	if len(bz) == 0 {
+		// return nil error if logs are not found
+		return []*ethtypes.Log{}, nil
+	}
+
+	return newevmtypes.UnmarshalLogs(bz)
 }
 
 // Logs returns all the current logs in the state.
@@ -283,6 +340,22 @@ func (csdb *CommitStateDB) Logs() []*ethtypes.Log {
 	}
 
 	return logs
+}
+
+// AllLogs returns all the current logs in the state.
+func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
+	store := csdb.ctx.KVStore(csdb.storageKey)
+	iterator := sdk.KVStorePrefixIterator(store, newevmtypes.KeyPrefixLogs)
+	defer iterator.Close()
+
+	allLogs := []*ethtypes.Log{}
+	for ; iterator.Valid(); iterator.Next() {
+		var logs []*ethtypes.Log
+		evmtypes.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
+		allLogs = append(allLogs, logs...)
+	}
+
+	return allLogs
 }
 
 // GetRefund returns the current value of the refund counter.
@@ -513,6 +586,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 // next operations.
 func (csdb *CommitStateDB) Reset(root ethcmn.Hash) error {
 	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	csdb.addressToObjectIndex = make(map[ethcmn.Address]int)
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 	csdb.thash = ethcmn.Hash{}
 	csdb.bhash = ethcmn.Hash{}
@@ -523,6 +597,33 @@ func (csdb *CommitStateDB) Reset(root ethcmn.Hash) error {
 
 	csdb.clearJournalAndRefund()
 	return nil
+}
+
+// // UpdateAccounts updates the nonce and coin balances of accounts
+// func (csdb *CommitStateDB) UpdateAccounts() {
+// 	for _, stateEntry := range csdb.stateObjects {
+// 		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(stateEntry.address.Bytes()))
+// 		emintAcc, ok := currAcc.(*emint.EthAccount)
+// 		if !ok {
+// 			continue
+// 		}
+
+// 		balance := csdb.bankKeeper.GetBalance(csdb.ctx, emintAcc.GetAddress(), emint.DenomDefault)
+// 		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() {
+// 			stateEntry.stateObject.balance = balance.Amount
+// 		}
+
+// 		if stateEntry.stateObject.Nonce() != emintAcc.GetSequence() {
+// 			stateEntry.stateObject.account = emintAcc
+// 		}
+// 	}
+// }
+
+// ClearStateObjects clears cache of state objects to handle account changes outside of the EVM
+func (csdb *CommitStateDB) ClearStateObjects() {
+	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	csdb.addressToObjectIndex = make(map[ethcmn.Address]int)
+	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 }
 
 func (csdb *CommitStateDB) clearJournalAndRefund() {

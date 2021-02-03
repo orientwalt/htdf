@@ -1,4 +1,4 @@
-package htdfservice
+package types
 
 import (
 	"fmt"

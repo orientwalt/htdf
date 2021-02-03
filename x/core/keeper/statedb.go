@@ -3,8 +3,6 @@ package keeper
 import (
 	"math/big"
 
-	"github.com/orientwalt/htdf/x/core/types"
-
 	sdk "github.com/orientwalt/htdf/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -161,14 +159,14 @@ func (k *Keeper) Commit(ctx sdk.Context, deleteEmptyObjects bool) (root ethcmn.H
 }
 
 // Finalise calls CommitStateDB.Finalise using the passed in context
-func (k *Keeper) Finalise(ctx sdk.Context, deleteEmptyObjects bool) error {
-	return k.CommitStateDB.WithContext(ctx).Finalise(deleteEmptyObjects)
+func (k *Keeper) Finalise(ctx sdk.Context, deleteEmptyObjects bool) {
+	k.CommitStateDB.WithContext(ctx).Finalize(deleteEmptyObjects)
 }
 
 // IntermediateRoot calls CommitStateDB.IntermediateRoot using the passed in context
-func (k *Keeper) IntermediateRoot(ctx sdk.Context, deleteEmptyObjects bool) error {
-	_, err := k.CommitStateDB.WithContext(ctx).IntermediateRoot(deleteEmptyObjects)
-	return err
+func (k *Keeper) IntermediateRoot(ctx sdk.Context, deleteEmptyObjects bool) {
+	k.CommitStateDB.WithContext(ctx).IntermediateRoot(deleteEmptyObjects)
+
 }
 
 // ----------------------------------------------------------------------------
@@ -230,8 +228,8 @@ func (k *Keeper) CreateAccount(ctx sdk.Context, addr ethcmn.Address) {
 }
 
 // UpdateAccounts calls CommitStateDB.UpdateAccounts using the passed in context
-func (k *Keeper) UpdateAccounts(ctx sdk.Context) {
-	k.CommitStateDB.WithContext(ctx).UpdateAccounts()
+// func (k *Keeper) UpdateAccounts(ctx sdk.Context) {
+// 	k.CommitStateDB.WithContext(ctx).UpdateAccounts()
 }
 
 // ClearStateObjects calls CommitStateDB.ClearStateObjects using the passed in context
@@ -244,12 +242,12 @@ func (k *Keeper) Copy(ctx sdk.Context) ethvm.StateDB {
 	return k.CommitStateDB.WithContext(ctx).Copy()
 }
 
-// ForEachStorage calls CommitStateDB.ForEachStorage using passed in context
-func (k *Keeper) ForEachStorage(ctx sdk.Context, addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) error {
-	return k.CommitStateDB.WithContext(ctx).ForEachStorage(addr, cb)
-}
+// // ForEachStorage calls CommitStateDB.ForEachStorage using passed in context
+// func (k *Keeper) ForEachStorage(ctx sdk.Context, addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) error {
+// 	return k.CommitStateDB.WithContext(ctx).ForEachStorage(addr, cb)
+// }
 
-// GetOrNewStateObject calls CommitStateDB.GetOrNetStateObject using the passed in context
-func (k *Keeper) GetOrNewStateObject(ctx sdk.Context, addr ethcmn.Address) types.StateObject {
-	return k.CommitStateDB.WithContext(ctx).GetOrNewStateObject(addr)
-}
+// // GetOrNewStateObject calls CommitStateDB.GetOrNetStateObject using the passed in context
+// func (k *Keeper) GetOrNewStateObject(ctx sdk.Context, addr ethcmn.Address) evmstate.stateObject {
+// 	return k.CommitStateDB.WithContext(ctx).GetOrNewStateObject(addr)
+// }

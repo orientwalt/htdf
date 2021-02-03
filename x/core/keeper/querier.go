@@ -66,7 +66,7 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 	balance := keeper.GetBalance(ctx, addr)
 	balanceStr, err := utils.MarshalBigInt(balance)
 	if err != nil {
-		return nil, err
+		return nil, sdk.ErrJsonMarshal(err.Error())
 	}
 
 	res := types.QueryResBalance{Balance: balanceStr}
@@ -117,7 +117,7 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, s
 	blockHash := ethcmn.FromHex(path[1])
 	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
 	if !found {
-		return []byte{}, fmt.Errorf("block height not found for hash %s", path[1])
+		return []byte{}, sdk.ErrJsonMarshal(fmt.Errorf("block height not found for hash %s", path[1]).Error())
 	}
 
 	res := types.QueryResBlockNumber{Number: blockNumber}
@@ -132,12 +132,12 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, s
 func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	num, err := strconv.ParseInt(path[1], 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal block height: %w", err)
+		return nil, sdk.ErrJsonMarshal(fmt.Errorf("could not unmarshal block height: %w", err).Error())
 	}
 
 	bloom, found := keeper.GetBlockBloom(ctx.WithBlockHeight(num), num)
 	if !found {
-		return nil, fmt.Errorf("block bloom not found for height %d", num)
+		return nil, sdk.ErrJsonMarshal(fmt.Errorf("block bloom not found for height %d", num).Error())
 	}
 
 	res := types.QueryBloomFilter{Bloom: bloom}
@@ -154,7 +154,7 @@ func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte
 
 	logs, err := keeper.GetLogs(ctx, txHash)
 	if err != nil {
-		return nil, err
+		return nil, sdk.ErrJsonMarshal(err.Error())
 	}
 
 	res := types.QueryETHLogs{Logs: logs}
@@ -183,7 +183,7 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 
 	balance, err := utils.MarshalBigInt(so.Balance())
 	if err != nil {
-		return nil, err
+		return nil, sdk.ErrJsonMarshal(err.Error())
 	}
 
 	res := types.QueryResAccount{

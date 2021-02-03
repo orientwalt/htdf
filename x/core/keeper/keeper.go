@@ -12,6 +12,7 @@ import (
 
 // keeper of the htdfservice store
 type Keeper struct {
+	ctx      sdk.Context
 	cdc      *codec.Codec
 	storeKey sdk.StoreKey
 
