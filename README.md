@@ -1,3 +1,7 @@
+<p align="center">
+  <br> English | <a href="docs/chinese/README.md">中文</a>
+</p>
+
 [![](https://godoc.org/github.com/orientwalt/htdf?status.svg)](http://godoc.org/github.com/orientwalt/htdf) [![Go Report Card](https://goreportcard.com/badge/github.com/orientwalt/htdf)](https://goreportcard.com/report/github.com/orientwalt/htdf)
 [![version](https://img.shields.io/github/tag/orientwalt/htdf.svg)](https://github.com/orientwalt/htdf/releases/latest)
 [![Go version](https://img.shields.io/badge/go-1.12.9-blue.svg)](https://github.com/moovweb/gvm)
@@ -5,8 +9,6 @@
 
 # HTDF
 
-- [English](./README.md)
-- [中文](./docs/chinese/README.md)
 
 ## Introduction
 HTDF is a high-performance public blockchain developed by HTDF Foundation. It is based on [ethereum](https://github.com/ethereum/go-ethereum) & [cosmos-sdk](https://github.com/cosmos/cosmos-sdk) on [tendermint](https://github.com/tendermint/tendermint)  . We merged tendermint's consensus, cosmos-sdk's application logic, and ethereum's account system & smart contract architecture into a brand new architecture - htdf blockchain. 
