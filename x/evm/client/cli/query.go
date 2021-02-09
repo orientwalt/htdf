@@ -7,7 +7,7 @@ import (
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 )
 

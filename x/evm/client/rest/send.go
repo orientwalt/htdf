@@ -15,8 +15,8 @@ import (
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 // SendReq defines the properties of a send request's body.

@@ -9,7 +9,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
-	"github.com/orientwalt/htdf/x/core/types"
+	"github.com/orientwalt/htdf/x/evm/types"
 	log "github.com/sirupsen/logrus"
 )
 

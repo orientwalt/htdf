@@ -14,9 +14,9 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
 
-	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
 	"github.com/orientwalt/htdf/x/distribution/client/common"
 	"github.com/orientwalt/htdf/x/distribution/types"
+	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
 	log "github.com/sirupsen/logrus"
 )
 

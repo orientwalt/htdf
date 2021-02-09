@@ -9,20 +9,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
-	"github.com/orientwalt/htdf/evm/state"
-	evmstate "github.com/orientwalt/htdf/evm/state"
-	"github.com/orientwalt/htdf/evm/vm"
 	"github.com/orientwalt/htdf/params"
+	"github.com/orientwalt/htdf/x/evm/core/vm"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethparams "github.com/ethereum/go-ethereum/params"
 	"github.com/orientwalt/htdf/app/protocol"
-	vmcore "github.com/orientwalt/htdf/evm/core"
 	appParams "github.com/orientwalt/htdf/params"
 	apptypes "github.com/orientwalt/htdf/types"
 	sdk "github.com/orientwalt/htdf/types"
 	sdkerrors "github.com/orientwalt/htdf/types/errors"
 	"github.com/orientwalt/htdf/x/auth"
+	vmcore "github.com/orientwalt/htdf/x/evm/core"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -63,7 +61,7 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 type StateTransition struct {
 	gpGasWanted *ethcore.GasPool
 	initialGas  uint64
-	stateDB     *evmstate.CommitStateDB //vm.StateDB
+	stateDB     *CommitStateDB //vm.StateDB
 	evm         *vm.EVM
 	////
 	txhash   *common.Hash
@@ -206,7 +204,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Acco
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
 	gasLimit := st.gasLimit - ctx.GasMeter().GasConsumed()
 
-	stateDB, err := state.NewCommitStateDB(ctx, &accountKeeper, protocol.KeyStorage, protocol.KeyCode)
+	stateDB, err := NewCommitStateDB(ctx, &accountKeeper, protocol.KeyStorage, protocol.KeyCode)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "newStateDB error")
 	}
@@ -274,7 +272,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Acco
 	st.txhash = &ethHash
 
 	if st.txhash != nil && !st.simulate {
-		logs = stateDB.GetLogs(*st.txhash)
+		logs, err := stateDB.GetLogs(*st.txhash)
+		if err != nil {
+			return nil, err
+		}
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}

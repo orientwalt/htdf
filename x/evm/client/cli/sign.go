@@ -11,7 +11,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

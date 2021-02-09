@@ -21,12 +21,12 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	authcmd "github.com/orientwalt/htdf/x/auth/client/cli"
-	htdfservicecmd "github.com/orientwalt/htdf/x/core/client/cli"
+	htdfservicecmd "github.com/orientwalt/htdf/x/evm/client/cli"
 
 	accounts "github.com/orientwalt/htdf/accounts/cli"
 	accrest "github.com/orientwalt/htdf/accounts/rest"
 	"github.com/orientwalt/htdf/app"
-	hsrest "github.com/orientwalt/htdf/x/core/client/rest"
+	hsrest "github.com/orientwalt/htdf/x/evm/client/rest"
 
 	dist "github.com/orientwalt/htdf/x/distribution/client/rest"
 	gv "github.com/orientwalt/htdf/x/gov"

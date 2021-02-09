@@ -6,7 +6,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
+	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
 	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 	"github.com/spf13/cobra"
 )

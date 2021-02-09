@@ -1,4 +1,4 @@
-package state
+package types
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	newevmtypes "github.com/orientwalt/htdf/evm/types"
+	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
 
 	"github.com/orientwalt/htdf/codec"
 

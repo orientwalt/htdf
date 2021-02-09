@@ -7,10 +7,10 @@ import (
 	"fmt"
 
 	"github.com/orientwalt/htdf/codec"
-	newevmtypes "github.com/orientwalt/htdf/evm/types"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	"github.com/orientwalt/htdf/x/bank"
+	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
 	bam "github.com/orientwalt/htdf/x/mock/baseapp"
 	"github.com/orientwalt/htdf/x/params"
 	abci "github.com/tendermint/tendermint/abci/types"

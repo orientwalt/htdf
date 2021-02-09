@@ -23,8 +23,8 @@ import (
 	"github.com/orientwalt/htdf/utils"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/orientwalt/htdf/evm/vm"
+	"github.com/orientwalt/htdf/x/evm/core/types"
+	"github.com/orientwalt/htdf/x/evm/core/vm"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -50,7 +50,7 @@ func (self FooChainContext) GetHeader(hash common.Hash, number uint64) *types.He
 		Number:     big.NewInt(int64(number)),
 		GasLimit:   0,
 		GasUsed:    0,
-		Time:       big.NewInt(time.Now().Unix()).Uint64(),
+		Time:       big.NewInt(time.Now().Unix()), //.Uint64(),
 		Extra:      nil,
 	}
 }
@@ -77,7 +77,7 @@ func NewEVMContext(msg IMessage, author *common.Address, height uint64) vm.Conte
 		Origin:      msg.FromAddress(),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(fooHeader.Number),
-		Time:        new(big.Int).Set(big.NewInt(int64(fooHeader.Time))),
+		Time:        new(big.Int).Set(fooHeader.Time), //big.NewInt(int64(fooHeader.Time))),
 		Difficulty:  new(big.Int).Set(fooHeader.Difficulty),
 		GasLimit:    fooHeader.GasLimit,
 		GasPrice:    big.NewInt(0),

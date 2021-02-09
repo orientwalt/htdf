@@ -15,8 +15,8 @@ import (
 	"github.com/orientwalt/htdf/utils/unit_convert"
 
 	"github.com/orientwalt/htdf/x/auth"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
 	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 )
 

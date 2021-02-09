@@ -1,4 +1,4 @@
-package state
+package types
 
 import (
 	"fmt"
@@ -14,9 +14,8 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	newevmtypes "github.com/orientwalt/htdf/evm/types"
 	"github.com/orientwalt/htdf/store/prefix"
-	evmtypes "github.com/orientwalt/htdf/x/core/types"
+	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
 )
 
 type revision struct {
@@ -168,7 +167,7 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
 	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
-	bz, err := newevmtypes.MarshalLogs(logs)
+	bz, err := MarshalLogs(logs)
 	if err != nil {
 		return err
 	}
@@ -329,7 +328,7 @@ func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 		return []*ethtypes.Log{}, nil
 	}
 
-	return newevmtypes.UnmarshalLogs(bz)
+	return UnmarshalLogs(bz)
 }
 
 // Logs returns all the current logs in the state.
@@ -351,7 +350,8 @@ func (csdb *CommitStateDB) AllLogs() []*ethtypes.Log {
 	allLogs := []*ethtypes.Log{}
 	for ; iterator.Valid(); iterator.Next() {
 		var logs []*ethtypes.Log
-		evmtypes.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
+		// revised needed
+		// evmtypes.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(iterator.Value(), &logs)
 		allLogs = append(allLogs, logs...)
 	}
 

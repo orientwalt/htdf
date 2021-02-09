@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/orientwalt/htdf/x/auth"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 const (

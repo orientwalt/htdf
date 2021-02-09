@@ -1,4 +1,4 @@
-package evm
+package core
 
 import (
 	"bytes"
@@ -12,15 +12,15 @@ import (
 	"github.com/orientwalt/htdf/utils"
 	"github.com/stretchr/testify/require"
 
-	ec "github.com/orientwalt/htdf/evm/core"
-	"github.com/orientwalt/htdf/evm/vm"
+	ec "github.com/orientwalt/htdf/x/evm/core"
+	"github.com/orientwalt/htdf/x/evm/core/vm"
 
 	//cosmos-sdk
 	"github.com/orientwalt/htdf/codec"
-	"github.com/orientwalt/htdf/evm/state"
 	"github.com/orientwalt/htdf/store"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
+	"github.com/orientwalt/htdf/x/evm/core/state"
 	"github.com/orientwalt/htdf/x/params"
 
 	//tendermint
@@ -30,7 +30,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	//evm
-	newevmtypes "github.com/orientwalt/htdf/evm/types"
+	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
 
 	//ethereum
 	"github.com/ethereum/go-ethereum/accounts/abi"

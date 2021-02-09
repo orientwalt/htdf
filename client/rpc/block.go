@@ -19,7 +19,7 @@ import (
 	sdkRest "github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	"github.com/orientwalt/htdf/x/auth"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"

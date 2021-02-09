@@ -11,7 +11,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
+	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
 	"github.com/orientwalt/htdf/x/staking"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -19,7 +19,7 @@ import (
 	"github.com/orientwalt/htdf/utils"
 	"github.com/orientwalt/htdf/version"
 	params "github.com/orientwalt/htdf/web3/rpc/args"
-	evmtypes "github.com/orientwalt/htdf/x/core/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/merkle"

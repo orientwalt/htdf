@@ -8,13 +8,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/orientwalt/htdf/codec"
-	vmcore "github.com/orientwalt/htdf/evm/core"
-	"github.com/orientwalt/htdf/evm/state"
-	"github.com/orientwalt/htdf/evm/vm"
 	appParams "github.com/orientwalt/htdf/params"
 	"github.com/orientwalt/htdf/types"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
+	vmcore "github.com/orientwalt/htdf/x/evm/core"
+	"github.com/orientwalt/htdf/x/evm/core/vm"
 	log "github.com/sirupsen/logrus"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -107,7 +106,7 @@ func queryContract(ctx sdk.Context, req abci.RequestQuery, accountKeeper auth.Ac
 	}
 
 	//
-	stateDB, err := state.NewCommitStateDB(ctx, &accountKeeper, keyStorage, keyCode)
+	stateDB, err := NewCommitStateDB(ctx, &accountKeeper, keyStorage, keyCode)
 	if err != nil {
 		return nil, sdk.ErrInternal(fmt.Sprintf("newStateDB error: %s", err))
 	}

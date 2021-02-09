@@ -9,7 +9,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	evmtypes "github.com/orientwalt/htdf/x/core/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 
 	"github.com/orientwalt/htdf/client/context"
 	legacyrpc "github.com/orientwalt/htdf/client/rpc"

@@ -16,7 +16,7 @@ import (
 
 	clientcontext "github.com/orientwalt/htdf/client/context"
 
-	evmtypes "github.com/orientwalt/htdf/x/core/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 // FiltersBackend defines the methods requided by the PublicFilterAPI backend

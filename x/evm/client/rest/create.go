@@ -13,7 +13,7 @@ import (
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 // CreateReq defines the properties of a send request's body.

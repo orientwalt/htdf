@@ -8,7 +8,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/x/auth"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 type broadcastBody struct {

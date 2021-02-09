@@ -4,7 +4,7 @@ import (
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/codec"
-	coretypes "github.com/orientwalt/htdf/x/core/types"
+	coretypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 )
 

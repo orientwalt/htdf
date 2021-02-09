@@ -18,7 +18,7 @@ import (
 
 	govClientUtils "github.com/orientwalt/htdf/x/gov/client/utils"
 
-	hscorecli "github.com/orientwalt/htdf/x/core/client/cli"
+	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
 	"github.com/spf13/viper"
 )
 

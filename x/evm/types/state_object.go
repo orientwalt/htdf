@@ -1,4 +1,4 @@
-package state
+package types
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	auth "github.com/orientwalt/htdf/x/auth"
 
-	"github.com/orientwalt/htdf/evm/types"
+	"github.com/orientwalt/htdf/x/evm/core/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
