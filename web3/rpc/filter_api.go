@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	evmtypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmrpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -114,7 +114,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	api.filters[pendingTxSub.ID()] = &filter{typ: filters.PendingTransactionsSubscription, deadline: time.NewTimer(deadline), hashes: make([]common.Hash, 0), s: pendingTxSub}
 	api.filtersMu.Unlock()
 
-	go func(txsCh <-chan evmtypes.ResultEvent, errCh <-chan error) {
+	go func(txsCh <-chan tmrpctypes.ResultEvent, errCh <-chan error) {
 		defer cancelSubs()
 
 		for {
@@ -159,7 +159,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 		return nil, err
 	}
 
-	go func(txsCh <-chan evmtypes.ResultEvent) {
+	go func(txsCh <-chan tmrpctypes.ResultEvent) {
 		defer cancelSubs()
 
 		for {
@@ -202,7 +202,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	api.filters[headerSub.ID()] = &filter{typ: filters.BlocksSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: headerSub}
 	api.filtersMu.Unlock()
 
-	go func(headersCh <-chan evmtypes.ResultEvent, errCh <-chan error) {
+	go func(headersCh <-chan tmrpctypes.ResultEvent, errCh <-chan error) {
 		defer cancelSubs()
 
 		for {
@@ -242,7 +242,7 @@ func (api *PublicFilterAPI) NewHeads(ctx context.Context) (*rpc.Subscription, er
 		return &rpc.Subscription{}, err
 	}
 
-	go func(headersCh <-chan evmtypes.ResultEvent) {
+	go func(headersCh <-chan tmrpctypes.ResultEvent) {
 		defer cancelSubs()
 
 		for {
@@ -289,7 +289,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 		return &rpc.Subscription{}, err
 	}
 
-	go func(logsCh <-chan evmtypes.ResultEvent) {
+	go func(logsCh <-chan tmrpctypes.ResultEvent) {
 		defer cancelSubs()
 
 		for {
@@ -368,7 +368,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	api.filters[filterID] = &filter{typ: filters.LogsSubscription, deadline: time.NewTimer(deadline), hashes: []common.Hash{}, s: logsSub}
 	api.filtersMu.Unlock()
 
-	go func(eventCh <-chan evmtypes.ResultEvent) {
+	go func(eventCh <-chan tmrpctypes.ResultEvent) {
 		defer cancelSubs()
 
 		for {
