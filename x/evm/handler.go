@@ -81,8 +81,9 @@ func HandleMsgSend(ctx sdk.Context,
 	var sendTxResp types.SendTxResp
 
 	st := types.NewStateTransition(ctx, msg)
-	evmResult, err := st.TransitionDb(ctx, accountKeeper, feeCollectionKeeper)
 
+	evmResult, err := st.TransitionDb(ctx, accountKeeper, feeCollectionKeeper)
+	// logger().Debugf("handler:evmResult[%v]\n", evmResult)
 	if evmResult == nil {
 		sendTxResp.EvmOutput = fmt.Sprintf("%s\n", err)
 		if st.ContractCreation {
@@ -113,7 +114,9 @@ func HandleMsgSend(ctx sdk.Context,
 			),
 		)
 	}
-	sendTxResp.ContractAddress = sdk.ToAppAddress(*st.ContractAddress).String()
+	if st.ContractCreation {
+		sendTxResp.ContractAddress = sdk.ToAppAddress(*st.ContractAddress).String()
+	}
 	evmResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
 	// set the events to the result
 	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed, Events: ctx.EventManager().Events().ToABCIEvents()}
