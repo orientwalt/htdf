@@ -11,7 +11,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,7 +34,7 @@ func GetCmdSign(cdc *codec.Codec) *cobra.Command {
 			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
 
 			// load sign tx from string
-			stdTx, err := coretypes.ReadStdTxFromRawData(cliCtx.Codec, args[0])
+			stdTx, err := evmtypes.ReadStdTxFromRawData(cliCtx.Codec, args[0])
 			if err != nil {
 				return err
 			}
@@ -49,7 +49,7 @@ func GetCmdSign(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			offlineflag := viper.GetBool(coretypes.FlagOffline)
+			offlineflag := viper.GetBool(evmtypes.FlagOffline)
 
 			// sign
 			res, err := SignTransaction(authtxb.NewTxBuilderFromCLI(), cliCtx, stdTx, passphrase, offlineflag)
@@ -58,17 +58,17 @@ func GetCmdSign(cdc *codec.Codec) *cobra.Command {
 			}
 
 			// print
-			encodeflag := viper.GetBool(coretypes.FlagEncode)
+			encodeflag := viper.GetBool(evmtypes.FlagEncode)
 			if !encodeflag {
 				fmt.Printf("%s\n", res)
 			} else {
-				fmt.Printf("%s\n", coretypes.Encode_Hex(res))
+				fmt.Printf("%s\n", evmtypes.Encode_Hex(res))
 			}
 			return nil
 		},
 	}
-	cmd.Flags().Bool(coretypes.FlagEncode, true, "encode enabled")
-	cmd.Flags().Bool(coretypes.FlagOffline, false, "offline disabled")
+	cmd.Flags().Bool(evmtypes.FlagEncode, true, "encode enabled")
+	cmd.Flags().Bool(evmtypes.FlagOffline, false, "offline disabled")
 	return client.PostCommands(cmd)[0]
 }
 

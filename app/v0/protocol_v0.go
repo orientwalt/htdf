@@ -14,7 +14,7 @@ import (
 	distr "github.com/orientwalt/htdf/x/distribution"
 	htdfservice "github.com/orientwalt/htdf/x/evm"
 	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/orientwalt/htdf/x/gov"
 	"github.com/orientwalt/htdf/x/guardian"
 	"github.com/orientwalt/htdf/x/mint"
@@ -139,7 +139,7 @@ func (p *ProtocolV0) configCodec() {
 func MakeLatestCodec() *codec.Codec {
 	var cdc = codec.New()
 	newevmtypes.RegisterCodec(cdc)
-	coretypes.RegisterCodec(cdc)
+	evmtypes.RegisterCodec(cdc)
 	params.RegisterCodec(cdc) // only used by querier
 	mint.RegisterCodec(cdc)   // only used by querier
 	// bank.RegisterCodec(cdc)
@@ -326,7 +326,7 @@ func (p *ProtocolV0) configRouters() {
 
 	p.queryRouter.
 		AddRoute(protocol.AccountRoute, auth.NewQuerier(p.accountMapper)).
-		AddRoute(RouterKey, coretypes.NewQuerier(p.accountMapper, protocol.KeyStorage, protocol.KeyCode)).
+		AddRoute(RouterKey, evmtypes.NewQuerier(p.accountMapper, protocol.KeyStorage, protocol.KeyCode)).
 		AddRoute(protocol.GovRoute, gov.NewQuerier(p.govKeeper)).
 		AddRoute(protocol.StakeRoute, stake.NewQuerier(p.StakeKeeper, p.cdc)).
 		AddRoute(protocol.DistrRoute, distr.NewQuerier(p.distrKeeper)).

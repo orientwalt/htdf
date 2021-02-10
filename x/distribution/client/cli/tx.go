@@ -16,7 +16,7 @@ import (
 
 	"github.com/orientwalt/htdf/x/distribution/client/common"
 	"github.com/orientwalt/htdf/x/distribution/types"
-	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
+	evmcli "github.com/orientwalt/htdf/x/evm/client/cli"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,7 +72,7 @@ $ hscli tx distr withdraw-rewards htdf1keyvaa4u5rcjwq3gncvct4hrmq553fpkremp5v ht
 			}
 			str, err := cliCtx.Codec.MarshalJSON(msgs)
 			log.Infoln(string(str))
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, msgs, delAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, msgs, delAddr)
 		},
 	}
 	cmd.Flags().Bool(flagComission, false, "also withdraw validator's commission")
@@ -104,7 +104,7 @@ $ hscli tx distr withdraw-all-rewards htdf1keyvaa4u5rcjwq3gncvct4hrmq553fpkremp5
 				return err
 			}
 
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, msgs, delAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, msgs, delAddr)
 		},
 	}
 }
@@ -135,7 +135,7 @@ $ hscli tx set-withdraw-addr htdf1keyvaa4u5rcjwq3gncvct4hrmq553fpkremp5v htdf14p
 			}
 
 			msg := types.NewMsgSetWithdrawAddress(delAddr, withdrawAddr)
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
 		},
 	}
 	return cmd

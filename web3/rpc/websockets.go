@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/libs/log"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	evmtypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -327,7 +327,7 @@ func (api *pubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 	}
 	api.filtersMu.Unlock()
 
-	go func(headersCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+	go func(headersCh <-chan evmtypes.ResultEvent, errCh <-chan error) {
 		for {
 			select {
 			case event := <-headersCh:
@@ -432,7 +432,7 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 	}
 	api.filtersMu.Unlock()
 
-	go func(ch <-chan coretypes.ResultEvent, errCh <-chan error) {
+	go func(ch <-chan evmtypes.ResultEvent, errCh <-chan error) {
 		for {
 			select {
 			case event := <-ch:
@@ -499,7 +499,7 @@ func (api *pubSubAPI) subscribePendingTransactions(conn *websocket.Conn) (rpc.ID
 	}
 	api.filtersMu.Unlock()
 
-	go func(txsCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+	go func(txsCh <-chan evmtypes.ResultEvent, errCh <-chan error) {
 		for {
 			select {
 			case ev := <-txsCh:

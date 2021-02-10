@@ -4,7 +4,7 @@ import (
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/codec"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ func GetCmdBroadCast(cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// load sign tx from string
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			stdTx, err := coretypes.ReadStdTxFromRawData(cliCtx.Codec, args[0])
+			stdTx, err := evmtypes.ReadStdTxFromRawData(cliCtx.Codec, args[0])
 			if err != nil {
 				return err
 			}

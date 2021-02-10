@@ -16,7 +16,7 @@ import (
 
 	"github.com/orientwalt/htdf/x/auth"
 	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 )
 
@@ -168,7 +168,7 @@ func GetAccountTxsFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFu
 						//fmt.Printf("msg|route=%s|type=%s\n", msg.Route(), msg.Type())
 
 						switch msg := msg.(type) {
-						case coretypes.MsgSend:
+						case evmtypes.MsgSend:
 							//fmt.Printf("msg|from=%s|to=%s\n", msg.From, msg.To)
 
 							if (accountTxsReq.Flag == 0 && (msg.From.String() == accountTxsReq.Address || msg.To.String() == accountTxsReq.Address)) ||

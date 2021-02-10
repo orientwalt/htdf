@@ -11,7 +11,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
+	evmcli "github.com/orientwalt/htdf/x/evm/client/cli"
 	"github.com/orientwalt/htdf/x/staking"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -41,7 +41,7 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, validatorAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, validatorAddr)
 		},
 	}
 
@@ -108,7 +108,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 			msg := staking.NewMsgEditValidator(sdk.ValAddress(validatorAddr), description, newRate, newMinSelfDelegation)
 
 			// build and sign the transaction, then broadcast to Tendermint
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, validatorAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, validatorAddr)
 		},
 	}
 
@@ -151,7 +151,7 @@ $ hscli tx staking delegate htdf1020jcyjpqwph4q5ye2ymt8l35um4zdrktz5rnz \
 			}
 
 			msg := staking.NewMsgDelegate(delAddr, valAddr, amount)
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
 		},
 	}
 }
@@ -193,7 +193,7 @@ $ hscli tx staking redelegate htdf1020jcyjpqwph4q5ye2ymt8l35um4zdrktz5rnz \
 			}
 
 			msg := staking.NewMsgBeginRedelegate(delAddr, valSrcAddr, valDstAddr, amount)
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
 		},
 	}
 }
@@ -228,7 +228,7 @@ $ hscli tx staking unbond htdf1020jcyjpqwph4q5ye2ymt8l35um4zdrktz5rnz \
 			}
 
 			msg := staking.NewMsgUndelegate(delAddr, valAddr, amount)
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, delAddr)
 		},
 	}
 }
@@ -264,7 +264,7 @@ $ hscli tx staking uds
 			delegatorStatus := viper.GetBool(flagDelegatorStatus)
 
 			msg := staking.NewMsgSetUndelegateStatus(delAddr, valAddr, delegatorStatus)
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, manaAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, manaAddr)
 		},
 	}
 

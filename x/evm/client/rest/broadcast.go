@@ -8,7 +8,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/x/auth"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 type broadcastBody struct {
@@ -51,7 +51,7 @@ func BroadcastTxRawRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext)
 			return
 		}
 
-		stdTx, err := coretypes.ReadStdTxFromRawData(cliCtx.Codec, req.Tx)
+		stdTx, err := evmtypes.ReadStdTxFromRawData(cliCtx.Codec, req.Tx)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return

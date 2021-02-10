@@ -6,7 +6,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
+	evmcli "github.com/orientwalt/htdf/x/evm/client/cli"
 	slashingtypes "github.com/orientwalt/htdf/x/slashing/types"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +30,7 @@ $ hscli tx slashing unjail [keyaddr]
 			}
 
 			msg := slashingtypes.NewMsgUnjail(sdk.ValAddress(validatorAddr))
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, validatorAddr)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, validatorAddr)
 		},
 	}
 }

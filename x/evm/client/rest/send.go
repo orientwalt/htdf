@@ -15,8 +15,8 @@ import (
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmcli "github.com/orientwalt/htdf/x/evm/client/cli"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 // SendReq defines the properties of a send request's body.
@@ -104,7 +104,7 @@ func SendTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.Ha
 
 		fmt.Printf("gasPrice=%d|gasWanted=%d\n", gasPrice, gasWanted)
 
-		msg := coretypes.NewMsgSendForData(fromAddr, toAddr, unit_convert.BigCoinsToDefaultCoins(mreq.Amount), req.Data, gasPrice, gasWanted)
+		msg := evmtypes.NewMsgSendForData(fromAddr, toAddr, unit_convert.BigCoinsToDefaultCoins(mreq.Amount), req.Data, gasPrice, gasWanted)
 		CompleteAndBroadcastTxREST(w, cliCtx, req.BaseReq, mreq.BaseReq.Password, []sdk.Msg{msg}, cdc)
 
 	}
@@ -146,9 +146,9 @@ func CompleteAndBroadcastTxREST(w http.ResponseWriter, cliCtx context.CLIContext
 	)
 
 	// get fromaddr
-	fromaddr := msgs[0].(coretypes.MsgSend).GetSigners()[0]
+	fromaddr := msgs[0].(evmtypes.MsgSend).GetSigners()[0]
 
-	txBldr, err = hscorecli.PrepareTxBuilder(txBldr, cliCtx, fromaddr)
+	txBldr, err = evmcli.PrepareTxBuilder(txBldr, cliCtx, fromaddr)
 	if err != nil {
 		rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return

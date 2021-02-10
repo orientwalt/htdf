@@ -32,7 +32,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
+	evmcli "github.com/orientwalt/htdf/x/evm/client/cli"
 	"github.com/orientwalt/htdf/x/staking/client/cli"
 	hstakingcli "github.com/orientwalt/htdf/x/staking/client/cli"
 )
@@ -131,7 +131,7 @@ following delegation and commission default parameters:
 			// write the unsigned transaction to the buffer
 			w := bytes.NewBuffer([]byte{})
 			cliCtx = cliCtx.WithOutput(w)
-			if err = hscorecli.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false); err != nil {
+			if err = evmcli.PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, false); err != nil {
 				return err
 			}
 

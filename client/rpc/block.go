@@ -19,7 +19,7 @@ import (
 	sdkRest "github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	"github.com/orientwalt/htdf/x/auth"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
@@ -273,7 +273,7 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 				for _, msg := range currTx.GetMsgs() {
 					//fmt.Printf("msg|route=%s|type=%s\n", msg.Route(), msg.Type())
 					switch msg := msg.(type) {
-					case coretypes.MsgSend:
+					case evmtypes.MsgSend:
 
 						displayTx.From = msg.From.String()
 						displayTx.To = msg.To.String()
@@ -408,7 +408,7 @@ func GetTxFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
 		// 	for _, msg := range currTx.GetMsgs() {
 		// 		//fmt.Printf("msg|route=%s|type=%s\n", msg.Route(), msg.Type())
 		// 		switch msg := msg.(type) {
-		// 		case coretypes.MsgSend:
+		// 		case evmtypes.MsgSend:
 		// 			displayTx.From = msg.From
 		// 			displayTx.To = msg.To
 		// 			displayTx.Amount = unit_convert.DefaultCoinsToBigCoins(msg.Amount)

@@ -18,7 +18,7 @@ import (
 
 	govClientUtils "github.com/orientwalt/htdf/x/gov/client/utils"
 
-	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
+	evmcli "github.com/orientwalt/htdf/x/evm/client/cli"
 	"github.com/spf13/viper"
 )
 
@@ -123,9 +123,9 @@ $ hscli gov submit-proposal --title="Test Proposal" --description="My awesome pr
 				if err != nil {
 					return err
 				}
-				return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
+				return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
 			}
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
 		},
 	}
 
@@ -203,7 +203,7 @@ $ hscli tx gov deposit htdf1tq7zajghkxct4al0yf44ua9rjwnw06vdusflk4 1 10stake
 				return err
 			}
 
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
 		},
 	}
 }
@@ -253,7 +253,7 @@ $ hscli tx gov vote htdf1tq7zajghkxct4al0yf44ua9rjwnw06vdusflk4 1 yes --from myk
 				return err
 			}
 
-			return hscorecli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
+			return evmcli.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg}, from)
 		},
 	}
 }

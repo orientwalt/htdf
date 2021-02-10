@@ -7,7 +7,7 @@ import (
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -28,11 +28,11 @@ func GetCmdCall(cdc *codec.Codec) *cobra.Command {
 			}
 			callcode := args[1]
 			//
-			bz, err := cliCtx.Codec.MarshalJSON(coretypes.NewQueryContractParams(contractaddr, callcode))
+			bz, err := cliCtx.Codec.MarshalJSON(evmtypes.NewQueryContractParams(contractaddr, callcode))
 			if err != nil {
 				return err
 			}
-			route := fmt.Sprintf("custom/%s/%s", coretypes.QuerierRoute, coretypes.QueryContract)
+			route := fmt.Sprintf("custom/%s/%s", evmtypes.QuerierRoute, evmtypes.QueryContract)
 			res, err := cliCtx.QueryWithData(route, bz)
 			if err != nil {
 				return err

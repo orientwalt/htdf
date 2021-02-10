@@ -9,7 +9,7 @@ import (
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +57,7 @@ func GetCmdBurn(cdc *codec.Codec) *cobra.Command {
 
 			gas := txBldr.GasWanted()
 			fmt.Println("GetCmdBurn:txBldr.GasPrices():", txBldr.GasPrice())
-			msg := coretypes.NewMsgSend(burnaddr, blackholeaddr, coins, txBldr.GasPrice(), gas)
+			msg := evmtypes.NewMsgSend(burnaddr, blackholeaddr, coins, txBldr.GasPrice(), gas)
 
 			cliCtx.PrintResponse = true
 

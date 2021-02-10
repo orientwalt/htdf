@@ -12,8 +12,8 @@ import (
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/x/auth"
 	authtxb "github.com/orientwalt/htdf/x/auth/client/txbuilder"
-	hscorecli "github.com/orientwalt/htdf/x/evm/client/cli"
-	coretypes "github.com/orientwalt/htdf/x/evm/types"
+	evmcli "github.com/orientwalt/htdf/x/evm/client/cli"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 // SignBody defines the properties of a sign request's body.
@@ -100,7 +100,7 @@ func SignTxRawRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http
 		}
 
 		// load sign tx from string
-		stdTx, err := coretypes.ReadStdTxFromRawData(cliCtx.Codec, req.Tx)
+		stdTx, err := evmtypes.ReadStdTxFromRawData(cliCtx.Codec, req.Tx)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "transaction decode failed")
 			return
@@ -113,7 +113,7 @@ func SignTxRawRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http
 		}
 
 		// sign
-		res, err := hscorecli.SignTransaction(authtxb.NewTxBuilderFromCLI(), cliCtx, stdTx, req.Passphrase, req.Offline)
+		res, err := evmcli.SignTransaction(authtxb.NewTxBuilderFromCLI(), cliCtx, stdTx, req.Passphrase, req.Offline)
 		if err != nil {
 			return
 		}
@@ -122,7 +122,7 @@ func SignTxRawRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http
 		if !req.Encode {
 			w.Write(res)
 		} else {
-			w.Write([]byte(coretypes.Encode_Hex(res)))
+			w.Write([]byte(evmtypes.Encode_Hex(res)))
 		}
 	}
 }

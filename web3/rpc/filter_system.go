@@ -8,7 +8,7 @@ import (
 
 	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	coretypes "github.com/tendermint/tendermint/rpc/core/types"
+	evmtypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -51,12 +51,12 @@ type EventSystem struct {
 	uninstall chan *Subscription // remove filter for event notification
 
 	// Unidirectional channels to receive Tendermint ResultEvents
-	txsCh         <-chan coretypes.ResultEvent // Channel to receive new pending transactions event
-	logsCh        <-chan coretypes.ResultEvent // Channel to receive new log event
-	pendingLogsCh <-chan coretypes.ResultEvent // Channel to receive new pending log event
-	// rmLogsCh      <-chan coretypes.ResultEvent // Channel to receive removed log event
+	txsCh         <-chan evmtypes.ResultEvent // Channel to receive new pending transactions event
+	logsCh        <-chan evmtypes.ResultEvent // Channel to receive new log event
+	pendingLogsCh <-chan evmtypes.ResultEvent // Channel to receive new pending log event
+	// rmLogsCh      <-chan evmtypes.ResultEvent // Channel to receive removed log event
 
-	chainCh <-chan coretypes.ResultEvent // Channel to receive new chain event
+	chainCh <-chan evmtypes.ResultEvent // Channel to receive new chain event
 }
 
 // NewEventSystem creates a new manager that listens for event on the given mux,
@@ -78,11 +78,11 @@ func NewEventSystem(client rpcclient.Client) *EventSystem {
 		index:         index,
 		install:       make(chan *Subscription),
 		uninstall:     make(chan *Subscription),
-		txsCh:         make(<-chan coretypes.ResultEvent),
-		logsCh:        make(<-chan coretypes.ResultEvent),
-		pendingLogsCh: make(<-chan coretypes.ResultEvent),
-		// rmLogsCh:      make(<-chan coretypes.ResultEvent),
-		chainCh: make(<-chan coretypes.ResultEvent),
+		txsCh:         make(<-chan evmtypes.ResultEvent),
+		logsCh:        make(<-chan evmtypes.ResultEvent),
+		pendingLogsCh: make(<-chan evmtypes.ResultEvent),
+		// rmLogsCh:      make(<-chan evmtypes.ResultEvent),
+		chainCh: make(<-chan evmtypes.ResultEvent),
 	}
 
 	go es.eventLoop()
@@ -104,7 +104,7 @@ func (es *EventSystem) subscribe(sub *Subscription) (*Subscription, context.Canc
 	var (
 		err      error
 		cancelFn context.CancelFunc
-		eventCh  <-chan coretypes.ResultEvent
+		eventCh  <-chan evmtypes.ResultEvent
 	)
 
 	es.ctx, cancelFn = context.WithTimeout(context.Background(), deadline)
@@ -251,7 +251,7 @@ func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, 
 
 type filterIndex map[filters.Type]map[rpc.ID]*Subscription
 
-func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
+func (es *EventSystem) handleLogs(ev evmtypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
 	resultData, err := evmtypes.DecodeResultData(data.TxResult.Result.Data)
 	if err != nil {
@@ -269,14 +269,14 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 	}
 }
 
-func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
+func (es *EventSystem) handleTxsEvent(ev evmtypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
 	for _, f := range es.index[filters.PendingTransactionsSubscription] {
 		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash())}
 	}
 }
 
-func (es *EventSystem) handleChainEvent(ev coretypes.ResultEvent) {
+func (es *EventSystem) handleChainEvent(ev evmtypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataNewBlockHeader)
 	for _, f := range es.index[filters.BlocksSubscription] {
 		f.headers <- EthHeaderFromTendermint(data.Header)
@@ -389,7 +389,7 @@ type Subscription struct {
 	hashes    chan []common.Hash
 	headers   chan *ethtypes.Header
 	installed chan struct{} // closed when the filter is installed
-	eventCh   <-chan coretypes.ResultEvent
+	eventCh   <-chan evmtypes.ResultEvent
 	err       chan error
 }
 
