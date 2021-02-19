@@ -14,6 +14,8 @@ import (
 	"github.com/orientwalt/htdf/client/lcd"
 	"github.com/orientwalt/htdf/client/rpc"
 	"github.com/orientwalt/htdf/client/tx"
+
+	web3 "github.com/orientwalt/htdf/web3/rpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
@@ -102,6 +104,7 @@ func main() {
 		client.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc, mc), // check the below
 		txCmd(cdc, mc),    // check the below
+		web3.EmintServeCmd(cdc),
 		versionCmd(cdc, mc),
 		client.LineBreak,
 		lcd.ServeCommand(cdc, registerRoutes),

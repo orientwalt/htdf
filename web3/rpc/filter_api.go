@@ -298,8 +298,9 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 				// filter only events from EVM module txs
 				_, isMsgEthermint := event.Events[evmtypes.TypeMsgEthermint]
 				_, isMsgEthereumTx := event.Events[evmtypes.TypeMsgEthereumTx]
+				_, isMsgSend := event.Events[evmtypes.TypeMsgSend]
 
-				if !(isMsgEthermint || isMsgEthereumTx) {
+				if !(isMsgEthermint || isMsgEthereumTx || isMsgSend) {
 					// ignore transaction as it's not from the evm module
 					return
 				}

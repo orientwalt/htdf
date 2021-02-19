@@ -123,7 +123,7 @@ func NewStateTransition(ctx sdk.Context, msg MsgSend) *StateTransition {
 		ContractCreation: true,
 		ContractAddress:  nil,
 		sender:           sdk.ToEthAddress(msg.From),
-		amount:           big.NewInt(0),
+		amount:           msg.Amount.AmountOf(sdk.DefaultDenom).BigInt(),
 		gasLimit:         msg.GasWanted,
 		gasPrice:         big.NewInt(int64(msg.GasPrice)),
 		GasUsed:          0,
@@ -134,10 +134,6 @@ func NewStateTransition(ctx sdk.Context, msg MsgSend) *StateTransition {
 		to = common.BytesToAddress(msg.To.Bytes())
 		st.recipient = &to
 		st.ContractCreation = false
-	}
-
-	if st.ContractCreation {
-		st.amount = msg.Amount.AmountOf(sdk.DefaultDenom).BigInt()
 	}
 
 	payload, err := hex.DecodeString(msg.Data)
