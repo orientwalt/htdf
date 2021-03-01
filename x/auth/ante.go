@@ -61,7 +61,7 @@ func logger() *logrus.Entry {
 }
 
 // Check if EVM Tx exists
-func ExistsMsgSend(tx sdk.Tx) bool {
+func ExistsMsgEthereumTx(tx sdk.Tx) bool {
 	for _, msg := range tx.GetMsgs() {
 		if msg.Route() == "htdfservice" {
 			return true
@@ -160,7 +160,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 		// this is enabled again in order to handle non-htdfservice txs.
 		// junying-todo, 2019-11-13
 		// GasMetering Disabled, Now Constant Gas used for Staking Txs
-		if !ExistsMsgSend(tx) {
+		if !ExistsMsgEthereumTx(tx) {
 			newCtx.GasMeter().UseGas(sdk.Gas(txparam.DefaultMsgGas*uint64(len(stdTx.Msgs))), "AnteHandler")
 		}
 
@@ -182,7 +182,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 
 		// junying-todo, 2019-11-19
 		// Deduct(DefaultMsgGas * len(Msgs)) for non-htdfservice msgs
-		if !stdTx.Fee.Amount().IsZero() && !ExistsMsgSend(tx) {
+		if !stdTx.Fee.Amount().IsZero() && !ExistsMsgEthereumTx(tx) {
 			estimatedFee := EstimateFee(stdTx)
 			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], estimatedFee)
 			if !res.IsOK() {

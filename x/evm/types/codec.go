@@ -8,7 +8,7 @@ var ModuleCdc = codec.New()
 
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(MsgSend{}, "htdfservice/send", nil)
+	cdc.RegisterConcrete(MsgEthereumTx{}, "htdfservice/send", nil)
 	// cdc.RegisterConcrete(MsgEthereumTx{}, "ethermint/MsgEthereumTx", nil)
 	// cdc.RegisterConcrete(MsgEthermint{}, "ethermint/MsgEthermint", nil)
 	// cdc.RegisterConcrete(TxData{}, "ethermint/TxData", nil)
@@ -17,7 +17,7 @@ func RegisterCodec(cdc *codec.Codec) {
 
 // Evm module events
 const (
-	EventTypeMsgSend = TypeMsgSend
+	EventTypeMsgEthereumTx = TypeMsgEthereumTx
 
 	AttributeKeyContractAddress = "contract"
 	AttributeKeyRecipient       = "recipient"

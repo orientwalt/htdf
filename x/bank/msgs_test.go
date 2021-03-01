@@ -86,7 +86,7 @@ func TestOutputValidation(t *testing.T) {
 
 /*
 // what to do w/ this test?
-func TestMsgSendSigners(t *testing.T) {
+func TestMsgEthereumTxSigners(t *testing.T) {
 	signers := []sdk.AccAddress{
 		{1, 2, 3},
 		{4, 5, 6},
@@ -98,7 +98,7 @@ func TestMsgSendSigners(t *testing.T) {
 	for i, signer := range signers {
 		inputs[i] = NewInput(signer, someCoins)
 	}
-	tx := NewMsgSend(inputs, nil)
+	tx := NewMsgEthereumTx(inputs, nil)
 
 	require.Equal(t, signers, tx.Signers())
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/orientwalt/htdf/x/bank"
 	"github.com/orientwalt/htdf/x/crisis"
 	distr "github.com/orientwalt/htdf/x/distribution"
-	htdfservice "github.com/orientwalt/htdf/x/evm"
+	"github.com/orientwalt/htdf/x/evm"
 	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
 	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/orientwalt/htdf/x/gov"
@@ -33,7 +33,6 @@ import (
 
 const (
 	//
-	RouterKey   = "htdfservice"
 	TxSizeLimit = 1200000 // tx size is limited to 1200000(bytes)
 )
 
@@ -66,6 +65,7 @@ type ProtocolV1 struct {
 	accountMapper       auth.AccountKeeper
 	feeCollectionKeeper auth.FeeCollectionKeeper
 	bankKeeper          bank.Keeper
+	evmKeeper           evm.Keeper
 	StakeKeeper         stake.Keeper
 	slashingKeeper      slashing.Keeper
 	mintKeeper          mint.Keeper
@@ -242,6 +242,13 @@ func (p *ProtocolV1) configKeepers() {
 		protocol.KeyFee,
 	)
 
+	p.evmKeeper = evm.NewKeeper(
+		p.cdc,
+		protocol.KeyEVM,
+		p.accountMapper,
+		p.bankKeeper,
+		p.feeCollectionKeeper)
+
 	stakeKeeper := stake.NewKeeper(
 		p.cdc,
 		protocol.KeyStake, protocol.TkeyStake,
@@ -314,7 +321,7 @@ func (p *ProtocolV1) configRouters() {
 	stake.RegisterInvariants(&p.crisisKeeper, p.StakeKeeper, p.feeCollectionKeeper, p.distrKeeper, p.accountMapper)
 
 	p.router.
-		AddRoute(RouterKey, htdfservice.NewHandler(p.accountMapper, p.feeCollectionKeeper, protocol.KeyStorage, protocol.KeyCode)).
+		AddRoute(protocol.EVMRoute, evm.NewHandler(p.evmKeeper)).
 		// AddRoute(protocol.BankRoute, bank.NewHandler(p.bankKeeper)).
 		AddRoute(protocol.StakeRoute, stake.NewHandler(p.StakeKeeper)).
 		AddRoute(protocol.SlashingRoute, slashing.NewHandler(p.slashingKeeper)).
@@ -326,7 +333,7 @@ func (p *ProtocolV1) configRouters() {
 
 	p.queryRouter.
 		AddRoute(protocol.AccountRoute, auth.NewQuerier(p.accountMapper)).
-		AddRoute(RouterKey, evmtypes.NewQuerier(p.accountMapper, protocol.KeyStorage, protocol.KeyCode)).
+		AddRoute(protocol.EVMRoute, evmtypes.NewQuerier(p.accountMapper, protocol.KeyStorage, protocol.KeyCode)).
 		AddRoute(protocol.GovRoute, gov.NewQuerier(p.govKeeper)).
 		AddRoute(protocol.StakeRoute, stake.NewQuerier(p.StakeKeeper, p.cdc)).
 		AddRoute(protocol.DistrRoute, distr.NewQuerier(p.distrKeeper)).

@@ -44,8 +44,8 @@ var (
 	manyCoins = sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), sdk.NewInt64Coin("satoshi", 1)}
 	freeFee   = auth.NewStdFee(100000, 0)
 
-	sendMsg1 = evmtypes.NewMsgSendDefault(addr1, addr2, coins)
-	sendMsg2 = evmtypes.NewMsgSendDefault(addr1, addr2, manyCoins)
+	sendMsg1 = evmtypes.NewMsgEthereumTxDefault(addr1, addr2, coins)
+	sendMsg2 = evmtypes.NewMsgEthereumTxDefault(addr1, addr2, manyCoins)
 )
 
 // initialize the mock application for this module
@@ -55,7 +55,7 @@ func getMockApp(t *testing.T) *App {
 	return mapp
 }
 
-func TestMsgSendWithAccounts(t *testing.T) {
+func TestMsgEthereumTxWithAccounts(t *testing.T) {
 	mapp := getMockApp(t)
 	acc := &auth.BaseAccount{
 		Address: addr1,
@@ -110,7 +110,7 @@ func TestMsgSendWithAccounts(t *testing.T) {
 	SignCheckDeliver(t, mapp.BaseApp, []sdk.Msg{sendMsg1, sendMsg2}, []uint64{0}, []uint64{1}, true, true, priv1)
 }
 
-func TestMsgSendMultipleOut(t *testing.T) {
+func TestMsgEthereumTxMultipleOut(t *testing.T) {
 	mapp := getMockApp(t)
 
 	acc1 := &auth.BaseAccount{
@@ -148,7 +148,7 @@ func TestMsgSendMultipleOut(t *testing.T) {
 	}
 }
 
-func TestMsgSendDependent(t *testing.T) {
+func TestMsgEthereumTxDependent(t *testing.T) {
 	mapp := getMockApp(t)
 
 	acc1 := &auth.BaseAccount{

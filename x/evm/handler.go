@@ -1,4 +1,4 @@
-package htdfservice
+package evm
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/auth"
 	"github.com/orientwalt/htdf/x/evm/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -44,17 +44,14 @@ func logger() *log.Entry {
 
 // New HTDF Message Handler
 // connected to handler.go
-// HandleMsgSend, HandleMsgAdd upgraded to EVM version
+// HandleMsgEthereumTx, HandleMsgAdd upgraded to EVM version
 // commented by junying, 2019-08-21
-func NewHandler(accountKeeper auth.AccountKeeper,
-	feeCollectionKeeper auth.FeeCollectionKeeper,
-	keyStorage *sdk.KVStoreKey,
-	keyCode *sdk.KVStoreKey) sdk.Handler {
+func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
-		case types.MsgSend:
-			return HandleMsgSend(ctx, accountKeeper, feeCollectionKeeper, keyStorage, keyCode, msg)
+		case types.MsgEthereumTx:
+			return HandleMsgEthereumTx(ctx, k, msg)
 		default:
 			return HandleUnknownMsg(msg)
 		}
@@ -71,19 +68,27 @@ func HandleUnknownMsg(msg sdk.Msg) sdk.Result {
 }
 
 // junying-todo, 2019-08-26
-func HandleMsgSend(ctx sdk.Context,
-	accountKeeper auth.AccountKeeper,
-	feeCollectionKeeper auth.FeeCollectionKeeper,
-	keyStorage *sdk.KVStoreKey,
-	keyCode *sdk.KVStoreKey,
-	msg types.MsgSend) sdk.Result {
+func HandleMsgEthereumTx(ctx sdk.Context,
+	k Keeper,
+	msg types.MsgEthereumTx) sdk.Result {
 	// initialize
 	var sendTxResp types.SendTxResp
 
-	st := types.NewStateTransition(ctx, msg)
+	st, err := types.NewStateTransition(ctx, msg)
+	if st == nil {
+		return sdk.Result{Code: sdk.ErrCode_Parsing, Log: fmt.Sprintf("%s\n", err)}
+	}
 
-	evmResult, err := st.TransitionDb(ctx, accountKeeper, feeCollectionKeeper)
-	// logger().Debugf("handler:evmResult[%v]\n", evmResult)
+	st.StateDB = k.CommitStateDB.WithContext(ctx)
+
+	logger().Debugf("handler:*st.TxHash[%s]\n", (*st.TxHash).String())
+	// Prepare db for logs
+	// TODO: block hash
+	k.CommitStateDB.Prepare(*st.TxHash, common.Hash{}, k.TxCount)
+	k.TxCount++
+
+	evmResult, err := st.TransitionDb(ctx, k.AccountKeeper, k.FeeCollectionKeeper)
+
 	if evmResult == nil {
 		sendTxResp.EvmOutput = fmt.Sprintf("%s\n", err)
 		if st.ContractCreation {
@@ -94,30 +99,52 @@ func HandleMsgSend(ctx sdk.Context,
 		return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed}
 	}
 
+	logger().Debugf("handler:evmResult.Log[%v]\n", evmResult.Logs)
+
+	// update block bloom filter
+	k.Bloom.Or(k.Bloom, evmResult.Bloom)
+
+	// update transaction logs in KVStore
+	// err = k.SetLogs(ctx, *st.TxHash, evmResult.Logs)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// log successful execution
+	k.Logger(ctx).Info(evmResult.Result.Log)
+	logger().Debugf("handler:evmResult.Log[%v]\n", evmResult.Logs)
+
+	// evmResult.Result.Code = sendTxResp.ErrCode
+
+	evmResult.Result.GasUsed = st.GasUsed
+	evmResult.Result.GasWanted = msg.GasWanted
+
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
-			types.EventTypeMsgSend,
+			types.EventTypeMsgEthereumTx,
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.String()),
 		),
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.From.String()),
+			sdk.NewAttribute(sdk.AttributeKeySender, st.GetSender().String()),
 		),
 	})
 
 	if msg.To != nil {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
-				types.EventTypeMsgSend,
-				sdk.NewAttribute(types.AttributeKeyRecipient, msg.To.String()),
+				types.EventTypeMsgEthereumTx,
+				sdk.NewAttribute(types.AttributeKeyRecipient, st.GetRecipeint().String()),
 			),
 		)
 	}
 	if st.ContractCreation {
 		sendTxResp.ContractAddress = sdk.ToAppAddress(*st.ContractAddress).String()
 	}
+	evmResult.Result.Log = sendTxResp.String()
 	evmResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
+
 	// set the events to the result
-	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed, Events: ctx.EventManager().Events().ToABCIEvents()}
+	return *evmResult.Result //sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed, Events: ctx.EventManager().Events().ToABCIEvents(), Data: evmResult.}
 }

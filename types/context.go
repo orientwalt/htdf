@@ -97,13 +97,17 @@ func (c Context) ConsensusParams() *abci.ConsensusParams {
 	return value.(*abci.ConsensusParams)
 }
 
-// create a new context
-func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
-	c := Context{
+func EmptyContext() Context {
+	return Context{
 		Context: context.Background(),
 		pst:     newThePast(),
 		gen:     0,
 	}
+}
+
+// create a new context
+func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
+	c := EmptyContext()
 	c = c.WithMultiStore(ms)
 	c = c.WithBlockHeader(header)
 	c = c.WithBlockHeight(header.Height)

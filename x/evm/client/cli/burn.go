@@ -57,7 +57,7 @@ func GetCmdBurn(cdc *codec.Codec) *cobra.Command {
 
 			gas := txBldr.GasWanted()
 			fmt.Println("GetCmdBurn:txBldr.GasPrices():", txBldr.GasPrice())
-			msg := evmtypes.NewMsgSend(burnaddr, blackholeaddr, coins, txBldr.GasPrice(), gas)
+			msg := evmtypes.NewMsgEthereumTx(burnaddr, blackholeaddr, coins, txBldr.GasPrice(), gas)
 
 			cliCtx.PrintResponse = true
 

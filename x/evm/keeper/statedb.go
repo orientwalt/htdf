@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	sdk "github.com/orientwalt/htdf/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -230,7 +231,7 @@ func (k *Keeper) CreateAccount(ctx sdk.Context, addr ethcmn.Address) {
 // UpdateAccounts calls CommitStateDB.UpdateAccounts using the passed in context
 // func (k *Keeper) UpdateAccounts(ctx sdk.Context) {
 // 	k.CommitStateDB.WithContext(ctx).UpdateAccounts()
-}
+// }
 
 // ClearStateObjects calls CommitStateDB.ClearStateObjects using the passed in context
 func (k *Keeper) ClearStateObjects(ctx sdk.Context) {
@@ -247,7 +248,7 @@ func (k *Keeper) Copy(ctx sdk.Context) ethvm.StateDB {
 // 	return k.CommitStateDB.WithContext(ctx).ForEachStorage(addr, cb)
 // }
 
-// // GetOrNewStateObject calls CommitStateDB.GetOrNetStateObject using the passed in context
-// func (k *Keeper) GetOrNewStateObject(ctx sdk.Context, addr ethcmn.Address) evmstate.stateObject {
-// 	return k.CommitStateDB.WithContext(ctx).GetOrNewStateObject(addr)
-// }
+// GetOrNewStateObject calls CommitStateDB.GetOrNetStateObject using the passed in context
+func (k *Keeper) GetOrNewStateObject(ctx sdk.Context, addr ethcmn.Address) *evmtypes.StateObject {
+	return (*evmtypes.StateObject)(k.CommitStateDB.WithContext(ctx).GetOrNewStateObject(addr))
+}

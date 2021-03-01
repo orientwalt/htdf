@@ -74,7 +74,7 @@ type MsgIBCTransfer struct {
 func (msg MsgIBCTransfer) Route() string { return "ibc" }
 func (msg MsgIBCTransfer) Type() string  { return "transfer" }
 
-// x/bank/tx.go MsgSend.GetSigners()
+// x/bank/tx.go MsgEthereumTx.GetSigners()
 func (msg MsgIBCTransfer) GetSigners() []sdk.AccAddress { return []sdk.AccAddress{msg.SrcAddr} }
 
 // get the sign bytes for ibc transfer message
@@ -104,7 +104,7 @@ func (msg MsgIBCReceive) Route() string            { return "ibc" }
 func (msg MsgIBCReceive) Type() string             { return "receive" }
 func (msg MsgIBCReceive) ValidateBasic() sdk.Error { return msg.IBCPacket.ValidateBasic() }
 
-// x/bank/tx.go MsgSend.GetSigners()
+// x/bank/tx.go MsgEthereumTx.GetSigners()
 func (msg MsgIBCReceive) GetSigners() []sdk.AccAddress { return []sdk.AccAddress{msg.Relayer} }
 
 // get the sign bytes for ibc receive message

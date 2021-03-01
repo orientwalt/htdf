@@ -3,7 +3,11 @@ package types
 import (
 	"fmt"
 	"math/big"
+	"os"
+	"runtime"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 
 	sdk "github.com/orientwalt/htdf/types"
@@ -16,7 +20,37 @@ import (
 
 	"github.com/orientwalt/htdf/store/prefix"
 	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := log.ParseLevel(lvl)
+	if err != nil {
+		ll = log.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	log.SetLevel(ll)
+	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
+}
+
+func logger() *log.Entry {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		panic("Could not get context info for logger!")
+	}
+
+	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
+	funcname := runtime.FuncForPC(pc).Name()
+	fn := funcname[strings.LastIndex(funcname, ".")+1:]
+	return log.WithField("file", filename).WithField("function", fn)
+}
 
 type revision struct {
 	id           int
@@ -166,15 +200,18 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
-	bz, err := MarshalLogs(logs)
-	if err != nil {
-		return err
-	}
-
-	store.Set(hash.Bytes(), bz)
-	csdb.logSize = uint(len(logs))
+	csdb.logs[csdb.thash] = logs
 	return nil
+
+	// store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
+	// bz, err := MarshalLogs(logs)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// store.Set(hash.Bytes(), bz)
+	// csdb.logSize = uint(len(logs))
+	// return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
@@ -191,8 +228,22 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	log.BlockHash = csdb.bhash
 	log.TxIndex = uint(csdb.txIndex)
 	log.Index = csdb.logSize
+
+	logger().Debugf("statedb(AddLog):csdb.thash[%s]\n", (csdb.thash).String())
+	logger().Debugf("statedb(AddLog):log[%v]\n", log)
+
 	csdb.logs[csdb.thash] = append(csdb.logs[csdb.thash], log)
 	csdb.logSize++
+	// logs, err := csdb.GetLogs(csdb.thash)
+	// if err != nil {
+	// 	// panic on unmarshal error
+	// 	panic(err)
+	// }
+
+	// if err = csdb.SetLogs(csdb.thash, append(logs, log)); err != nil {
+	// 	// panic on marshal error
+	// 	panic(err)
+	// }
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -321,14 +372,16 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
-	bz := store.Get(hash.Bytes())
-	if len(bz) == 0 {
-		// return nil error if logs are not found
-		return []*ethtypes.Log{}, nil
-	}
+	return csdb.logs[hash], nil
 
-	return UnmarshalLogs(bz)
+	// store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
+	// bz := store.Get(hash.Bytes())
+	// if len(bz) == 0 {
+	// 	// return nil error if logs are not found
+	// 	return []*ethtypes.Log{}, nil
+	// }
+
+	// return UnmarshalLogs(bz)
 }
 
 // Logs returns all the current logs in the state.

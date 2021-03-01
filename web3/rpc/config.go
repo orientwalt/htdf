@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	flagUnlockKey = "unlock-key"
+	// flagUnlockKey = "unlock-key"
 	flagWebsocket = "wsport"
 )
 
@@ -22,7 +22,7 @@ const (
 // Cosmos rest-server endpoints
 func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, registerRoutes)
-	cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
+	// cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
 	cmd.Flags().String(flagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().StringP(client.FlagBroadcastMode, "b", client.BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
 	return cmd
@@ -84,8 +84,8 @@ func registerRoutes(rs *lcd.RestServer) {
 
 	// start websockets server
 	websocketAddr := viper.GetString(flagWebsocket)
-	ws := newWebsocketsServer(rs.CliCtx, websocketAddr)
-	ws.start()
+	ws := NewWebsocketsServer(rs.CliCtx, websocketAddr)
+	ws.Start()
 }
 
 // func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) (emintKeys []secp256k1.PrivKeySecp256k1, err error) {

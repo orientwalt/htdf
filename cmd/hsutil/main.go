@@ -13,7 +13,7 @@ import (
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/codec"
 	sdk "github.com/orientwalt/htdf/types"
-	htdftypes "github.com/orientwalt/htdf/x/core/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/bech32"
@@ -153,7 +153,7 @@ func TestCmdHex2Json(cdc *codec.Codec) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
-			decoded, err := htdftypes.Decode_Hex(args[0])
+			decoded, err := evmtypes.Decode_Hex(args[0])
 			if err != nil {
 				fmt.Println("Not a valid hex string")
 				return err
@@ -174,7 +174,7 @@ func TestCmdJSON2Hex(cdc *codec.Codec) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
-			encoded := htdftypes.Encode_Hex([]byte(args[0]))
+			encoded := evmtypes.Encode_Hex([]byte(args[0]))
 			fmt.Fprintf(cliCtx.Output, "%s\n", encoded)
 			return nil
 		},

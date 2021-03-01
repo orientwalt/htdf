@@ -119,6 +119,10 @@ install: go.sum
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hsd
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hscli
 
+install.extra:
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hsutil
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/hsinfo
+
 go.sum: go.mod
 	@echo "--> Ensure dependencies have not been modified"
 	@go mod verify

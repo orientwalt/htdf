@@ -52,7 +52,7 @@ func GetCmdCreate(cdc *codec.Codec) *cobra.Command {
 
 			encodeflag := viper.GetBool(evmtypes.FlagEncode)
 
-			msg := evmtypes.NewMsgSendDefault(fromaddr, toaddr, coins)
+			msg := evmtypes.NewMsgEthereumTxDefault(fromaddr, toaddr, coins)
 
 			return PrintUnsignedStdTx(txBldr, cliCtx, []sdk.Msg{msg}, encodeflag)
 		},

@@ -60,7 +60,7 @@ func MakeTestCodec() *codec.Codec {
 
 	// Register Msgs
 	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
-	// cdc.RegisterConcrete(bank.MsgSend{}, "test/staking/Send", nil)
+	// cdc.RegisterConcrete(bank.MsgEthereumTx{}, "test/staking/Send", nil)
 	cdc.RegisterConcrete(types.MsgCreateValidator{}, "test/staking/CreateValidator", nil)
 	cdc.RegisterConcrete(types.MsgEditValidator{}, "test/staking/EditValidator", nil)
 	cdc.RegisterConcrete(types.MsgUndelegate{}, "test/staking/Undelegate", nil)

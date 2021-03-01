@@ -168,7 +168,7 @@ func GetAccountTxsFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerFu
 						//fmt.Printf("msg|route=%s|type=%s\n", msg.Route(), msg.Type())
 
 						switch msg := msg.(type) {
-						case evmtypes.MsgSend:
+						case evmtypes.MsgEthereumTx:
 							//fmt.Printf("msg|from=%s|to=%s\n", msg.From, msg.To)
 
 							if (accountTxsReq.Flag == 0 && (msg.From.String() == accountTxsReq.Address || msg.To.String() == accountTxsReq.Address)) ||

@@ -374,7 +374,7 @@ func (e *PublicEthAPI) SendTransaction(args params.SendTxArgs) (common.Hash, err
 
 // SendRawTransaction send a raw Ethereum transaction.
 func (e *PublicEthAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
-	tx := new(evmtypes.MsgSend)
+	tx := new(evmtypes.MsgEthereumTx)
 
 	// RLP decode raw transaction bytes
 	if err := rlp.DecodeBytes(data, tx); err != nil {
@@ -505,7 +505,7 @@ func (e *PublicEthAPI) doCall(
 	}
 
 	// Create new call message
-	msg := evmtypes.NewMsgSendForData(fromAddr, toAddr, sdk.NewCoins(sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(value))), hex.Dump(data),
+	msg := evmtypes.NewMsgEthereumTxForData(fromAddr, toAddr, sdk.NewCoins(sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(value))), hex.Dump(data),
 		gasPrice, gas)
 
 	// Generate tx to be used to simulate (signature isn't needed)
@@ -574,6 +574,9 @@ func formatBlock(
 		"miner":            common.Address{},
 		"difficulty":       nil,
 		"totalDifficulty":  nil,
+		"proposer":         header.ProposerAddress.Bytes(),       // junying-todo
+		"validatorhash":    hexutil.Bytes(header.ValidatorsHash), // junying-todo
+		"chainid":          []byte(header.ChainID),               // junying-todo
 		"extraData":        hexutil.Uint64(0),
 		"size":             hexutil.Uint64(size),
 		"gasLimit":         hexutil.Uint64(gasLimit), // Static gas limit
@@ -625,23 +628,23 @@ type Transaction struct {
 	// S                *hexutil.Big    `json:"s"`
 }
 
-func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgSend, error) {
+func bytesToEthTx(cliCtx context.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
 	var stdTx sdk.Tx
 	err := cliCtx.Codec.UnmarshalBinaryBare(bz, &stdTx)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	ethTx, ok := stdTx.(evmtypes.MsgSend)
+	ethTx, ok := stdTx.(evmtypes.MsgEthereumTx)
 	if !ok {
-		return nil, fmt.Errorf("invalid transaction type %T, expected MsgSend", stdTx)
+		return nil, fmt.Errorf("invalid transaction type %T, expected MsgEthereumTx", stdTx)
 	}
 	return &ethTx, nil
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
-func newRPCTransaction(tx evmtypes.MsgSend, txHash, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
+func newRPCTransaction(tx evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, blockNumber *uint64, index uint64) (*Transaction, error) {
 	// Verify signature and retrieve sender address
 	// from, err := tx.VerifySig(tx.ChainID())
 	// if err != nil {
@@ -917,7 +920,7 @@ func (e *PublicEthAPI) GetProof(address common.Address, storageKeys []string, bl
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
-func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgSend, error) {
+func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgEthereumTx, error) {
 	var (
 		nonce    uint64
 		gasLimit uint64
@@ -993,7 +996,7 @@ func (e *PublicEthAPI) generateFromArgs(args params.SendTxArgs) (*evmtypes.MsgSe
 	toaddr := sdk.AccAddress(args.To.Bytes())
 	value := sdk.Coins{}
 	data := string(input)
-	msg := evmtypes.NewMsgSendForData(fromaddr, toaddr, value, data, gasLimit, htdfparams.DefaultMinGasPrice) //nonce, args.To, amount, gasLimit, gasPrice, input)
+	msg := evmtypes.NewMsgEthereumTxForData(fromaddr, toaddr, value, data, gasLimit, htdfparams.DefaultMinGasPrice) //nonce, args.To, amount, gasLimit, gasPrice, input)
 
 	return &msg, nil
 }

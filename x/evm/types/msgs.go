@@ -13,18 +13,16 @@ import (
 )
 
 const (
-	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
-	TypeMsgSend = "send"
-	// TypeMsgEthereumTx defines the type string of an Ethereum tranasction
+	// TypeMsgEthereumTx defines the type string of an Ethereum transaction
 	TypeMsgEthereumTx = "ethereum"
 	// TypeMsgEthermint defines the type string of Ethermint message
 	TypeMsgEthermint = "ethermint"
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MsgSend defines a SendFrom message /////////////////////////////////////////////////////////////////////
+// MsgEthereumTx defines a SendFrom message /////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-type MsgSend struct {
+type MsgEthereumTx struct {
 	From      sdk.AccAddress
 	To        sdk.AccAddress
 	Amount    sdk.Coins
@@ -33,13 +31,13 @@ type MsgSend struct {
 	GasWanted uint64 //unit,  gallon
 }
 
-var _ sdk.Msg = MsgSend{}
+var _ sdk.Msg = MsgEthereumTx{}
 
-// NewMsgSend is a constructor function for MsgSend
+// NewMsgEthereumTx is a constructor function for MsgEthereumTx
 // Normal Transaction
 // Default GasWanted, Default GasPrice
-func NewMsgSendDefault(fromaddr sdk.AccAddress, toaddr sdk.AccAddress, amount sdk.Coins) MsgSend {
-	return MsgSend{
+func NewMsgEthereumTxDefault(fromaddr sdk.AccAddress, toaddr sdk.AccAddress, amount sdk.Coins) MsgEthereumTx {
+	return MsgEthereumTx{
 		From:      fromaddr,
 		To:        toaddr,
 		Amount:    amount,
@@ -50,8 +48,8 @@ func NewMsgSendDefault(fromaddr sdk.AccAddress, toaddr sdk.AccAddress, amount sd
 
 // Normal Transaction
 // Default GasWanted, Customized GasPrice
-func NewMsgSend(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, gasPrice, gasWanted uint64) MsgSend {
-	return MsgSend{
+func NewMsgEthereumTx(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, gasPrice, gasWanted uint64) MsgEthereumTx {
+	return MsgEthereumTx{
 		From:      fromaddr,
 		To:        toaddr,
 		Amount:    amount,
@@ -61,8 +59,8 @@ func NewMsgSend(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, gasPrice, gas
 }
 
 // Contract Transaction
-func NewMsgSendForData(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, data string, gasPrice, gasWanted uint64) MsgSend {
-	return MsgSend{
+func NewMsgEthereumTxForData(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, data string, gasPrice, gasWanted uint64) MsgEthereumTx {
+	return MsgEthereumTx{
 		From:      fromaddr,
 		To:        toaddr,
 		Amount:    amount,
@@ -73,13 +71,13 @@ func NewMsgSendForData(fromaddr, toaddr sdk.AccAddress, amount sdk.Coins, data s
 }
 
 // Route should return the name of the module
-func (msg MsgSend) Route() string { return "htdfservice" }
+func (msg MsgEthereumTx) Route() string { return "htdfservice" }
 
 // Type should return the action
-func (msg MsgSend) Type() string { return TypeMsgSend }
+func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSend) ValidateBasic() sdk.Error {
+func (msg MsgEthereumTx) ValidateBasic() sdk.Error {
 	if msg.From.Empty() {
 		return sdk.ErrInvalidAddress(msg.From.String())
 	}
@@ -123,7 +121,7 @@ func (msg MsgSend) ValidateBasic() sdk.Error {
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgSend) GetSignBytes() []byte {
+func (msg MsgEthereumTx) GetSignBytes() []byte {
 	b, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
@@ -132,40 +130,40 @@ func (msg MsgSend) GetSignBytes() []byte {
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgSend) GetSigners() []sdk.AccAddress {
+func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.From}
 }
 
 // GetStringAddr defines whose fromaddr is required
-// func (msg MsgSend) GetFromAddrStr() string {
+// func (msg MsgEthereumTx) GetFromAddrStr() string {
 // 	return sdk.AccAddress.String(msg.From)
 // }
 
 //
-func (msg MsgSend) FromAddress() common.Address {
+func (msg MsgEthereumTx) FromAddress() common.Address {
 	return sdk.ToEthAddress(msg.From)
 }
 
-func (msg MsgSend) ToAddress() common.Address {
+func (msg MsgEthereumTx) ToAddress() common.Address {
 	return sdk.ToEthAddress(msg.To)
 }
 
 // junying-todo, 2019-11-06
-func (msg MsgSend) GetData() string {
+func (msg MsgEthereumTx) GetData() string {
 	return msg.Data
 }
 
-// GetMsgs returns a single MsgSend as an sdk.Msg.
-func (msg MsgSend) GetMsgs() []sdk.Msg {
+// GetMsgs returns a single MsgEthereumTx as an sdk.Msg.
+func (msg MsgEthereumTx) GetMsgs() []sdk.Msg {
 	return []sdk.Msg{msg}
 }
 
 // Fee returns gasprice * gaslimit.
-func (msg MsgSend) Fee() *big.Int {
+func (msg MsgEthereumTx) Fee() *big.Int {
 	return new(big.Int).SetUint64(msg.GasWanted * msg.GasPrice)
 }
 
-// func (msg *MsgSend) ChainID() *big.Int {
+// func (msg *MsgEthereumTx) ChainID() *big.Int {
 // 	return deriveChainID(msg.Data.V)
 // }
 

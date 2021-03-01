@@ -60,7 +60,7 @@ func GetCmdSend(cdc *codec.Codec) *cobra.Command {
 
 			gas := txBldr.GasWanted()
 			fmt.Println("GetCmdSend:txBldr.GasPrices():", txBldr.GasPrice())
-			msg := evmtypes.NewMsgSend(fromaddr, toaddr, coins, txBldr.GasPrice(), gas)
+			msg := evmtypes.NewMsgEthereumTx(fromaddr, toaddr, coins, txBldr.GasPrice(), gas)
 
 			cliCtx.PrintResponse = true
 

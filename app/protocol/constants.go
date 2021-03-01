@@ -5,7 +5,8 @@ import sdk "github.com/orientwalt/htdf/types"
 const (
 	// all store name
 	AccountStore         = "acc"
-	CoreStore            = "hs"
+	BankStore            = "bank"
+	EVMStore             = "htdfservice"
 	StakeStore           = "staking"
 	StakeTransientStore  = "transient_stake"
 	MintStore            = "mint"
@@ -23,9 +24,9 @@ const (
 	Code                 = "code"
 
 	// all route for query and handler
-	BankRoute     = "bank"
+	BankRoute     = BankStore
 	AccountRoute  = AccountStore
-	CoreRoute     = CoreStore
+	EVMRoute      = EVMStore
 	StakeRoute    = StakeStore
 	DistrRoute    = DistrStore
 	SlashingRoute = SlashingStore
@@ -40,6 +41,7 @@ const (
 var (
 	KeyMain     = sdk.NewKVStoreKey(sdk.MainStore)
 	KeyAccount  = sdk.NewKVStoreKey(AccountStore)
+	KeyEVM      = sdk.NewKVStoreKey(EVMStore)
 	KeyStake    = sdk.NewKVStoreKey(StakeStore)
 	TkeyStake   = sdk.NewTransientStoreKey(StakeTransientStore)
 	KeyMint     = sdk.NewKVStoreKey(MintStore)

@@ -7,18 +7,15 @@ import (
 	"math"
 	"math/big"
 	"os"
-	"runtime"
-	"strconv"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
+	"github.com/orientwalt/htdf/app/protocol"
 	"github.com/orientwalt/htdf/params"
 	"github.com/orientwalt/htdf/x/evm/core/vm"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethparams "github.com/ethereum/go-ethereum/params"
-	"github.com/orientwalt/htdf/app/protocol"
 	appParams "github.com/orientwalt/htdf/params"
 	apptypes "github.com/orientwalt/htdf/types"
 	sdk "github.com/orientwalt/htdf/types"
@@ -45,18 +42,6 @@ func init() {
 	// set global log level
 	log.SetLevel(ll)
 	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
-}
-
-func logger() *log.Entry {
-	pc, file, line, ok := runtime.Caller(1)
-	if !ok {
-		panic("Could not get context info for logger!")
-	}
-
-	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
-	funcname := runtime.FuncForPC(pc).Name()
-	fn := funcname[strings.LastIndex(funcname, ".")+1:]
-	return log.WithField("file", filename).WithField("function", fn)
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -96,13 +81,13 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 type StateTransition struct {
 	gpGasWanted *ethcore.GasPool
 	initialGas  uint64
-	stateDB     *CommitStateDB //vm.StateDB
+	StateDB     *CommitStateDB //vm.StateDB
 	evm         *vm.EVM
 	////
-	txhash   *common.Hash
+	TxHash   *common.Hash
 	simulate bool // i.e CheckTx execution
 	////
-	msg              MsgSend
+	msg              MsgEthereumTx
 	sender           common.Address
 	recipient        *common.Address
 	ContractCreation bool
@@ -115,7 +100,7 @@ type StateTransition struct {
 }
 
 ///
-func NewStateTransition(ctx sdk.Context, msg MsgSend) *StateTransition {
+func NewStateTransition(ctx sdk.Context, msg MsgEthereumTx) (*StateTransition, error) {
 
 	st := &StateTransition{
 		gpGasWanted:      new(ethcore.GasPool).AddGas(msg.GasWanted),
@@ -138,11 +123,27 @@ func NewStateTransition(ctx sdk.Context, msg MsgSend) *StateTransition {
 
 	payload, err := hex.DecodeString(msg.Data)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	st.payload = payload
-	return st
 
+	st.payload = payload
+
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	ethHash := common.BytesToHash(txHash)
+	st.TxHash = &ethHash
+
+	return st, nil
+
+}
+
+//
+func (st *StateTransition) GetSender() common.Address {
+	return st.sender
+}
+
+//
+func (st *StateTransition) GetRecipeint() common.Address {
+	return *st.recipient
 }
 
 func (st *StateTransition) useGas(amount uint64) error {
@@ -164,9 +165,9 @@ func (st *StateTransition) buyGas() error {
 	msgGasVal := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.GasWanted), st.gasPrice)
 	fmt.Printf("msgGasVal=%s\n", msgGasVal.String())
 	fmt.Printf("msgGasVal=%s\n", eaSender.String())
-	fmt.Printf("st.stateDB.GetBalance=%v\n", st.stateDB.GetBalance(eaSender))
+	fmt.Printf("st.StateDB.GetBalance=%v\n", st.StateDB.GetBalance(eaSender))
 
-	if st.stateDB.GetBalance(eaSender).Cmp(msgGasVal) < 0 {
+	if st.StateDB.GetBalance(eaSender).Cmp(msgGasVal) < 0 {
 		return errors.New("insufficient balance for gas")
 	}
 
@@ -176,15 +177,15 @@ func (st *StateTransition) buyGas() error {
 		return err
 	}
 
-	st.stateDB.SubBalance(eaSender, msgGasVal)
+	st.StateDB.SubBalance(eaSender, msgGasVal)
 	return nil
 }
 
 func (st *StateTransition) refundGas() {
 	// Apply refund counter, capped to half of the used gas.
 	refund := st.gasUsed() / 2
-	if refund > st.stateDB.GetRefund() {
-		refund = st.stateDB.GetRefund()
+	if refund > st.StateDB.GetRefund() {
+		refund = st.StateDB.GetRefund()
 	}
 
 	st.gasLimit += refund
@@ -193,7 +194,7 @@ func (st *StateTransition) refundGas() {
 	eaSender := apptypes.ToEthAddress(st.msg.From)
 
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gasLimit), st.gasPrice)
-	st.stateDB.AddBalance(eaSender, remaining)
+	st.StateDB.AddBalance(eaSender, remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
@@ -225,19 +226,22 @@ func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.AccountKeeper, feeCollectionKeeper auth.FeeCollectionKeeper) (*ExecutionResult, error) {
-
-	stateDB, err := NewCommitStateDB(ctx, &accountKeeper, protocol.KeyStorage, protocol.KeyCode)
-	if err != nil {
-		return nil, sdkerrors.Wrapf(err, "newStateDB error")
+func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
+	if st.StateDB == nil {
+		stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
+		if err != nil {
+			return nil, sdkerrors.Wrapf(err, "newStateDB error")
+		}
+		st.StateDB = stateDB
 	}
 
-	st.stateDB = stateDB
+	stateDB := st.StateDB
+
 	evm := st.newEVM(ctx, stateDB)
 
 	// commented by junying, 2019-08-22
 	// subtract GasWanted*gasprice from sender
-	err = st.buyGas()
+	err := st.buyGas()
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "buyGas error")
 	}
@@ -270,9 +274,9 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Acco
 	)
 
 	// Get nonce of account outside of the EVM
-	currentNonce := st.stateDB.GetNonce(st.sender)
+	currentNonce := st.StateDB.GetNonce(st.sender)
 	// Set nonce of sender account before evm state transition for usage in generating Create address
-	// st.stateDB.SetNonce(st.sender, st.AccountNonce)
+	// st.StateDB.SetNonce(st.sender, st.AccountNonce)
 
 	logger().Debugf("in TransitionDb:currentNonce[%d]\n", currentNonce)
 
@@ -289,6 +293,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Acco
 		ret, leftOverGas, err = evm.Call(senderRef, *st.recipient, st.payload, gasLimit, st.amount)
 		recipientLog = fmt.Sprintf("recipient address %s", st.recipient.String())
 	}
+	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
 	logger().Debugf("in TransitionDb:leftOverGas[%d]\n", leftOverGas)
 	st.GasUsed = gasLimit - leftOverGas
 	logger().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
@@ -305,12 +310,25 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Acco
 		st.refundGas()
 		st.GasUsed = st.gasUsed()
 		st.ContractAddress = &contractAddress
+		logger().Debugf("in TransitionDb:contractAddress[%s]\n", contractAddress.String())
 		// evmOutput = sdk.ToAppAddress(contractAddress).String() //for contract creation
 		// evmOutput = hex.EncodeToString(ret)//for contract call
 	}
 
 	// Resets nonce to value pre state transition
 	stateDB.SetNonce(st.sender, currentNonce)
+
+	if !st.simulate {
+		logger().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
+		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed), st.gasPrice)
+		fck.AddCollectedFees(ctx, sdk.Coins{sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(gasUsed))})
+		logger().Debugf("in TransitionDb:feeCollectionKeeper.gasUsed[%v]\n", gasUsed)
+		// Finalise state if not a simulated transaction
+		// TODO: change to depend on config
+		if _, err := stateDB.Commit(false); err != nil {
+			return nil, err
+		}
+	}
 
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
@@ -320,39 +338,25 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Acco
 		logs        []*ethtypes.Log
 	)
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
-	ethHash := common.BytesToHash(txHash)
-	st.txhash = &ethHash
-
-	if st.txhash != nil && !st.simulate {
-		logs, err := stateDB.GetLogs(*st.txhash)
+	if st.TxHash != nil && !st.simulate {
+		logs, err = stateDB.GetLogs(*st.TxHash)
 		if err != nil {
 			return nil, err
 		}
+		logger().Debugf("in TransitionDb:st.TxHash[%v]\n", st.TxHash)
+		logger().Debugf("in TransitionDb:evmresult.logs[%v]\n", logs)
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
 	logger().Debugln(st.simulate)
 
-	if !st.simulate {
-		logger().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
-		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed), st.gasPrice)
-		feeCollectionKeeper.AddCollectedFees(ctx, sdk.Coins{sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(gasUsed))})
-		logger().Debugf("in TransitionDb:feeCollectionKeeper.gasUsed[%v]\n", gasUsed)
-		// Finalise state if not a simulated transaction
-		// TODO: change to depend on config
-		if _, err := stateDB.Commit(false); err != nil {
-			return nil, err
-		}
-	}
-
 	// Encode all necessary data into slice of bytes to return in sdk result
 	resultData := ResultData{
 		Bloom:  bloomFilter,
 		Logs:   logs,
 		Ret:    ret,
-		TxHash: *st.txhash,
+		TxHash: *st.TxHash,
 	}
 
 	if st.ContractCreation {
@@ -381,6 +385,8 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, accountKeeper auth.Acco
 			GasRefunded: leftOverGas,
 		},
 	}
+	logger().Debugf("in TransitionDb:evmresult.logs[%v]\n", executionResult.Logs)
+	logger().Debugf("in TransitionDb:resultLog[%s]\n", resultLog)
 	logger().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
 	logger().Debugf("in TransitionDb:st.GasRefunded[%d]\n", leftOverGas)
 	// TODO: Refund unused gas here, if intended in future

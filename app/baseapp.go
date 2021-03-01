@@ -56,7 +56,7 @@ const (
 	// Deliver a transaction
 	runTxModeDeliver runTxMode = iota
 	// Recheck a (pending) transaction after a commit
-	runTxModeReCheck = iota
+	runTxModeReCheck runTxMode = iota
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
 )
@@ -779,8 +779,8 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) (ctx sdk.Con
 	return
 }
 
-// Check if the msg is MsgSend
-func IsMsgSend(msg sdk.Msg) bool {
+// Check if the msg is MsgEthereumTx
+func IsMsgEthereumTx(msg sdk.Msg) bool {
 	if msg.Route() == "htdfservice" {
 		return true
 	}
@@ -833,7 +833,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		msgLog := sdk.ABCIMessageLog{MsgIndex: msgIdx, Log: msgResult.Log}
 
 		// junying-todo, 2019-11-05
-		if IsMsgSend(msg) {
+		if IsMsgEthereumTx(msg) {
 			ctx.GasMeter().UseGas(sdk.Gas(msgResult.GasUsed), msgRoute)
 		}
 
@@ -869,7 +869,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeCheck || mode == runTxModeSimulate {
+	if mode == runTxModeCheck || mode == runTxModeSimulate || mode == runTxModeReCheck {
 		return app.checkState
 	}
 
@@ -1093,11 +1093,13 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	logger().Traceln("8runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs(), mode)
 	result, err = app.runMsgs(runMsgCtx, tx.GetMsgs(), mode)
 	logger().Traceln("9runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs())
-	result.GasWanted = gasWanted
 
-	if mode == runTxModeSimulate {
+	// 1. simulating
+	// 2. fail to find routekey, resulted in nil returned from runMsg
+	if mode == runTxModeSimulate || result == nil {
 		return
 	}
+	result.GasWanted = gasWanted
 	logger().Traceln("10runTx!!!!!!!!!!!!!!!!!", result.IsOK(), result.GasUsed, result.GasWanted)
 	// only update state if all messages pass
 	// junying-todo, 2019-11-05

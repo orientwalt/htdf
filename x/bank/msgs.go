@@ -7,28 +7,28 @@ import (
 // RouterKey is they name of the bank module
 const RouterKey = "bank"
 
-// // MsgSend - high level transaction of the coin module
-// type MsgSend struct {
+// // MsgEthereumTx - high level transaction of the coin module
+// type MsgEthereumTx struct {
 // 	FromAddress sdk.AccAddress `json:"from_address"`
 // 	ToAddress   sdk.AccAddress `json:"to_address"`
 // 	Amount      sdk.Coins      `json:"amount"`
 // }
 
-// var _ sdk.Msg = MsgSend{}
+// var _ sdk.Msg = MsgEthereumTx{}
 
-// // NewMsgSend - construct arbitrary multi-in, multi-out send msg.
-// func NewMsgSend(fromAddr, toAddr sdk.AccAddress, amount sdk.Coins) MsgSend {
-// 	return MsgSend{FromAddress: fromAddr, ToAddress: toAddr, Amount: amount}
+// // NewMsgEthereumTx - construct arbitrary multi-in, multi-out send msg.
+// func NewMsgEthereumTx(fromAddr, toAddr sdk.AccAddress, amount sdk.Coins) MsgEthereumTx {
+// 	return MsgEthereumTx{FromAddress: fromAddr, ToAddress: toAddr, Amount: amount}
 // }
 
 // // Route Implements Msg.
-// func (msg MsgSend) Route() string { return RouterKey }
+// func (msg MsgEthereumTx) Route() string { return RouterKey }
 
 // // Type Implements Msg.
-// func (msg MsgSend) Type() string { return "send" }
+// func (msg MsgEthereumTx) Type() string { return "send" }
 
 // // ValidateBasic Implements Msg.
-// func (msg MsgSend) ValidateBasic() sdk.Error {
+// func (msg MsgEthereumTx) ValidateBasic() sdk.Error {
 // 	if msg.FromAddress.Empty() {
 // 		return sdk.ErrInvalidAddress("missing sender address")
 // 	}
@@ -45,12 +45,12 @@ const RouterKey = "bank"
 // }
 
 // // GetSignBytes Implements Msg.
-// func (msg MsgSend) GetSignBytes() []byte {
+// func (msg MsgEthereumTx) GetSignBytes() []byte {
 // 	return sdk.MustSortJSON(msgCdc.MustMarshalJSON(msg))
 // }
 
 // // GetSigners Implements Msg.
-// func (msg MsgSend) GetSigners() []sdk.AccAddress {
+// func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
 // 	return []sdk.AccAddress{msg.FromAddress}
 // }
 

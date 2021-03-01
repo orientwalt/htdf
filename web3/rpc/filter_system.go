@@ -195,7 +195,7 @@ func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria) (*Subscription
 	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.LogsSubscription,
-		event:     evmEvents,
+		event:     evmEvents, //txEvents, // junying-todo
 		logsCrit:  crit,
 		created:   time.Now().UTC(),
 		logs:      make(chan []*ethtypes.Log),

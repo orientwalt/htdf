@@ -55,6 +55,8 @@ type (
 	}
 )
 
+type StateObject = stateObject
+
 func newObject(db *CommitStateDB, accProto auth.Account) *stateObject {
 	acc, ok := accProto.(*types.Account)
 	if !ok {

@@ -22,6 +22,7 @@ import (
 
 	// Import statik for light client stuff
 	_ "github.com/orientwalt/htdf/client/lcd/statik"
+	// web3rpc "github.com/orientwalt/htdf/web3/rpc"
 )
 
 // RestServer represents the Light Client Rest server
@@ -90,6 +91,11 @@ func ServeCommand(cdc *codec.Codec, registerRoutesFn func(*RestServer)) *cobra.C
 			// Start the rest server and return error if one exists
 			err = rs.Start(viper.GetString(client.FlagListenAddr),
 				viper.GetInt(client.FlagMaxOpenConnections))
+
+			// start websockets server
+			// websocketAddr := viper.GetString(client.FlagWsPort)
+			// ws := web3rpc.NewWebsocketsServer(rs.CliCtx, websocketAddr)
+			// ws.start()
 
 			return err
 		},

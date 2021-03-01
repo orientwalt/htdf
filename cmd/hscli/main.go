@@ -15,7 +15,6 @@ import (
 	"github.com/orientwalt/htdf/client/rpc"
 	"github.com/orientwalt/htdf/client/tx"
 
-	web3 "github.com/orientwalt/htdf/web3/rpc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
@@ -104,9 +103,9 @@ func main() {
 		client.ConfigCmd(app.DefaultCLIHome),
 		queryCmd(cdc, mc), // check the below
 		txCmd(cdc, mc),    // check the below
-		web3.EmintServeCmd(cdc),
 		versionCmd(cdc, mc),
 		client.LineBreak,
+		// web3rpc.EmintServeCmd(cdc),
 		lcd.ServeCommand(cdc, registerRoutes),
 		client.LineBreak,
 		accounts.Commands(),
@@ -152,6 +151,10 @@ func registerRoutes(rs *lcd.RestServer) {
 	}
 	// Web3 RPC API route
 	rs.Mux.HandleFunc("/", s.ServeHTTP).Methods("POST", "OPTIONS")
+	// start websockets server
+	websocketAddr := viper.GetString(client.FlagWsPort)
+	ws := web3rpc.NewWebsocketsServer(rs.CliCtx, websocketAddr)
+	ws.Start()
 }
 
 func versionCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {

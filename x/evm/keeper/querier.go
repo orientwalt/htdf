@@ -10,7 +10,7 @@ import (
 
 	"github.com/orientwalt/htdf/utils"
 	"github.com/orientwalt/htdf/version"
-	"github.com/orientwalt/htdf/x/core/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -22,28 +22,28 @@ import (
 func NewQuerier(keeper Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, sdk.Error) {
 		switch path[0] {
-		case types.QueryProtocolVersion:
+		case evmtypes.QueryProtocolVersion:
 			return queryProtocolVersion(keeper)
-		case types.QueryBalance:
+		case evmtypes.QueryBalance:
 			return queryBalance(ctx, path, keeper)
-		case types.QueryBlockNumber:
+		case evmtypes.QueryBlockNumber:
 			return queryBlockNumber(ctx, keeper)
-		case types.QueryStorage:
+		case evmtypes.QueryStorage:
 			return queryStorage(ctx, path, keeper)
-		case types.QueryCode:
+		case evmtypes.QueryCode:
 			return queryCode(ctx, path, keeper)
-		case types.QueryHashToHeight:
+		case evmtypes.QueryHashToHeight:
 			return queryHashToHeight(ctx, path, keeper)
-		case types.QueryTransactionLogs:
+		case evmtypes.QueryTransactionLogs:
 			return queryTransactionLogs(ctx, path, keeper)
-		case types.QueryBloom:
+		case evmtypes.QueryBloom:
 			return queryBlockBloom(ctx, path, keeper)
-		case types.QueryLogs:
+		case evmtypes.QueryLogs:
 			return queryLogs(ctx, keeper)
-		case types.QueryAccount:
+		case evmtypes.QueryAccount:
 			return queryAccount(ctx, path, keeper)
-		case types.QueryExportAccount:
-			return queryExportAccount(ctx, path, keeper)
+		// case evmtypes.QueryExportAccount:
+		// 	return queryExportAccount(ctx, path, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown service query endpoint")
 		}
@@ -69,7 +69,7 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 		return nil, sdk.ErrJsonMarshal(err.Error())
 	}
 
-	res := types.QueryResBalance{Balance: balanceStr}
+	res := evmtypes.QueryResBalance{Balance: balanceStr}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -80,7 +80,7 @@ func queryBalance(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 
 func queryBlockNumber(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	num := ctx.BlockHeight()
-	bnRes := types.QueryResBlockNumber{Number: num}
+	bnRes := evmtypes.QueryResBlockNumber{Number: num}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, bnRes)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -93,7 +93,7 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 	addr := ethcmn.HexToAddress(path[1])
 	key := ethcmn.HexToHash(path[2])
 	val := keeper.GetState(ctx, addr, key)
-	res := types.QueryResStorage{Value: val.Bytes()}
+	res := evmtypes.QueryResStorage{Value: val.Bytes()}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -104,7 +104,7 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.HexToAddress(path[1])
 	code := keeper.GetCode(ctx, addr)
-	res := types.QueryResCode{Code: code}
+	res := evmtypes.QueryResCode{Code: code}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -120,7 +120,7 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, s
 		return []byte{}, sdk.ErrJsonMarshal(fmt.Errorf("block height not found for hash %s", path[1]).Error())
 	}
 
-	res := types.QueryResBlockNumber{Number: blockNumber}
+	res := evmtypes.QueryResBlockNumber{Number: blockNumber}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -140,7 +140,7 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk
 		return nil, sdk.ErrJsonMarshal(fmt.Errorf("block bloom not found for height %d", num).Error())
 	}
 
-	res := types.QueryBloomFilter{Bloom: bloom}
+	res := evmtypes.QueryBloomFilter{Bloom: bloom}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -157,7 +157,7 @@ func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte
 		return nil, sdk.ErrJsonMarshal(err.Error())
 	}
 
-	res := types.QueryETHLogs{Logs: logs}
+	res := evmtypes.QueryETHLogs{Logs: logs}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -169,7 +169,7 @@ func queryTransactionLogs(ctx sdk.Context, path []string, keeper Keeper) ([]byte
 func queryLogs(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	logs := keeper.AllLogs(ctx)
 
-	res := types.QueryETHLogs{Logs: logs}
+	res := evmtypes.QueryETHLogs{Logs: logs}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdk.ErrJsonMarshal(err.Error())
@@ -186,7 +186,7 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 		return nil, sdk.ErrJsonMarshal(err.Error())
 	}
 
-	res := types.QueryResAccount{
+	res := evmtypes.QueryResAccount{
 		Balance:  balance,
 		CodeHash: so.CodeHash(),
 		Nonce:    so.Nonce(),
@@ -201,16 +201,16 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Er
 func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	addr := ethcmn.HexToAddress(path[1])
 
-	var storage types.Storage
-	err := keeper.CommitStateDB.ForEachStorage(addr, func(key, value ethcmn.Hash) bool {
-		storage = append(storage, types.NewState(key, value))
+	var storage evmtypes.Storage
+	keeper.CommitStateDB.ForEachStorage(addr, func(key, value ethcmn.Hash) bool {
+		storage = append(storage, evmtypes.NewState(key, value))
 		return false
 	})
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	res := types.GenesisAccount{
+	res := evmtypes.GenesisAccount{
 		Address: addr,
 		Balance: keeper.GetBalance(ctx, addr),
 		Code:    keeper.GetCode(ctx, addr),

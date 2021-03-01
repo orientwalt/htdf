@@ -20,6 +20,7 @@ const (
 	ErrCode_OpenContract   CodeType = 2
 	ErrCode_BeZeroAmount   CodeType = 3
 	ErrCode_Param          CodeType = 4
+	ErrCode_Parsing        CodeType = 5
 )
 
 func GetErrMsg(code CodeType) string {
@@ -38,6 +39,9 @@ func GetErrMsg(code CodeType) string {
 
 	case ErrCode_Param:
 		return "param error"
+
+	case ErrCode_Parsing:
+		return "parsing error"
 
 	default:
 		return fmt.Sprintf("errCode error|errCode=%v", code)

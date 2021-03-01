@@ -10,6 +10,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -27,7 +29,37 @@ import (
 	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 
 	context "github.com/orientwalt/htdf/client/context"
+	"github.com/sirupsen/logrus"
 )
+
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := logrus.ParseLevel(lvl)
+	if err != nil {
+		ll = logrus.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	logrus.SetLevel(ll)
+	logrus.SetFormatter(&logrus.TextFormatter{}) //&log.JSONFormatter{})
+}
+
+func logger() *logrus.Entry {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		panic("Could not get context info for logger!")
+	}
+
+	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
+	funcname := runtime.FuncForPC(pc).Name()
+	fn := funcname[strings.LastIndex(funcname, ".")+1:]
+	return logrus.WithField("file", filename).WithField("function", fn)
+}
 
 type SubscriptionResponseJSON struct {
 	Jsonrpc string      `json:"jsonrpc"`
@@ -64,7 +96,7 @@ type websocketsServer struct {
 	logger  log.Logger
 }
 
-func newWebsocketsServer(cliCtx context.CLIContext, wsAddr string) *websocketsServer {
+func NewWebsocketsServer(cliCtx context.CLIContext, wsAddr string) *websocketsServer {
 	return &websocketsServer{
 		rpcAddr: viper.GetString("laddr"),
 		wsAddr:  wsAddr,
@@ -73,7 +105,7 @@ func newWebsocketsServer(cliCtx context.CLIContext, wsAddr string) *websocketsSe
 	}
 }
 
-func (s *websocketsServer) start() {
+func (s *websocketsServer) Start() {
 	ws := mux.NewRouter()
 	ws.Handle("/", s)
 
@@ -333,7 +365,7 @@ func (api *pubSubAPI) subscribeNewHeads(conn *websocket.Conn) (rpc.ID, error) {
 			case event := <-headersCh:
 				data, _ := event.Data.(tmtypes.EventDataNewBlockHeader)
 				header := EthHeaderFromTendermint(data.Header)
-
+				logger().Debugf("data[%v]\n", data)
 				api.filtersMu.Lock()
 				if f, found := api.filters[sub.ID()]; found {
 					// write to ws conn
@@ -441,13 +473,13 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					err = fmt.Errorf("invalid event data %T, expected EventDataTx", event.Data)
 					return
 				}
-
+				logger().Debugf("dataTx[%v]\n", dataTx)
 				var resultData evmtypes.ResultData
 				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}
-
+				logger().Debugf("resultData[%v]\n", resultData)
 				logs := filterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 
 				api.filtersMu.Lock()
