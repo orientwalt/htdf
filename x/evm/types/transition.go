@@ -343,8 +343,6 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 		if err != nil {
 			return nil, err
 		}
-		logger().Debugf("in TransitionDb:st.TxHash[%v]\n", st.TxHash)
-		logger().Debugf("in TransitionDb:evmresult.logs[%v]\n", logs)
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
@@ -385,8 +383,6 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 			GasRefunded: leftOverGas,
 		},
 	}
-	logger().Debugf("in TransitionDb:evmresult.logs[%v]\n", executionResult.Logs)
-	logger().Debugf("in TransitionDb:resultLog[%s]\n", resultLog)
 	logger().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
 	logger().Debugf("in TransitionDb:st.GasRefunded[%d]\n", leftOverGas)
 	// TODO: Refund unused gas here, if intended in future

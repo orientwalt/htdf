@@ -200,18 +200,18 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	csdb.logs[csdb.thash] = logs
-	return nil
-
-	// store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
-	// bz, err := MarshalLogs(logs)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// store.Set(hash.Bytes(), bz)
-	// csdb.logSize = uint(len(logs))
+	// csdb.logs[csdb.thash] = logs
 	// return nil
+
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
+	bz, err := MarshalLogs(logs)
+	if err != nil {
+		return err
+	}
+
+	store.Set(hash.Bytes(), bz)
+	csdb.logSize = uint(len(logs))
+	return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
@@ -232,18 +232,19 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	logger().Debugf("statedb(AddLog):csdb.thash[%s]\n", (csdb.thash).String())
 	logger().Debugf("statedb(AddLog):log[%v]\n", log)
 
-	csdb.logs[csdb.thash] = append(csdb.logs[csdb.thash], log)
-	csdb.logSize++
-	// logs, err := csdb.GetLogs(csdb.thash)
-	// if err != nil {
-	// 	// panic on unmarshal error
-	// 	panic(err)
-	// }
+	// csdb.logs[csdb.thash] = append(csdb.logs[csdb.thash], log)
+	// csdb.logSize++
 
-	// if err = csdb.SetLogs(csdb.thash, append(logs, log)); err != nil {
-	// 	// panic on marshal error
-	// 	panic(err)
-	// }
+	logs, err := csdb.GetLogs(csdb.thash)
+	if err != nil {
+		// panic on unmarshal error
+		panic(err)
+	}
+
+	if err = csdb.SetLogs(csdb.thash, append(logs, log)); err != nil {
+		// panic on marshal error
+		panic(err)
+	}
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -372,16 +373,16 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	return csdb.logs[hash], nil
+	// return csdb.logs[hash], nil
 
-	// store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
-	// bz := store.Get(hash.Bytes())
-	// if len(bz) == 0 {
-	// 	// return nil error if logs are not found
-	// 	return []*ethtypes.Log{}, nil
-	// }
+	store := prefix.NewStore(csdb.ctx.KVStore(csdb.storageKey), newevmtypes.KeyPrefixLogs)
+	bz := store.Get(hash.Bytes())
+	if len(bz) == 0 {
+		// return nil error if logs are not found
+		return []*ethtypes.Log{}, nil
+	}
 
-	// return UnmarshalLogs(bz)
+	return UnmarshalLogs(bz)
 }
 
 // Logs returns all the current logs in the state.
