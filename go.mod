@@ -43,6 +43,7 @@ require (
 )
 
 replace (
+	github.com/ethereum/go-ethereum v1.8.27 => github.com/orientwalt/go-ethereum v1.8.39
 	github.com/tendermint/iavl v0.12.1 => github.com/orientwalt/iavl v0.12.92
 	github.com/tendermint/tendermint v0.31.5 => github.com/orientwalt/tendermint v0.90.10
 	golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
