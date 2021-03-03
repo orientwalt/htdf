@@ -46,7 +46,7 @@ tail -f ~/.hsd/app.log
 ## 更多资源
 
 - 官网: https://www.orientwalt.com/
-- 中文API文档: https://gitee.com/orientwalt/docs
+- 中文API文档: https://github.com/orientwalt/docs
 - 区块链浏览器: https://www.htdfscan.com/
 - 在Windows上构建和运行: [build_run_on_windows.md](./docs/build_run_on_windows.md)
 

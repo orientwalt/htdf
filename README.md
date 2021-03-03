@@ -43,7 +43,7 @@ tail -f ~/.hsd/app.log
 ##  Resources
 
 - Official Website: https://www.orientwalt.com/
-- Chinese API documents: https://gitee.com/orientwalt/docs
+- Chinese API documents: https://github.com/orientwalt/docs 
 - Blockchain explorer: https://www.htdfscan.com/
 - Build and run on Windows: [build_run_on_windows.md](./docs/build_run_on_windows.md)
 
