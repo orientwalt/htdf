@@ -282,6 +282,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
 	logger().Debugln(st.ContractCreation)
+
+	//
+	stateDB.SetNonce(st.sender, currentNonce+1)
+
 	// create contract or execute call
 	switch st.ContractCreation {
 	case true:
@@ -289,7 +293,6 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
-		stateDB.SetNonce(st.sender, stateDB.GetNonce(st.sender)+1)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.recipient, st.payload, gasLimit, st.amount)
 		recipientLog = fmt.Sprintf("recipient address %s", st.recipient.String())
 	}
@@ -316,7 +319,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	}
 
 	// Resets nonce to value pre state transition
-	stateDB.SetNonce(st.sender, currentNonce)
+	stateDB.SetNonce(st.sender, currentNonce+1)
 
 	if !st.simulate {
 		logger().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
@@ -346,8 +349,6 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
-
-	logger().Debugln(st.simulate)
 
 	// Encode all necessary data into slice of bytes to return in sdk result
 	resultData := ResultData{
