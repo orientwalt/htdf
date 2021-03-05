@@ -37,6 +37,19 @@ type ChainContext interface {
 	GetHeader(common.Hash, uint64) *types.Header
 }
 
+// func (cc ChainContext) GetHeader(hash common.Hash, number uint64) *ethtypes.Header {
+
+// 	return &ethtypes.Header{
+// 		Coinbase:   fromAddress,
+// 		Difficulty: big.NewInt(1),
+// 		Number:     big.NewInt(1),
+// 		GasLimit:   1000000,
+// 		GasUsed:    0,
+// 		Time:       big.NewInt(time.Now().Unix()).Uint64(),
+// 		Extra:      nil,
+// 	}
+// }
+
 type IMessage interface {
 	FromAddress() common.Address
 }

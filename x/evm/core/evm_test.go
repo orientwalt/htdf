@@ -12,7 +12,7 @@ import (
 	"github.com/orientwalt/htdf/utils"
 	"github.com/stretchr/testify/require"
 
-	ec "github.com/orientwalt/htdf/x/evm/core"
+	// ec "github.com/orientwalt/htdf/x/evm/core"
 	"github.com/orientwalt/htdf/x/evm/core/vm"
 
 	//cosmos-sdk
@@ -20,7 +20,7 @@ import (
 	"github.com/orientwalt/htdf/store"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
-	"github.com/orientwalt/htdf/x/evm/core/state"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/orientwalt/htdf/x/params"
 
 	//tendermint
@@ -36,11 +36,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	appParams "github.com/orientwalt/htdf/params"
 
 	"testing"
-	"time"
 )
 
 // TODO:current test code , is base go-ethereum V1.8.0
@@ -221,7 +219,7 @@ func TestNewEvm(t *testing.T) {
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "test-chain-id"}, false, log.NewNopLogger())
 
-	stateDB, err := state.NewCommitStateDB(ctx, &ak, storageKey, codeKey)
+	stateDB, err := evmtypes.NewCommitStateDB(ctx, &ak, storageKey, codeKey)
 	must(err)
 
 	fmt.Printf("addr=%s|testBalance=%v\n", fromAddress.String(), stateDB.GetBalance(fromAddress))
@@ -241,7 +239,7 @@ func TestNewEvm(t *testing.T) {
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
-	evmCtx := ec.NewEVMContext(msg, &fromAddress, 1000)
+	evmCtx := NewEVMContext(msg, &fromAddress, 1000)
 
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
@@ -388,7 +386,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	ms := cms.CacheMultiStore()
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "test-chain-id"}, false, log.NewNopLogger())
 
-	stateDB, err := state.NewCommitStateDB(ctx, &ak, storageKey, codeKey)
+	stateDB, err := evmtypes.NewCommitStateDB(ctx, &ak, storageKey, codeKey)
 	must(err)
 
 	fmt.Printf("addr=%s|testBalance=%v\n", fromAddress.String(), stateDB.GetBalance(fromAddress))
@@ -411,7 +409,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
-	evmCtx := ec.NewEVMContext(msg, &fromAddress, 1000)
+	evmCtx := NewEVMContext(msg, &fromAddress, 1000)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
@@ -451,17 +449,4 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	return nil
 }
 
-type ChainContext struct{}
-
-func (cc ChainContext) GetHeader(hash common.Hash, number uint64) *ethtypes.Header {
-
-	return &ethtypes.Header{
-		Coinbase:   fromAddress,
-		Difficulty: big.NewInt(1),
-		Number:     big.NewInt(1),
-		GasLimit:   1000000,
-		GasUsed:    0,
-		Time:       big.NewInt(time.Now().Unix()).Uint64(),
-		Extra:      nil,
-	}
-}
+// type ChainContext struct{}

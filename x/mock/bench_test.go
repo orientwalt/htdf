@@ -5,8 +5,8 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
-	htdfservice "github.com/orientwalt/htdf/x/core"
-	evmtypes "github.com/orientwalt/htdf/x/core/types"
+	htdfservice "github.com/orientwalt/htdf/x/evm"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -16,7 +16,7 @@ func getBenchmarkMockApp() (*App, error) {
 	mapp := NewApp()
 
 	evmtypes.RegisterCodec(mapp.Cdc)
-	mapp.Router().AddRoute("htdfservice", []*sdk.KVStoreKey{mapp.KeyAccount}, htdfservice.NewHandler(mapp.AccountKeeper, mapp.FeeKeeper, mapp.KeyStorage, mapp.KeyCode))
+	mapp.Router().AddRoute("htdfservice", []*sdk.KVStoreKey{mapp.KeyAccount}, htdfservice.NewHandler(mapp.EvmKeeper))
 	err := mapp.CompleteSetup()
 	return mapp, err
 }

@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/orientwalt/htdf/client"
-	htdfservicecmd "github.com/orientwalt/htdf/x/core/client/cli"
+	htdfservicecmd "github.com/orientwalt/htdf/x/evm/client/cli"
 	"github.com/spf13/cobra"
 	amino "github.com/tendermint/go-amino"
 )

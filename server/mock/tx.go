@@ -3,6 +3,7 @@ package mock
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	sdk "github.com/orientwalt/htdf/types"
@@ -74,6 +75,23 @@ func decodeTx(txBytes []byte) (sdk.Tx, sdk.Error) {
 		tx = kvstoreTx{k, v, txBytes}
 	} else {
 		return nil, sdk.ErrTxDecode("too many =")
+	}
+
+	return tx, nil
+}
+
+func decodeTx2(txBytes []byte) (sdk.Tx, error) {
+	var tx sdk.Tx
+
+	split := bytes.Split(txBytes, []byte("="))
+	if len(split) == 1 {
+		k := split[0]
+		tx = kvstoreTx{k, k, txBytes}
+	} else if len(split) == 2 {
+		k, v := split[0], split[1]
+		tx = kvstoreTx{k, v, txBytes}
+	} else {
+		return nil, errors.New("too many =")
 	}
 
 	return tx, nil

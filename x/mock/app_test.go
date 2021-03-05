@@ -3,10 +3,10 @@ package mock
 import (
 	"testing"
 
-	newevmtypes "github.com/orientwalt/htdf/evm/types"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
-	evmtypes "github.com/orientwalt/htdf/x/core/types"
+	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"

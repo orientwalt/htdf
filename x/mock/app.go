@@ -10,6 +10,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	"github.com/orientwalt/htdf/x/bank"
+	"github.com/orientwalt/htdf/x/evm"
 	newevmtypes "github.com/orientwalt/htdf/x/evm/core/types"
 	bam "github.com/orientwalt/htdf/x/mock/baseapp"
 	"github.com/orientwalt/htdf/x/params"
@@ -54,6 +55,7 @@ type App struct {
 	KeyMain     *sdk.KVStoreKey
 	KeyAccount  *sdk.KVStoreKey
 	KeyFee      *sdk.KVStoreKey
+	KeyEVM      *sdk.KVStoreKey
 	KeyStake    *sdk.KVStoreKey
 	TkeyStake   *sdk.TransientStoreKey
 	KeyParams   *sdk.KVStoreKey
@@ -68,6 +70,7 @@ type App struct {
 	BankKeeper    bank.Keeper
 	FeeKeeper     auth.FeeCollectionKeeper
 	ParamsKeeper  params.Keeper
+	EvmKeeper     evm.Keeper
 
 	GenesisAccounts  []auth.Account
 	TotalCoinsSupply sdk.Coins
@@ -95,6 +98,7 @@ func NewApp() *App {
 		KeyMain:          sdk.NewKVStoreKey("main"),
 		KeyAccount:       sdk.NewKVStoreKey("acc"),
 		KeyFee:           sdk.NewKVStoreKey("fee"),
+		KeyEVM:           sdk.NewKVStoreKey("evm"),
 		KeyStake:         sdk.NewKVStoreKey("stake"),
 		TkeyStake:        sdk.NewTransientStoreKey("transient_stake"),
 		KeyParams:        sdk.NewKVStoreKey("params"),
@@ -124,6 +128,13 @@ func NewApp() *App {
 	app.FeeKeeper = auth.NewFeeCollectionKeeper(
 		cdc,
 		app.KeyFee)
+
+	app.EvmKeeper = evm.NewKeeper(
+		cdc,
+		app.KeyEVM,
+		app.AccountKeeper,
+		app.BankKeeper,
+		app.FeeKeeper)
 
 	app.SetInitChainer(app.InitChainer)
 	app.SetAnteHandler(auth.NewAnteHandler(app.AccountKeeper, app.FeeKeeper))
