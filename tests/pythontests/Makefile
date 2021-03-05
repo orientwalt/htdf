@@ -5,8 +5,9 @@ all: test
 
 export TESTTYPE=$(chaintype)
 
+#TESTTYPE=regtest     #for localhost node test
 ifeq ($(TESTTYPE), )
-	export TESTTYPE=inner
+	export TESTTYPE=regtest
 endif
 
 create_venv:
