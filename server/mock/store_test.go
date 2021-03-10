@@ -7,12 +7,13 @@ import (
 
 	dbm "github.com/tendermint/tm-db"
 
+	"github.com/orientwalt/htdf/store"
 	sdk "github.com/orientwalt/htdf/types"
 )
 
 func TestStore(t *testing.T) {
 	db := dbm.NewMemDB()
-	cms := NewCommitMultiStore()
+	cms := store.NewCommitMultiStore(db)
 
 	key := sdk.NewKVStoreKey("test")
 	cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)

@@ -8,8 +8,8 @@ import (
 	"github.com/tendermint/tendermint/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
 
 	bam "github.com/orientwalt/htdf/app"
 	"github.com/orientwalt/htdf/codec"
@@ -29,7 +29,7 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 	capKeyMainStore := sdk.NewKVStoreKey(bam.MainStoreKey)
 
 	// Create BaseApp.
-	baseApp := bam.NewBaseApp("kvstore", logger, db, decodeTx)
+	baseApp := bam.NewBaseApp("kvstore", logger, db, decodeTx2)
 
 	// Set mounts for BaseApp's MultiStore.
 	baseApp.MountStores(capKeyMainStore)

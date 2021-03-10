@@ -7,6 +7,9 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"runtime"
+	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
@@ -42,6 +45,18 @@ func init() {
 	// set global log level
 	log.SetLevel(ll)
 	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
+}
+
+func logger() *log.Entry {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		panic("Could not get context info for logger!")
+	}
+
+	filename := file[strings.LastIndex(file, "/")+1:] + ":" + strconv.Itoa(line)
+	funcname := runtime.FuncForPC(pc).Name()
+	fn := funcname[strings.LastIndex(funcname, ".")+1:]
+	return log.WithField("file", filename).WithField("function", fn)
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -250,9 +265,9 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	// commented by junying, 2019-08-22
 	// default non-contract tx gas: 21000
 	// default contract tx gas: 53000 + f(tx.data)
-	logger().Debugf("in TransitionDb\n")
+	logging().Debugf("in TransitionDb\n")
 	cost, err := IntrinsicGas(st.payload, st.ContractCreation, true)
-	logger().Debugf("in TransitionDb:cost[%d]\n", cost)
+	logging().Debugf("in TransitionDb:cost[%d]\n", cost)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "invalid intrinsic gas for transaction")
 	}
@@ -264,7 +279,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	}
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
 	gasLimit := st.gasLimit - ctx.GasMeter().GasConsumed()
-	logger().Debugf("in TransitionDb:gasLimit[%d]\n", gasLimit)
+	logging().Debugf("in TransitionDb:gasLimit[%d]\n", gasLimit)
 
 	var (
 		ret             []byte
@@ -279,10 +294,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	// st.StateDB.SetNonce(st.sender, st.AccountNonce)
 
-	logger().Debugf("in TransitionDb:currentNonce[%d]\n", currentNonce)
+	logging().Debugf("in TransitionDb:currentNonce[%d]\n", currentNonce)
 
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
-	logger().Debugln(st.ContractCreation)
+	logging().Debugln(st.ContractCreation)
 
 	//
 	stateDB.SetNonce(st.sender, currentNonce+1)
@@ -301,8 +316,8 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
 	logger().Debugf("in TransitionDb:leftOverGas[%d]\n", leftOverGas)
 	st.GasUsed = gasLimit - leftOverGas
-	logger().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
-	logger().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
+	logging().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
+	logging().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
 	if err != nil {
 		st.GasUsed = st.gasLimit //? this waste-all part is still necessary
 		recipientLog = fmt.Sprintf("%s, err: %s", recipientLog, err)
@@ -321,10 +336,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	stateDB.SetNonce(st.sender, currentNonce+1)
 
 	if !st.simulate {
-		logger().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
+		logging().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
 		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed), st.gasPrice)
 		fck.AddCollectedFees(ctx, sdk.Coins{sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(gasUsed))})
-		logger().Debugf("in TransitionDb:feeCollectionKeeper.gasUsed[%v]\n", gasUsed)
+		logging().Debugf("in TransitionDb:feeCollectionKeeper.gasUsed[%v]\n", gasUsed)
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
 		if _, _err := stateDB.Commit(false); _err != nil {
@@ -385,8 +400,8 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 			GasRefunded: leftOverGas,
 		},
 	}
-	logger().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
-	logger().Debugf("in TransitionDb:st.GasRefunded[%d]\n", leftOverGas)
+	logging().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
+	logging().Debugf("in TransitionDb:st.GasRefunded[%d]\n", leftOverGas)
 	// TODO: Refund unused gas here, if intended in future
 
 	// Consume gas from evm execution

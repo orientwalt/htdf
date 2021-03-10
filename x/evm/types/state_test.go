@@ -19,8 +19,6 @@ import (
 
 	"github.com/orientwalt/htdf/codec"
 
-	tmlog "github.com/tendermint/tendermint/libs/log"
-
 	"math/big"
 	"testing"
 )
@@ -43,7 +41,7 @@ var (
 	gasLimit    = big.NewInt(100000)
 	coinbase    = fromAddress
 
-	logger = tmlog.NewNopLogger()
+	// logger = tmlog.NewNopLogger()
 )
 
 func newTestCodec1() *codec.Codec {

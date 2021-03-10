@@ -40,7 +40,7 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
 }
 
-func logger() *log.Entry {
+func logging() *log.Entry {
 	pc, file, line, ok := runtime.Caller(1)
 	if !ok {
 		panic("Could not get context info for logger!")
@@ -229,8 +229,8 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	log.TxIndex = uint(csdb.txIndex)
 	log.Index = csdb.logSize
 
-	logger().Debugf("statedb(AddLog):csdb.thash[%s]\n", (csdb.thash).String())
-	logger().Debugf("statedb(AddLog):log[%v]\n", log)
+	logging().Debugf("statedb(AddLog):csdb.thash[%s]\n", (csdb.thash).String())
+	logging().Debugf("statedb(AddLog):log[%v]\n", log)
 
 	// csdb.logs[csdb.thash] = append(csdb.logs[csdb.thash], log)
 	// csdb.logSize++

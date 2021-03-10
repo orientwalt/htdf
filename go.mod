@@ -1,5 +1,7 @@
 module github.com/orientwalt/htdf
 
+go 1.14
+
 require (
 	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/aristanetworks/goarista v0.0.0-20191023202215-f096da5361bb // indirect
@@ -44,12 +46,9 @@ require (
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.16.0
-	// github.com/tendermint/iavl v0.14.0
 	github.com/tendermint/iavl v0.14.0
-	// github.com/tendermint/iavl v0.12.1
 	github.com/tendermint/tendermint v0.34.1
 	github.com/tendermint/tm-db v0.5.1
-	// github.com/tendermint/tm-db v0.6.3
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
@@ -65,5 +64,3 @@ replace (
 	github.com/tendermint/iavl => github.com/tendermint/iavl v0.13.3
 	github.com/tendermint/tendermint => github.com/orientwalt/tendermint v0.99.2
 )
-
-go 1.13
