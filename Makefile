@@ -208,7 +208,8 @@ clean:
 	@find build -name bin | xargs rm -rf
 
 clear: clean
-	@rm -rf ~/.hs*
+	@rm -rf ~/.hsd
+	@rm -rf ~/.hscli
 
 DOCKER_VALIDATOR_IMAGE = falcon0125/hsdnode
 DOCKER_CLIENT_IMAGE = falcon0125/hsclinode
