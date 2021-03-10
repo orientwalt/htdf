@@ -36,26 +36,26 @@ func (p *ProtocolV2) ExportAppStateAndValidators(ctx sdk.Context, forZeroHeight 
 		return false
 	}
 	p.accountMapper.IterateAccounts(ctx, appendAccount)
-	fileAccounts := []GenesisFileAccount{}
-	for _, acc := range accounts {
-		if acc.Coins == nil {
-			continue
-		}
-		var coinsString []string
-		for _, coin := range acc.Coins {
-			coinsString = append(coinsString, coin.String())
-		}
-		fileAccounts = append(fileAccounts,
-			GenesisFileAccount{
-				Address:       acc.Address,
-				Coins:         coinsString,
-				Sequence:      acc.Sequence,
-				AccountNumber: acc.AccountNumber,
-			})
-	}
+	// fileAccounts := []GenesisAccount{}
+	// for _, acc := range accounts {
+	// 	if acc.Coins == nil {
+	// 		continue
+	// 	}
+	// 	var coinsString []string
+	// 	for _, coin := range acc.Coins {
+	// 		coinsString = append(coinsString, coin.String())
+	// 	}
+	// 	fileAccounts = append(fileAccounts,
+	// 		GenesisAccount{
+	// 			Address:       acc.Address,
+	// 			Coins:         acc.Coins,
+	// 			Sequence:      acc.Sequence,
+	// 			AccountNumber: acc.AccountNumber,
+	// 		})
+	// }
 
 	genState := NewGenesisFileState(
-		fileAccounts,
+		accounts,
 		auth.ExportGenesis(ctx, p.accountMapper, p.feeCollectionKeeper),
 		stake.ExportGenesis(ctx, p.StakeKeeper),
 		mint.ExportGenesis(ctx, p.mintKeeper),
