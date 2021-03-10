@@ -485,9 +485,9 @@ func CollectStdTxsEx(cdc *codec.Codec, moniker string, genTxsDir string, genDoc 
 // }
 
 type GenesisFileState struct {
-	Accounts     []GenesisFileAccount  `json:"accounts"`
+	Accounts     []GenesisAccount  `json:"accounts"`
 	AuthData     auth.GenesisState     `json:"auth"`
-	StakeData    stake.GenesisState    `json:"stake"`
+	StakeData    stake.GenesisState    `json:"staking"`
 	MintData     mint.GenesisState     `json:"mint"`
 	DistrData    distr.GenesisState    `json:"distr"`
 	GovData      gov.GenesisState      `json:"gov"`
@@ -499,27 +499,27 @@ type GenesisFileState struct {
 	GenTxs       []json.RawMessage     `json:"gentxs"`
 }
 
-type GenesisFileAccount struct {
-	Address       sdk.AccAddress `json:"address"`
-	Coins         []string       `json:"coins"`
-	Sequence      uint64         `json:"sequence_number"`
-	AccountNumber uint64         `json:"account_number"`
-}
+// type GenesisFileAccount struct {
+// 	Address       sdk.AccAddress `json:"address"`
+// 	Coins         []string       `json:"coins"`
+// 	Sequence      uint64         `json:"sequence_number"`
+// 	AccountNumber uint64         `json:"account_number"`
+// }
 
-func NewGenesisFileAccount(acc *auth.BaseAccount) GenesisFileAccount {
-	var coins []string
-	for _, coin := range acc.Coins {
-		coins = append(coins, coin.String())
-	}
-	return GenesisFileAccount{
-		Address:       acc.Address,
-		Coins:         coins,
-		AccountNumber: acc.AccountNumber,
-		Sequence:      acc.Sequence,
-	}
-}
+// func NewGenesisFileAccount(acc *auth.BaseAccount) GenesisFileAccount {
+// 	var coins []string
+// 	for _, coin := range acc.Coins {
+// 		coins = append(coins, coin.String())
+// 	}
+// 	return GenesisFileAccount{
+// 		Address:       acc.Address,
+// 		Coins:         coins,
+// 		AccountNumber: acc.AccountNumber,
+// 		Sequence:      acc.Sequence,
+// 	}
+// }
 
-func NewGenesisFileState(accounts []GenesisFileAccount, authData auth.GenesisState, stakeData stake.GenesisState, mintData mint.GenesisState,
+func NewGenesisFileState(accounts []GenesisAccount, authData auth.GenesisState, stakeData stake.GenesisState, mintData mint.GenesisState,
 	distrData distr.GenesisState, govData gov.GenesisState, upgradeData upgrade.GenesisState, serviceData service.GenesisState,
 	guardianData guardian.GenesisState, slashingData slashing.GenesisState, crisisData crisis.GenesisState) GenesisFileState {
 

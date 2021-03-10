@@ -6,7 +6,7 @@ PARAMETERS_REGTEST = {
     'CHAINID': 'testchain',
     'ADDRESS': 'htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml',
     'PRIVATE_KEY': '279bdcd8dccec91f9e079894da33d6888c0f9ef466c0b200921a1bf1ea7d86e8',
-    'RPC_HOST': '192.168.0.70',
+    'RPC_HOST': '127.0.0.1',
     'RPC_PORT': 1317,
 }
 

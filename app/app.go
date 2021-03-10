@@ -116,8 +116,8 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	logrus.Traceln("KeyMain----->	", app.GetKVStore(protocol.KeyMain))
 	loaded, current := engine.LoadCurrentProtocol(app.GetKVStore(protocol.KeyMain))
 
-	fmt.Printf("currVersion=%v\n", engine.GetCurrentProtocol().GetVersion())
-	fmt.Printf("LastBlockHeight=%v\n", app.BaseApp.LastBlockHeight())
+	logrus.Infof("currVersion=%v\n", engine.GetCurrentProtocol().GetVersion())
+	logrus.Infof("LastBlockHeight=%v\n", app.BaseApp.LastBlockHeight())
 
 	if !loaded {
 		cmn.Exit(fmt.Sprintf("Your software doesn't support the required protocol (version %d)!", current))

@@ -182,7 +182,8 @@ func (p *Params) StringFromBytes(cdc *codec.Codec, key string, bytes []byte) (st
 func validateUnbondingTime(v time.Duration) sdk.Error {
 	// planed to be modified by junying, 2019-11-20
 	// because two-week unbond time may be too long
-	if v < 2*sdk.Week {
+	// if v < 2*sdk.Week {
+	if v < 3*sdk.Day {
 		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidUnbondingTime, fmt.Sprintf("Invalid UnbondingTime [%s] should be greater than or equal to 2 weeks", v.String()))
 	}
 	return nil
