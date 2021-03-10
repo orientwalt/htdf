@@ -15,33 +15,38 @@ import (
 const (
 	Codespace CodespaceType = "htdf"
 
-	ErrCode_OK             CodeType = 0
-	ErrCode_CreateContract CodeType = 1
-	ErrCode_OpenContract   CodeType = 2
-	ErrCode_BeZeroAmount   CodeType = 3
-	ErrCode_Param          CodeType = 4
-	ErrCode_Parsing        CodeType = 5
+	ErrCodeOK CodeType = iota
+	ErrCodeCreateContract
+	ErrCodeOpenContract
+	ErrCodeBeZeroAmount
+	ErrCodeParam
+	ErrCodeParsing
+	ErrCodeIntrinsicGas
 )
 
+//
 func GetErrMsg(code CodeType) string {
 	switch code {
-	case ErrCode_OK:
+	case ErrCodeOK:
 		return "ok"
 
-	case ErrCode_CreateContract:
+	case ErrCodeCreateContract:
 		return "create contract error"
 
-	case ErrCode_OpenContract:
+	case ErrCodeOpenContract:
 		return "open contract error"
 
-	case ErrCode_BeZeroAmount:
-		return "access smart contract, transfer amout must be 0"
+	case ErrCodeBeZeroAmount:
+		return "access smart contract, transfer amount must be 0"
 
-	case ErrCode_Param:
+	case ErrCodeParam:
 		return "param error"
 
-	case ErrCode_Parsing:
+	case ErrCodeParsing:
 		return "parsing error"
+
+	case ErrCodeIntrinsicGas:
+		return "intrinsic gas error"
 
 	default:
 		return fmt.Sprintf("errCode error|errCode=%v", code)

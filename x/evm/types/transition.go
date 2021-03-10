@@ -230,7 +230,8 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	if st.StateDB == nil {
 		stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
 		if err != nil {
-			return nil, sdkerrors.Wrapf(err, "newStateDB error")
+			panic(err)
+			// return nil, sdkerrors.Wrapf(err, "newStateDB error")
 		}
 		st.StateDB = stateDB
 	}
@@ -290,12 +291,13 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	switch st.ContractCreation {
 	case true:
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.payload, gasLimit, st.amount)
-		recipientLog = fmt.Sprintf("contract address %s", contractAddress.String())
+		recipientLog = fmt.Sprintf("contract address: %s", contractAddress.String())
 	default:
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.recipient, st.payload, gasLimit, st.amount)
-		recipientLog = fmt.Sprintf("recipient address %s", st.recipient.String())
+		recipientLog = fmt.Sprintf("recipient address: %s", st.recipient.String())
 	}
+	recipientLog = fmt.Sprintf("%s, output: %s", recipientLog, hex.EncodeToString(ret))
 	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
 	logger().Debugf("in TransitionDb:leftOverGas[%d]\n", leftOverGas)
 	st.GasUsed = gasLimit - leftOverGas
@@ -303,19 +305,16 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	logger().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
 	if err != nil {
 		st.GasUsed = st.gasLimit //? this waste-all part is still necessary
-		// evmOutput = fmt.Sprintf("evm Create error|err=%s\n", err)
-
+		recipientLog = fmt.Sprintf("%s, err: %s", recipientLog, err)
 		// Consume gas before returning
 		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
-		return nil, err
+		// return nil, err
 	} else {
 		st.gasLimit = leftOverGas
 		st.refundGas()
 		st.GasUsed = st.gasUsed()
 		st.ContractAddress = &contractAddress
 		logger().Debugf("in TransitionDb:contractAddress[%s]\n", contractAddress.String())
-		// evmOutput = sdk.ToAppAddress(contractAddress).String() //for contract creation
-		// evmOutput = hex.EncodeToString(ret)//for contract call
 	}
 
 	// Resets nonce to value pre state transition
@@ -328,8 +327,8 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 		logger().Debugf("in TransitionDb:feeCollectionKeeper.gasUsed[%v]\n", gasUsed)
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
-		if _, err := stateDB.Commit(false); err != nil {
-			return nil, err
+		if _, _err := stateDB.Commit(false); _err != nil {
+			panic(_err)
 		}
 	}
 
@@ -362,21 +361,23 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 		resultData.ContractAddress = contractAddress
 	}
 
-	resBz, err := EncodeResultData(resultData)
+	resBz, _err := EncodeResultData(resultData)
 	if err != nil {
-		return nil, err
+		panic(_err)
 	}
 
 	resultLog := fmt.Sprintf(
-		"executed EVM state transition; sender address %s; %s", st.sender.String(), recipientLog,
+		"executed EVM state transition; sender address: %s, %s", st.sender.String(), recipientLog,
 	)
 
 	executionResult := &ExecutionResult{
 		Logs:  logs,
 		Bloom: bloomInt,
 		Result: &sdk.Result{
-			Data: resBz,
-			Log:  resultLog,
+			Data:      resBz,
+			Log:       resultLog,
+			GasUsed:   st.GasUsed,
+			GasWanted: st.msg.GasWanted,
 		},
 		GasInfo: GasInfo{
 			GasConsumed: st.GasUsed,
@@ -392,5 +393,5 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	// Out of gas check does not need to be done here since it is done within the EVM execution
 	// ctx.WithGasMeter(currentGasMeter).GasMeter().ConsumeGas(gasConsumed, "EVM execution consumption")
 
-	return executionResult, nil
+	return executionResult, err
 }

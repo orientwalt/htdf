@@ -63,7 +63,7 @@ func NewHandler(k Keeper) sdk.Handler {
 func HandleUnknownMsg(msg sdk.Msg) sdk.Result {
 	var sendTxResp types.SendTxResp
 	logger().Debugf("msgType error|mstType=%v\n", msg.Type())
-	sendTxResp.ErrCode = sdk.ErrCode_Param
+	sendTxResp.ErrCode = sdk.ErrCodeParam
 	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String()}
 }
 
@@ -72,11 +72,11 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 	k Keeper,
 	msg types.MsgEthereumTx) sdk.Result {
 	// initialize
-	var sendTxResp types.SendTxResp
+	// var sendTxResp types.SendTxResp
 
 	st, err := types.NewStateTransition(ctx, msg)
 	if st == nil {
-		return sdk.Result{Code: sdk.ErrCode_Parsing, Log: fmt.Sprintf("%s\n", err)}
+		return sdk.Result{Code: sdk.ErrCodeParsing, Log: fmt.Sprintf("%s\n", err)}
 	}
 
 	st.StateDB = k.CommitStateDB.WithContext(ctx)
@@ -89,14 +89,18 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 
 	evmResult, err := st.TransitionDb(ctx, k.AccountKeeper, k.FeeCollectionKeeper)
 
+	//
 	if evmResult == nil {
-		sendTxResp.EvmOutput = fmt.Sprintf("%s\n", err)
+		return sdk.Result{Code: sdk.ErrCodeIntrinsicGas, Log: fmt.Sprintf("err: %s\n", err), GasUsed: st.GasUsed}
+	}
+	//
+	if err != nil {
 		if st.ContractCreation {
-			sendTxResp.ErrCode = sdk.ErrCode_CreateContract
+			evmResult.Result.Code = sdk.ErrCodeCreateContract
 		} else {
-			sendTxResp.ErrCode = sdk.ErrCode_OpenContract
+			evmResult.Result.Code = sdk.ErrCodeOpenContract
 		}
-		return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed}
+		return *evmResult.Result
 	}
 
 	logger().Debugf("handler:evmResult.Log[%v]\n", evmResult.Logs)
@@ -114,8 +118,6 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 	k.Logger(ctx).Info(evmResult.Result.Log)
 
 	// evmResult.Result.Code = sendTxResp.ErrCode
-	evmResult.Result.GasUsed = st.GasUsed
-	evmResult.Result.GasWanted = msg.GasWanted
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -137,10 +139,7 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 			),
 		)
 	}
-	if st.ContractCreation {
-		sendTxResp.ContractAddress = sdk.ToAppAddress(*st.ContractAddress).String()
-	}
-	evmResult.Result.Log = sendTxResp.String()
+	// evmResult.Result.Log = sendTxResp.String()
 	evmResult.Result.Events = ctx.EventManager().Events().ToABCIEvents()
 
 	// set the events to the result
