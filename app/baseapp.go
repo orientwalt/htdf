@@ -947,7 +947,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 	gInfo = sdk.NewGasInfo()
 	// only run the tx if there is block gas remaining
-	if mode == runTxModeDeliver && ctx.BlockGasMeter().IsOutOfGas() {
+	if ctx.BlockGasMeter().IsOutOfGas() {
 		return gInfo, nil, sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx") //sdk.ErrOutOfGas("no block gas left to run tx")
 	}
 
@@ -962,7 +962,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	logger().Traceln("runTx:startingGas", startingGas)
 	if mode == runTxModeDeliver {
 		app.deliverState.ctx = app.deliverState.ctx.WithCheckValidNum(app.deliverState.ctx.CheckValidNum() + 1)
-		logger().Traceln("")
 	}
 
 	defer func() {
@@ -1045,6 +1044,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	// 	}
 	// }
 	logger().Traceln("5runTx!!!!!!!!!!!!!!!!!")
+
 	anteHandler := app.Engine.GetCurrentProtocol().GetAnteHandler()
 	if anteHandler != nil {
 		var anteCtx sdk.Context
@@ -1069,7 +1069,6 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 			// Also, in the case of the tx aborting, we need to track gas consumed via
 			// the instantiated gas meter in the ante handler, so we update the context
 			// prior to returning.
-			logger().Traceln("newCtx not IsZero")
 			ctx = newCtx.WithMultiStore(ms)
 		}
 
@@ -1083,6 +1082,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		msCache.Write()
 	}
 	logger().Traceln("6runTx!!!!!!!!!!!!!!!!!", result)
+	logger().Traceln("runTxMode(check0,simulate,deliver,recheck)", mode)
 	if mode == runTxModeCheck {
 		return
 	}

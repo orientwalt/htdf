@@ -300,7 +300,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	logging().Debugln(st.ContractCreation)
 
 	//
-	stateDB.SetNonce(st.sender, currentNonce+1)
+	// stateDB.SetNonce(st.sender, currentNonce+1)
 
 	// create contract or execute call
 	switch st.ContractCreation {

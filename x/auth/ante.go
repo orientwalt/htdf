@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/common/log"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/multisig"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
@@ -425,7 +424,7 @@ func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Resu
 // consensus.
 func EnsureSufficientMempoolFees(ctx sdk.Context, stdFee StdFee) sdk.Result {
 	minGasPrices := ctx.MinGasPrices()
-	log.Debugln("EnsureSufficientMempoolFees:minGasPrices", minGasPrices)
+	logger().Debugln("EnsureSufficientMempoolFees:minGasPrices", minGasPrices)
 	if !minGasPrices.IsZero() {
 		requiredFees := make(sdk.Coins, len(minGasPrices))
 
@@ -436,8 +435,8 @@ func EnsureSufficientMempoolFees(ctx sdk.Context, stdFee StdFee) sdk.Result {
 			fee := gp.Amount.Mul(gaslimit)
 			requiredFees[i] = sdk.NewCoin(gp.Denom, fee)
 		}
-		log.Debugln("EnsureSufficientMempoolFees:requiredFees", requiredFees)
-		log.Debugln("EnsureSufficientMempoolFees:stdFee", stdFee)
+		logger().Debugln("EnsureSufficientMempoolFees:requiredFees", requiredFees)
+		logger().Debugln("EnsureSufficientMempoolFees:stdFee", stdFee)
 		if !stdFee.Amount().IsAnyGTE(requiredFees) {
 			return sdk.ErrInsufficientFee(
 				fmt.Sprintf(
