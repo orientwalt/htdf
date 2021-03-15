@@ -633,8 +633,8 @@ def test_5000_normal_send_txs(conftest_args):
     single block could include 500 txs.
     """
 
-    txs_count = 5
-    gas_wanted = 5000000
+    txs_count = 5000#5
+    gas_wanted = 30000#5000000
     gas_price = 100
     tx_amount = 1
     data = ''

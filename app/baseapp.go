@@ -810,8 +810,9 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		}
 
 		var msgResult sdk.Result
-		// skip actual execution for CheckTx mode
-		if mode != runTxModeCheck {
+		// skip actual execution for CheckTx mode & ReCheckTx mode
+		// what about simulation mode?
+		if mode != runTxModeCheck && mode != runTxModeReCheck {
 			logrus.Traceln(msgRoute, handler)
 			msgResult = handler(ctx, msg)
 
@@ -869,7 +870,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeCheck || mode == runTxModeSimulate || mode == runTxModeReCheck {
+	if mode != runTxModeDeliver {
 		return app.checkState
 	}
 
@@ -947,7 +948,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 	gInfo = sdk.NewGasInfo()
 	// only run the tx if there is block gas remaining
-	if ctx.BlockGasMeter().IsOutOfGas() {
+	if mode == runTxModeDeliver && ctx.BlockGasMeter().IsOutOfGas() {
 		return gInfo, nil, sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx") //sdk.ErrOutOfGas("no block gas left to run tx")
 	}
 
@@ -1005,7 +1006,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		feeRefundHandler := app.Engine.GetCurrentProtocol().GetFeeRefundHandler()
 
 		// Refund unspent fee
-		if mode != runTxModeCheck && feeRefundHandler != nil {
+		if (mode == runTxModeDeliver || mode == runTxModeSimulate) && feeRefundHandler != nil {
 			_, err := feeRefundHandler(refundCtx, tx, *result)
 			if err != nil {
 				return
@@ -1083,7 +1084,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	}
 	logger().Traceln("6runTx!!!!!!!!!!!!!!!!!", result)
 	logger().Traceln("runTxMode(check0,simulate,deliver,recheck)", mode)
-	if mode == runTxModeCheck {
+	if mode == runTxModeCheck || mode == runTxModeReCheck {
 		return
 	}
 	logger().Traceln("7runTx!!!!!!!!!!!!!!!!!")
