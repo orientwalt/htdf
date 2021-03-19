@@ -5,12 +5,12 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/gov/tags"
+	"github.com/orientwalt/htdf/x/gov/types"
 )
 
 // Called every block, process inflation, update validator set
-func EndBlocker(ctx sdk.Context, keeper Keeper) sdk.Tags {
+func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	logger := ctx.Logger().With("module", "x/gov")
-	resTags := sdk.NewTags()
 
 	inactiveIterator := keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	defer inactiveIterator.Close()
@@ -26,9 +26,13 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) sdk.Tags {
 		keeper.DeleteProposal(ctx, proposalID)
 		keeper.DeleteDeposits(ctx, proposalID) // delete any associated deposits (burned)
 
-		resTags = resTags.AppendTag(tags.ProposalID, fmt.Sprintf("%d", proposalID))
-		resTags = resTags.AppendTag(tags.ProposalResult, tags.ActionProposalDropped)
-
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeInactiveProposal,
+				sdk.NewAttribute(types.AttributeKeyProposalID, fmt.Sprintf("%d", proposalID)),
+				sdk.NewAttribute(types.AttributeKeyProposalResult, types.AttributeValueProposalDropped),
+			),
+		)
 		logger.Info(
 			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %s (had only %s); deleted",
 				inactiveProposal.GetProposalID(),
@@ -79,9 +83,13 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) sdk.Tags {
 			),
 		)
 
-		resTags = resTags.AppendTag(tags.ProposalID, fmt.Sprintf("%d", proposalID))
-		resTags = resTags.AppendTag(tags.ProposalResult, tagValue)
-
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeActiveProposal,
+				sdk.NewAttribute(types.AttributeKeyProposalID, fmt.Sprintf("%d", proposalID)),
+				sdk.NewAttribute(types.AttributeKeyProposalResult, tagValue),
+			),
+		)
 		for _, valAddr := range keeper.GetValidatorSet(ctx, proposalID) {
 			if _, ok := votingVals[valAddr.String()]; !ok {
 				val := keeper.ds.GetValidatorSet().Validator(ctx, valAddr)
@@ -97,5 +105,4 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) sdk.Tags {
 
 		keeper.DeleteValidatorSet(ctx, activeProposal.GetProposalID())
 	}
-	return resTags
 }

@@ -233,7 +233,7 @@ func (bva BaseVestingAccount) spendableCoins(vestingCoins sdk.Coins) sdk.Coins {
 		spendableCoin := sdk.NewCoin(coin.Denom, min)
 
 		if !spendableCoin.IsZero() {
-			spendableCoins = spendableCoins.Add(sdk.Coins{spendableCoin})
+			spendableCoins = spendableCoins.Adds(spendableCoin)
 		}
 	}
 
@@ -270,12 +270,12 @@ func (bva *BaseVestingAccount) trackDelegation(vestingCoins, amount sdk.Coins) {
 
 		if !x.IsZero() {
 			xCoin := sdk.NewCoin(coin.Denom, x)
-			bva.DelegatedVesting = bva.DelegatedVesting.Add(sdk.Coins{xCoin})
+			bva.DelegatedVesting = bva.DelegatedVesting.Adds(xCoin)
 		}
 
 		if !y.IsZero() {
 			yCoin := sdk.NewCoin(coin.Denom, y)
-			bva.DelegatedFree = bva.DelegatedFree.Add(sdk.Coins{yCoin})
+			bva.DelegatedFree = bva.DelegatedFree.Adds(yCoin)
 		}
 
 		bva.Coins = bva.Coins.Sub(sdk.Coins{coin})
@@ -318,7 +318,7 @@ func (bva *BaseVestingAccount) TrackUndelegation(amount sdk.Coins) {
 			bva.DelegatedVesting = bva.DelegatedVesting.Sub(sdk.Coins{yCoin})
 		}
 
-		bva.Coins = bva.Coins.Add(sdk.Coins{coin})
+		bva.Coins = bva.Coins.Adds(coin)
 	}
 }
 

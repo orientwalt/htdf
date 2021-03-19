@@ -12,7 +12,6 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/x/staking"
-	"github.com/orientwalt/htdf/x/staking/tags"
 )
 
 // contains checks if the a given query contains one of the tx types
@@ -26,15 +25,15 @@ func contains(stringSlice []string, txType string) bool {
 }
 
 // queries staking txs
-func queryTxs(cliCtx context.CLIContext, cdc *codec.Codec, tag string, delegatorAddr string) ([]sdk.TxResponse, error) {
+func queryTxs(cliCtx context.CLIContext, cdc *codec.Codec, action string, delegatorAddr string) ([]sdk.TxResponse, error) {
 	page := 1
 	limit := 100
-	tags := []string{
-		fmt.Sprintf("%s='%s'", tags.Action, tag),
-		fmt.Sprintf("%s='%s'", tags.Delegator, delegatorAddr),
+	events := []string{
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, sdk.AttributeKeyAction, action),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, sdk.AttributeKeySender, delegatorAddr),
 	}
 
-	return tx.SearchTxs(cliCtx, cdc, tags, page, limit)
+	return tx.SearchTxs(cliCtx, cdc, events, page, limit)
 }
 
 func queryBonds(cliCtx context.CLIContext, cdc *codec.Codec, endpoint string) http.HandlerFunc {

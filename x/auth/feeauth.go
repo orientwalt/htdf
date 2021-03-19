@@ -83,7 +83,7 @@ func NewFeeRefundHandler(am AccountKeeper, fk FeeCollectionKeeper) types.FeeRefu
 			totalNativeFee.Amount.Mul(sdk.NewInt(int64(unusedGas))).Quo(sdk.NewInt(int64(txResult.GasWanted))))
 
 		coins := am.GetAccount(ctx, firstAccount.GetAddress()).GetCoins() // consume gas
-		err = firstAccount.SetCoins(coins.Add(sdk.Coins{refundCoin}))
+		err = firstAccount.SetCoins(coins.Adds(refundCoin))
 		if err != nil {
 			return sdk.Coin{}, err
 		}

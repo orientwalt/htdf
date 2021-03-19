@@ -4,7 +4,6 @@ package staking
 import (
 	"github.com/orientwalt/htdf/x/staking/keeper"
 	"github.com/orientwalt/htdf/x/staking/querier"
-	"github.com/orientwalt/htdf/x/staking/tags"
 	"github.com/orientwalt/htdf/x/staking/types"
 )
 
@@ -174,16 +173,4 @@ var (
 	ErrMinSelfDelegationInvalid   = types.ErrMinSelfDelegationInvalid
 	ErrMinSelfDelegationDecreased = types.ErrMinSelfDelegationDecreased
 	ErrSelfDelegationBelowMinimum = types.ErrSelfDelegationBelowMinimum
-)
-
-var (
-	ActionCompleteUnbonding    = tags.ActionCompleteUnbonding
-	ActionCompleteRedelegation = tags.ActionCompleteRedelegation
-
-	TagAction       = tags.Action
-	TagSrcValidator = tags.SrcValidator
-	TagDstValidator = tags.DstValidator
-	TagDelegator    = tags.Delegator
-	TagMoniker      = tags.Moniker
-	TagIdentity     = tags.Identity
 )

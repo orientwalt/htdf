@@ -394,12 +394,12 @@ func (p *ProtocolV0) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 
 // application updates every end block
 func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	tags := gov.EndBlocker(ctx, p.govKeeper)
+	gov.EndBlocker(ctx, p.govKeeper)
 	// tags = tags.AppendTags(slashing.EndBlocker(ctx, req, p.slashingKeeper))
-	tags = tags.AppendTags(service.EndBlocker(ctx, p.serviceKeeper))
-	tags = tags.AppendTags(upgrade.EndBlocker(ctx, p.upgradeKeeper))
-	validatorUpdates, endBlockerTags := stake.EndBlocker(ctx, p.StakeKeeper)
-	tags = append(tags, endBlockerTags...)
+	service.EndBlocker(ctx, p.serviceKeeper)
+	upgrade.EndBlocker(ctx, p.upgradeKeeper)
+	validatorUpdates, _ := stake.EndBlocker(ctx, p.StakeKeeper)
+
 	if p.invCheckPeriod != 0 && ctx.BlockHeight()%int64(p.invCheckPeriod) == 0 {
 		p.assertRuntimeInvariants(ctx)
 	}

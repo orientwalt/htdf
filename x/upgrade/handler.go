@@ -8,11 +8,10 @@ import (
 )
 
 // do switch
-func EndBlocker(ctx sdk.Context, uk Keeper) (tags sdk.Tags) {
+func EndBlocker(ctx sdk.Context, uk Keeper) {
 
 	ctx = ctx.WithLogger(ctx.Logger().With("handler", "endBlock").With("module", "htdf/upgrade"))
 
-	tags = sdk.NewTags()
 	upgradeConfig, ok := uk.protocolKeeper.GetUpgradeConfig(ctx)
 	if ok {
 
@@ -60,7 +59,11 @@ func EndBlocker(ctx sdk.Context, uk Keeper) (tags sdk.Tags) {
 		uk.metrics.Upgrade.Set(float64(0))
 	}
 
-	tags = tags.AppendTag(sdk.AppVersionTag, (strconv.FormatUint(uk.protocolKeeper.GetCurrentVersion(ctx), 10)))
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"upgrade",
+			sdk.NewAttribute(sdk.AppVersionTag, strconv.FormatUint(uk.protocolKeeper.GetCurrentVersion(ctx), 10)),
+		),
+	)
 
-	return tags
 }

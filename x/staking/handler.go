@@ -14,7 +14,6 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/staking/keeper"
-	"github.com/orientwalt/htdf/x/staking/tags"
 	"github.com/orientwalt/htdf/x/staking/types"
 )
 
@@ -95,33 +94,40 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) ([]abci.ValidatorUpdate, sdk.T
 	// Remove all mature unbonding delegations from the ubd queue.
 	matureUnbonds := k.DequeueAllMatureUBDQueue(ctx, ctx.BlockHeader().Time)
 	for _, dvPair := range matureUnbonds {
-		err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddress, dvPair.ValidatorAddress)
+		balances, err := k.CompleteUnbonding(ctx, dvPair.DelegatorAddress, dvPair.ValidatorAddress)
 		if err != nil {
 			continue
 		}
 
-		resTags = resTags.AppendTags(sdk.NewTags(
-			tags.Action, tags.ActionCompleteUnbonding,
-			tags.Delegator, dvPair.DelegatorAddress.String(),
-			tags.SrcValidator, dvPair.ValidatorAddress.String(),
-		))
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeCompleteUnbonding,
+				sdk.NewAttribute(sdk.AttributeKeyAmount, balances.String()),
+				sdk.NewAttribute(types.AttributeKeyValidator, dvPair.ValidatorAddress.String()),
+				sdk.NewAttribute(types.AttributeKeyDelegator, dvPair.DelegatorAddress.String()),
+			),
+		)
+
 	}
 
 	// Remove all mature redelegations from the red queue.
 	matureRedelegations := k.DequeueAllMatureRedelegationQueue(ctx, ctx.BlockHeader().Time)
 	for _, dvvTriplet := range matureRedelegations {
-		err := k.CompleteRedelegation(ctx, dvvTriplet.DelegatorAddress,
+		balances, err := k.CompleteRedelegation(ctx, dvvTriplet.DelegatorAddress,
 			dvvTriplet.ValidatorSrcAddress, dvvTriplet.ValidatorDstAddress)
 		if err != nil {
 			continue
 		}
 
-		resTags = resTags.AppendTags(sdk.NewTags(
-			tags.Action, tags.ActionCompleteRedelegation,
-			tags.Delegator, dvvTriplet.DelegatorAddress.String(),
-			tags.SrcValidator, dvvTriplet.ValidatorSrcAddress.String(),
-			tags.DstValidator, dvvTriplet.ValidatorDstAddress.String(),
-		))
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeCompleteRedelegation,
+				sdk.NewAttribute(sdk.AttributeKeyAmount, balances.String()),
+				sdk.NewAttribute(types.AttributeKeyDelegator, dvvTriplet.DelegatorAddress.String()),
+				sdk.NewAttribute(types.AttributeKeySrcValidator, dvvTriplet.ValidatorSrcAddress.String()),
+				sdk.NewAttribute(types.AttributeKeyDstValidator, dvvTriplet.ValidatorDstAddress.String()),
+			),
+		)
 	}
 
 	return validatorUpdates, resTags
@@ -187,16 +193,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	if err != nil {
 		return err.Result()
 	}
-	logger().Traceln()
-	// tags := sdk.NewTags(
-	// 	tags.DstValidator, msg.ValidatorAddress.String(),
-	// 	tags.Moniker, msg.Description.Moniker,
-	// 	tags.Identity, msg.Description.Identity,
-	// )
 
-	// return sdk.Result{
-	// 	Tags: tags,
-	// }
 	logger().Traceln()
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(

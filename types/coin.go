@@ -246,6 +246,10 @@ func (coins Coins) IsValid() bool {
 //
 // CONTRACT: Add will never return Coins where one Coin has a non-positive
 // amount. In otherwords, IsValid will always return true.
+func (coins Coins) Adds(coinsB ...Coin) Coins {
+	return coins.safeAdd(coinsB)
+}
+
 func (coins Coins) Add(coinsB Coins) Coins {
 	return coins.safeAdd(coinsB)
 }

@@ -10,7 +10,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/x/staking"
-	"github.com/orientwalt/htdf/x/staking/tags"
+	"github.com/orientwalt/htdf/x/staking/types"
 
 	"github.com/gorilla/mux"
 )
@@ -162,16 +162,16 @@ func delegatorTxsHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec) http.Han
 			actions = append(actions, staking.MsgDelegate{}.Type())
 		case isUnbondTx:
 			actions = append(actions, staking.MsgUndelegate{}.Type())
-			actions = append(actions, tags.ActionCompleteUnbonding)
+			actions = append(actions, types.EventTypeCompleteUnbonding)
 		case isRedTx:
 			actions = append(actions, staking.MsgBeginRedelegate{}.Type())
-			actions = append(actions, tags.ActionCompleteRedelegation)
+			actions = append(actions, types.EventTypeCompleteRedelegation)
 		case noQuery:
 			actions = append(actions, staking.MsgDelegate{}.Type())
 			actions = append(actions, staking.MsgUndelegate{}.Type())
-			actions = append(actions, tags.ActionCompleteUnbonding)
+			actions = append(actions, types.EventTypeCompleteUnbonding)
 			actions = append(actions, staking.MsgBeginRedelegate{}.Type())
-			actions = append(actions, tags.ActionCompleteRedelegation)
+			actions = append(actions, types.EventTypeCompleteRedelegation)
 		default:
 			w.WriteHeader(http.StatusNoContent)
 			return

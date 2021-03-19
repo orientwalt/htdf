@@ -255,13 +255,12 @@ func handleMsgSvcWithdrawTax(ctx sdk.Context, k Keeper, msg MsgSvcWithdrawTax) s
 }
 
 // Called every block, update request status
-func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
+func EndBlocker(ctx sdk.Context, keeper Keeper) {
 	ctx = ctx.WithLogger(ctx.Logger().With("handler", "endBlock").With("module", "htdf/service"))
 	logger := ctx.Logger()
 	// Reset the intra-transaction counter.
 	keeper.SetIntraTxCounter(ctx, 0)
 
-	resTags = sdk.NewTags()
 	params := keeper.GetParamSet(ctx)
 	slashFraction := params.SlashFraction
 
@@ -297,10 +296,6 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 		keeper.metrics.ActiveRequests.Add(-1)
 		keeper.DeleteRequestExpiration(ctx, req)
 
-		// resTags = resTags.AppendTag(tags.Action, tags.ActionSvcCallTimeOut)
-		// resTags = resTags.AppendTag(tags.RequestID, req.RequestID())
-		// resTags = resTags.AppendTag(tags.Provider, req.Provider.String())
-		// resTags = resTags.AppendTag(tags.SlashCoins, slashCoins.String())
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				sdk.EventTypeMessage,
@@ -313,5 +308,4 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (resTags sdk.Tags) {
 		logger.Info("Remove timeout request", "request_id", req.RequestID(), "consumer", req.Consumer.String())
 	}
 
-	return resTags
 }

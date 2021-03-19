@@ -20,3 +20,9 @@ const (
 	AttributeKeyCompletionTime    = "completion_time"
 	AttributeValueCategory        = ModuleName
 )
+
+var (
+	ActionCompleteAuthorization = "complete-authorization"
+
+	// EndTime  = "end-time"
+)
