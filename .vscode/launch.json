@@ -5,13 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch",
+            "name": "hsd",
             "type": "go",
             "request": "launch",
-            "mode": "auto",
-            "program": "${fileDirname}",
+            "mode": "debug",
+            "program": "${workspaceRoot}/cmd/hsd/",
             "env": {},
-            "args": []
+            "args": ["start"]
+        },
+        {
+            "name": "hscli",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}/cmd/hscli/",
+            "env": {},
+            "args": ["rest-server", "--chain-id=testchain", "--trust-node=true", "tcp://127.0.0.1:26657" ,"--laddr=tcp://0.0.0.0:1317"]
+            // "args": ["query", "staking", "delegations", "htdf1pq0xeagjvd8rdwjgmg66jnpx53gug45sr8xu2g" ]
         }
     ]
 }

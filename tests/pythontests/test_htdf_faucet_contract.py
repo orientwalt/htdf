@@ -68,7 +68,7 @@ def deploy_htdf_faucet(conftest_args):
 
     assert tx['logs'][0]['success'] == True
     txlog = tx['logs'][0]['log']
-    txlog = json.loads(txlog)
+    # txlog = json.loads(txlog)
 
     assert tx['gas_wanted'] == str(gas_wanted)
     assert int(tx['gas_used']) <= gas_wanted
@@ -104,8 +104,10 @@ def deploy_htdf_faucet(conftest_args):
     assert from_acc_new.account_number == from_acc.account_number
     assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (gas_price * int(tx['gas_used'])) - tx_amount
 
-    logjson = json.loads(tx['logs'][0]['log'])
-    contract_address = logjson['contract_address']
+    log = tx['logs'][0]['log']
+    conaddr = log[log.find("contract address:") : log.find(", output:")]
+    contract_address = conaddr.replace('contract address:', '').strip()
+    contract_address = Address.hexaddr_to_bech32(contract_address)
 
     htdf_faucet_contract_address.append(contract_address)
 
