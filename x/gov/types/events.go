@@ -1,5 +1,9 @@
 package types
 
+import (
+	sdk "github.com/orientwalt/htdf/types"
+)
+
 // Governance module event types
 const (
 	EventTypeSubmitProposal   = "submit_proposal"
@@ -18,4 +22,19 @@ const (
 	AttributeValueProposalRejected = "proposal_rejected" // didn't meet vote quorum
 	AttributeValueProposalFailed   = "proposal_failed"   // error on proposal handler
 	AttributeKeyProposalType       = "proposal_type"
+)
+
+// Governance tags
+var (
+	ActionProposalDropped  = "proposal-dropped"
+	ActionProposalPassed   = "proposal-passed"
+	ActionProposalRejected = "proposal-rejected"
+
+	Action                = sdk.TagAction
+	AttributeKeyProposer  = "proposer"
+	ProposalID            = "proposal-id"
+	VotingPeriodStart     = "voting-period-start"
+	AttributeKeyDepositor = "depositor"
+	AttributeKeyVoter     = "voter"
+	ProposalResult        = "proposal-result"
 )

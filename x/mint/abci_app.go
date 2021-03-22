@@ -94,7 +94,7 @@ func GetMineToken(curBlkHeight int64, totalSupply sdk.Int, curAmplitude int64, c
 
 // Inflate every block, update inflation parameters once per hour
 func BeginBlocker(ctx sdk.Context, k Keeper) {
-
+	log.Infoln("mint.BeginBlocker")
 	// fetch stored minter & params
 	minter := k.GetMinter(ctx)
 	//params := k.GetParams(ctx)

@@ -6,8 +6,9 @@ import (
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/client/tx"
 	"github.com/orientwalt/htdf/codec"
+	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/gov"
-	"github.com/orientwalt/htdf/x/gov/tags"
+	"github.com/orientwalt/htdf/x/gov/types"
 )
 
 const (
@@ -41,14 +42,13 @@ func QueryDepositsByTxQuery(
 	cdc *codec.Codec, cliCtx context.CLIContext, params gov.QueryProposalParams,
 ) ([]byte, error) {
 
-	tags := []string{
-		fmt.Sprintf("%s='%s'", tags.Action, gov.MsgDeposit{}.Type()),
-		fmt.Sprintf("%s='%s'", tags.ProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
+	events := []string{
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, sdk.AttributeKeyAction, gov.MsgDeposit{}.Type()),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, types.AttributeKeyProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
 	}
-
 	// NOTE: SearchTxs is used to facilitate the txs query which does not currently
 	// support configurable pagination.
-	infos, err := tx.SearchTxs(cliCtx, cdc, tags, defaultPage, defaultLimit)
+	infos, err := tx.SearchTxs(cliCtx, cdc, events, defaultPage, defaultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -86,14 +86,13 @@ func QueryVotesByTxQuery(
 	cdc *codec.Codec, cliCtx context.CLIContext, params gov.QueryProposalParams,
 ) ([]byte, error) {
 
-	tags := []string{
-		fmt.Sprintf("%s='%s'", tags.Action, gov.MsgVote{}.Type()),
-		fmt.Sprintf("%s='%s'", tags.ProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
+	events := []string{
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, sdk.AttributeKeyAction, gov.MsgVote{}.Type()),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, types.AttributeKeyProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
 	}
-
 	// NOTE: SearchTxs is used to facilitate the txs query which does not currently
 	// support configurable pagination.
-	infos, err := tx.SearchTxs(cliCtx, cdc, tags, defaultPage, defaultLimit)
+	infos, err := tx.SearchTxs(cliCtx, cdc, events, defaultPage, defaultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -126,15 +125,14 @@ func QueryVoteByTxQuery(
 	cdc *codec.Codec, cliCtx context.CLIContext, params gov.QueryVoteParams,
 ) ([]byte, error) {
 
-	tags := []string{
-		fmt.Sprintf("%s='%s'", tags.Action, gov.MsgVote{}.Type()),
-		fmt.Sprintf("%s='%s'", tags.ProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
-		fmt.Sprintf("%s='%s'", tags.Voter, []byte(params.Voter.String())),
+	events := []string{
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, sdk.AttributeKeyAction, gov.MsgVote{}.Type()),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, types.AttributeKeyProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, types.AttributeKeyVoter, []byte(params.Voter.String())),
 	}
-
 	// NOTE: SearchTxs is used to facilitate the txs query which does not currently
 	// support configurable pagination.
-	infos, err := tx.SearchTxs(cliCtx, cdc, tags, defaultPage, defaultLimit)
+	infos, err := tx.SearchTxs(cliCtx, cdc, events, defaultPage, defaultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -169,15 +167,14 @@ func QueryDepositByTxQuery(
 	cdc *codec.Codec, cliCtx context.CLIContext, params gov.QueryDepositParams,
 ) ([]byte, error) {
 
-	tags := []string{
-		fmt.Sprintf("%s='%s'", tags.Action, gov.MsgDeposit{}.Type()),
-		fmt.Sprintf("%s='%s'", tags.ProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
-		fmt.Sprintf("%s='%s'", tags.Depositor, []byte(params.Depositor.String())),
+	events := []string{
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, sdk.AttributeKeyAction, gov.MsgDeposit{}.Type()),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, types.AttributeKeyProposalID, []byte(fmt.Sprintf("%d", params.ProposalID))),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, types.AttributeKeyDepositor, []byte(params.Depositor.String())),
 	}
-
 	// NOTE: SearchTxs is used to facilitate the txs query which does not currently
 	// support configurable pagination.
-	infos, err := tx.SearchTxs(cliCtx, cdc, tags, defaultPage, defaultLimit)
+	infos, err := tx.SearchTxs(cliCtx, cdc, events, defaultPage, defaultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -212,14 +209,13 @@ func QueryProposerByTxQuery(
 	cdc *codec.Codec, cliCtx context.CLIContext, proposalID uint64,
 ) (Proposer, error) {
 
-	tags := []string{
-		fmt.Sprintf("%s='%s'", tags.Action, gov.MsgSubmitProposal{}.Type()),
-		fmt.Sprintf("%s='%s'", tags.ProposalID, []byte(fmt.Sprintf("%d", proposalID))),
+	events := []string{
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, sdk.AttributeKeyAction, gov.MsgSubmitProposal{}.Type()),
+		fmt.Sprintf("%s.%s='%s'", sdk.EventTypeMessage, types.AttributeKeyProposalID, []byte(fmt.Sprintf("%d", proposalID))),
 	}
-
 	// NOTE: SearchTxs is used to facilitate the txs query which does not currently
 	// support configurable pagination.
-	infos, err := tx.SearchTxs(cliCtx, cdc, tags, defaultPage, defaultLimit)
+	infos, err := tx.SearchTxs(cliCtx, cdc, events, defaultPage, defaultLimit)
 	if err != nil {
 		return Proposer{}, err
 	}

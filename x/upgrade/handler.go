@@ -10,7 +10,7 @@ import (
 // do switch
 func EndBlocker(ctx sdk.Context, uk Keeper) {
 
-	ctx = ctx.WithLogger(ctx.Logger().With("handler", "endBlock").With("module", "htdf/upgrade"))
+	ctx = ctx.WithLogger(ctx.Logger().With("handler", "endBlock").With("module", "htdf/upgrade")).WithEventManager(sdk.NewEventManager())
 
 	upgradeConfig, ok := uk.protocolKeeper.GetUpgradeConfig(ctx)
 	if ok {

@@ -250,7 +250,7 @@ func TestUnbondingDelegationsMaxEntries(t *testing.T) {
 
 	// mature unbonding delegations
 	ctx = ctx.WithBlockTime(completionTime)
-	err = keeper.CompleteUnbonding(ctx, addrDels[0], addrVals[0])
+	_, err = keeper.CompleteUnbonding(ctx, addrDels[0], addrVals[0])
 	require.NoError(t, err)
 
 	// unbonding  should work again
@@ -703,7 +703,7 @@ func TestRedelegationMaxEntries(t *testing.T) {
 
 	// mature redelegations
 	ctx = ctx.WithBlockTime(completionTime)
-	err = keeper.CompleteRedelegation(ctx, val0AccAddr, addrVals[0], addrVals[1])
+	_, err = keeper.CompleteRedelegation(ctx, val0AccAddr, addrVals[0], addrVals[1])
 	require.NoError(t, err)
 
 	// redelegation should work again

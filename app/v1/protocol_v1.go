@@ -400,7 +400,7 @@ func (p *ProtocolV1) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 	// tags = tags.AppendTags(service.EndBlocker(ctx, p.serviceKeeper))
 	// tags = tags.AppendTags(upgrade.EndBlocker(ctx, p.upgradeKeeper))
 	// validatorUpdates, endBlockerTags := stake.EndBlocker(ctx, p.StakeKeeper)
-	validatorUpdates, _ := stake.EndBlocker(ctx, p.StakeKeeper)
+	validatorUpdates := stake.EndBlocker(ctx, p.StakeKeeper)
 	// tags = append(tags, endBlockerTags...)
 	if p.invCheckPeriod != 0 && ctx.BlockHeight()%int64(p.invCheckPeriod) == 0 {
 		p.assertRuntimeInvariants(ctx)

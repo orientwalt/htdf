@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	sdk "github.com/orientwalt/htdf/types"
-	"github.com/orientwalt/htdf/x/gov/tags"
 	"github.com/orientwalt/htdf/x/gov/types"
 )
 
@@ -60,16 +59,16 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) {
 		if result == PASS {
 			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
 			activeProposal.SetStatus(StatusPassed)
-			tagValue = tags.ActionProposalPassed
+			tagValue = types.ActionProposalPassed
 			Execute(ctx, keeper, activeProposal)
 		} else if result == REJECT {
 			keeper.RefundDeposits(ctx, activeProposal.GetProposalID())
 			activeProposal.SetStatus(StatusRejected)
-			tagValue = tags.ActionProposalRejected
+			tagValue = types.ActionProposalRejected
 		} else if result == REJECTVETO {
 			keeper.DeleteDeposits(ctx, activeProposal.GetProposalID())
 			activeProposal.SetStatus(StatusRejected)
-			tagValue = tags.ActionProposalRejected
+			tagValue = types.ActionProposalRejected
 		}
 
 		activeProposal.SetTallyResult(tallyResults)
