@@ -11,8 +11,10 @@ const (
 	AttributeKeyReason       = "reason"
 	AttributeKeyJailed       = "jailed"
 	AttributeKeyMissedBlocks = "missed_blocks"
+	AttributeKeyValidator    = "validator"
 
 	AttributeValueDoubleSign       = "double_sign"
 	AttributeValueMissingSignature = "missing_signature"
 	AttributeValueCategory         = ModuleName
+	AttributeValidatorUnjailed     = "validator-unjailed"
 )

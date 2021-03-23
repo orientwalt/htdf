@@ -61,19 +61,10 @@ func handleMsgUnjail(ctx sdk.Context, msg types.MsgUnjail, k Keeper) sdk.Result 
 	// unjail the validator
 	k.validatorSet.Unjail(ctx, consAddr)
 
-	// tags := sdk.NewTags(
-	// 	tags.Action, tags.ActionValidatorUnjailed,
-	// 	tags.Validator, msg.ValidatorAddr.String(),
-	// )
-
-	// return sdk.Result{
-	// 	Tags: tags,
-	// }
-
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValidatorUnjailed),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddr.String()),
 		),
 	)
