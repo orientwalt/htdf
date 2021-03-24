@@ -356,9 +356,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	)
 
 	if st.TxHash != nil && !st.simulate {
-		logs, err = stateDB.GetLogs(*st.TxHash)
-		if err != nil {
-			return nil, err
+		var _err error
+		logs, _err = stateDB.GetLogs(*st.TxHash)
+		if _err != nil {
+			return nil, _err
 		}
 		bloomInt = ethtypes.LogsBloom(logs)
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
@@ -377,7 +378,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	}
 
 	resBz, _err := EncodeResultData(resultData)
-	if err != nil {
+	if _err != nil {
 		panic(_err)
 	}
 
