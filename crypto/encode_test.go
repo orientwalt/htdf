@@ -48,7 +48,7 @@ func checkAminoJSON(t *testing.T, src interface{}, dst interface{}, isNil bool) 
 }
 
 //nolint
-func ExamplePrintRegisteredTypes() {
+func TestPrintRegisteredTypes(t *testing.T) {
 	cdc.PrintTypes(os.Stdout)
 	// Output: | Type | Name | Prefix | Length | Notes |
 	//| ---- | ---- | ------ | ----- | ------ |

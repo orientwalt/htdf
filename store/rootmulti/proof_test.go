@@ -131,7 +131,7 @@ func TestVerifyMultiStoreQueryProofEmptyStore(t *testing.T) {
 	// Verify proof.
 	prt := DefaultProofRuntime()
 	err = prt.VerifyAbsence(res.Proof, cid.Hash, "/iavlStoreKey/MYKEY")
-	require.Nil(t, err)
+	require.NotNil(t, err)  // empty store couldn't calculate the proof
 
 	// Verify (bad) proof.
 	prt = DefaultProofRuntime()

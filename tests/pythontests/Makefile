@@ -10,6 +10,9 @@ ifeq ($(TESTTYPE), )
 	export TESTTYPE=regtest
 endif
 
+sendhtdf:
+	- hscli tx send $$(hscli  accounts list | head -1) htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml  1000000000000000satoshi --gas-price=100
+
 create_venv:
 	python3 -m venv venv
 	source ./venv/bin/activate

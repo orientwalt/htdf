@@ -82,7 +82,8 @@ func handleMsgSubmitProposal(ctx sdk.Context, keeper Keeper, msg MsgSubmitPropos
 	ctx.EventManager().EmitEvent(submitEvent)
 
 	return sdk.Result{
-		Data:   types.GetProposalIDBytes(proposal.GetProposalID()),
+		// Data:   types.GetProposalIDBytes(proposal.GetProposalID()),
+		Data:   keeper.cdc.MustMarshalBinaryLengthPrefixed(proposalID), // fix for test case
 		Events: ctx.EventManager().ABCIEvents(),
 	}
 }

@@ -89,7 +89,7 @@ func NewApp() *App {
 	codec.RegisterCrypto(cdc)
 	newevmtypes.RegisterCodec(cdc)
 
-	bApp := bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc), bam.SetPruning("nothing"))
+	bApp := bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc), bam.SetPruning("everything"))
 
 	// Create your application object
 	app := &App{

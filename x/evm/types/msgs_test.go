@@ -16,7 +16,7 @@ func TestMsgEthereumTxRoute(t *testing.T) {
 	var msg = NewMsgEthereumTxDefault(addr1, addr2, coins)
 
 	require.Equal(t, msg.Route(), "htdfservice")
-	require.Equal(t, msg.Type(), "send")
+	require.Equal(t, msg.Type(), "ethereum")
 }
 
 func TestMsgEthereumTxValidation(t *testing.T) {

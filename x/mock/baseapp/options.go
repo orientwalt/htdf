@@ -15,6 +15,18 @@ import (
 // SetPruning sets a pruning option on the multistore associated with the app
 func SetPruning(pruning string) func(*BaseApp) {
 	var pruningEnum sdk.PruningOptions
+
+	switch pruning {
+	case "nothing":
+		pruningEnum = store.PruneNothing
+	case "everything":
+		pruningEnum = store.PruneEverything
+	case "syncable":
+		pruningEnum = store.PruneSyncable
+	default:
+		pruningEnum = store.PruneNothing
+	}
+
 	return func(bap *BaseApp) {
 		bap.cms.SetPruning(pruningEnum)
 	}

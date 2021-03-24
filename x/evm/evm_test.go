@@ -1,4 +1,4 @@
-package core
+package evm
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"github.com/orientwalt/htdf/utils"
 	"github.com/stretchr/testify/require"
 
-	// ec "github.com/orientwalt/htdf/x/evm/core"
+	evmcore "github.com/orientwalt/htdf/x/evm/core"
 	"github.com/orientwalt/htdf/x/evm/core/vm"
 
 	//cosmos-sdk
@@ -62,7 +62,7 @@ var (
 	gasLimit    = big.NewInt(100000)
 	coinbase    = fromAddress
 
-	logger = tmlog.NewNopLogger()
+	nplogger = tmlog.NewNopLogger()
 )
 
 func must(err error) {
@@ -229,8 +229,8 @@ func TestNewEvm(t *testing.T) {
 	assert.Equal(t, stateDB.GetBalance(fromAddress).String() == "1000000000000000000", true)
 
 	//---------------------call evm--------------------------------------
-	abiFileName := "../tests/evm/coin/coin_sol_Coin.abi"
-	binFileName := "../tests/evm/coin/coin_sol_Coin.bin"
+	abiFileName := "../../tests/evm/coin/coin_sol_Coin.abi"
+	binFileName := "../../tests/evm/coin/coin_sol_Coin.bin"
 	data := loadBin(binFileName)
 
 	config := appParams.MainnetChainConfig
@@ -239,7 +239,7 @@ func TestNewEvm(t *testing.T) {
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
-	evmCtx := NewEVMContext(msg, &fromAddress, 1000)
+	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000)
 
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
@@ -398,8 +398,8 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	}
 
 	//---------------------call evm--------------------------------------
-	abiFileName := "../tests/evm/coin/coin_sol_Coin.abi"
-	binFileName := "../tests/evm/coin/coin_sol_Coin.bin"
+	abiFileName := "../../tests/evm/coin/coin_sol_Coin.abi"
+	binFileName := "../../tests/evm/coin/coin_sol_Coin.bin"
 	data := loadBin(binFileName)
 
 	//	config := params.TestnetChainConfig
@@ -409,7 +409,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
-	evmCtx := NewEVMContext(msg, &fromAddress, 1000)
+	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 

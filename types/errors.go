@@ -373,8 +373,8 @@ func (err *sdkError) ABCILog() string {
 
 func (err *sdkError) Result() Result {
 	return Result{
-		// Code:      err.Code(),
-		// Codespace: err.Codespace(),
+		Code:      err.Code(),
+		Codespace: err.Codespace(),
 		Log: err.ABCILog(),
 	}
 }
