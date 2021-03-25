@@ -294,6 +294,27 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	// 	tags.Delegator, msg.DelegatorAddress.String(),
 	// 	tags.DstValidator, msg.ValidatorAddress.String(),
 	// )
+	// by yqq 2020-11-10
+	// log `delegation/withdrawDelegationRewards` rewards informations for application layers
+	/* var rewardsLog string
+	ts := ctx.CoinFlowTags().GetTags()
+	if ts != nil {
+		ctx.Logger().Debug("handleMsgDelegate ", "module", types.ModuleName, "len(ctx.CoinFlowTags().GetTags())", len(ts))
+		for _, tg := range ts {
+			tg.Key = []byte(sdk.DelegatorRewardFlow)
+			strTag := tg.String()
+			if strings.Contains(strTag, msg.DelegatorAddress.String()) &&
+				strings.Contains(strTag, msg.ValidatorAddress.String()) {
+				rewardsLog += strTag
+			}
+		}
+	}
+
+	tags := sdk.NewTags(
+		tags.Delegator, msg.DelegatorAddress.String(),
+		tags.DstValidator, msg.ValidatorAddress.String(),
+	)
+	*/
 
 	// return sdk.Result{
 	// 	Tags: tags,
@@ -313,6 +334,7 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	})
 
 	return sdk.Result{Events: ctx.EventManager().ABCIEvents()}
+	return sdk.Result{
 }
 
 func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keeper) sdk.Result {

@@ -303,6 +303,29 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 						displayTx.TypeName = msg.Type()
 						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
 
+					case stakingTypes.MsgUndelegate:
+						// add by yqq 2020-11-12: to fix issue #8 : show undelegate transaction in `txs` fiels
+						displayTx.From = msg.DelegatorAddress.String()
+						displayTx.To = msg.ValidatorAddress.String()
+						displayTx.Hash = hex.EncodeToString(tx.Hash())
+						displayTx.Amount = unit_convert.DefaultCoinsToBigCoins([]sdk.Coin{msg.Amount})
+						displayTx.Memo = currTx.Memo
+						displayTx.TxClassify = TxClassify_Extension
+						displayTx.TypeName = msg.Type()
+						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
+
+					case stakingTypes.MsgSetUndelegateStatus:
+						// add by yqq 2020-11-12: to fix issue #8 :
+						// show upgrade_delegator_unbond_status transaction in `txs` fiels
+						displayTx.From = msg.DelegatorAddress.String()
+						displayTx.To = msg.ValidatorAddress.String()
+						displayTx.Hash = hex.EncodeToString(tx.Hash())
+						displayTx.Amount = unit_convert.DefaultCoinsToBigCoins([]sdk.Coin{sdk.NewInt64Coin(sdk.DefaultDenom, 0)}) // set 0
+						displayTx.Memo = currTx.Memo
+						displayTx.TxClassify = TxClassify_Extension
+						displayTx.TypeName = msg.Type()
+						blockInfo.Block.Txs = append(blockInfo.Block.Txs, displayTx)
+
 					case distrTypes.MsgWithdrawDelegatorReward:
 						displayTx.From = msg.DelegatorAddress.String()
 						displayTx.To = msg.ValidatorAddress.String()
