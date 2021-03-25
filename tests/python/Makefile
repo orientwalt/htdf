@@ -6,7 +6,7 @@ all: test
 export TESTTYPE=$(chaintype)
 
 ifeq ($(TESTTYPE), )
-	export TESTTYPE=inner
+	export TESTTYPE=regtest
 endif
 
 create_venv:

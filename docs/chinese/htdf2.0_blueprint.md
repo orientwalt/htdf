@@ -452,7 +452,19 @@ cp -R ~/.hsd ~/.hsd_bak_03_09_15
 
 hsd unsafe-reset-all
 
+修改genesis.json 中的 consensus_params.evidence 
+修改为
+"evidence": {
+       "max_age_num_blocks": "100000",
+        "max_age_duration": "172800000000000"
+}
+
 mv genesis.json ~/.hsd/config/
+
+
+修改 ~/.hsd/config/config.toml中的 db_backend
+修改为
+db_backend = "goleveldb"
 
 hsd start
 
