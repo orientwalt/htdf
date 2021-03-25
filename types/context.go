@@ -121,7 +121,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 	c = c.WithConsensusParams(nil)
 	c = c.WithCheckValidNum(0)
 	c = c.WithCoinFlowTrigger("")
-	c = c.WithCoinFlowTags(NewCoinFlowRecord(false))
+	c = c.WithCoinFlowTags(NewCoinFlowRecord(true))
 	c = c.WithEventManager(NewEventManager())
 	return c
 }
