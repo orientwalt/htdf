@@ -5,6 +5,7 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 
+	"github.com/orientwalt/htdf/x/distribution/tags"
 	"github.com/orientwalt/htdf/x/distribution/types"
 )
 
@@ -156,6 +157,17 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val sdk.Validator, de
 		if _, _, err := k.bankKeeper.AddCoins(ctx, withdrawAddr, coins); err != nil {
 			return nil, err
 		}
+
+		// add by yqq 2020-11-09
+		// use `withdrawAddr` for the situation where a delegator set withdrawAddr
+		// with other address by `MsgSetWithdrawAddress`
+		ctx.CoinFlowTags().AppendCoinFlowTag(ctx, 
+			del.GetValidatorAddr().String(),
+			del.GetDelegatorAddr().String(),
+			withdrawAddr.String(), 
+			coins.String(), 
+			tags.Rewards)
+		ctx.CoinFlowTags().TagWrite()
 	}
 
 	// remove delegator starting info
