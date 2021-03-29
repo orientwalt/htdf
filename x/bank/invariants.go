@@ -16,13 +16,16 @@ func RegisterInvariants(c CrisisKeeper, ak auth.AccountKeeper) {
 
 // NonnegativeBalanceInvariant checks that all accounts in the application have non-negative balances
 func NonnegativeBalanceInvariant(ak auth.AccountKeeper) sdk.Invariant {
+
 	return func(ctx sdk.Context) error {
 		accts := ak.GetAllAccounts(ctx)
+
 		for _, acc := range accts {
 			coins := acc.GetCoins()
 			if coins.IsAnyNegative() {
+				var addr sdk.AccAddress = acc.GetAddress()
 				return fmt.Errorf("%s has a negative denomination of %s",
-					acc.GetAddress().String(),
+					addr.String(),
 					coins.String())
 			}
 		}

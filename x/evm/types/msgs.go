@@ -76,6 +76,8 @@ func (msg MsgEthereumTx) Route() string { return "htdfservice" }
 // Type should return the action
 func (msg MsgEthereumTx) Type() string { return TypeMsgEthereumTx }
 
+func (msg MsgEthereumTx) Amountof() sdk.Int { return msg.Amount.AmountOf("satoshi") }
+
 // ValidateBasic runs stateless checks on the message
 func (msg MsgEthereumTx) ValidateBasic() sdk.Error {
 	if msg.From.Empty() {

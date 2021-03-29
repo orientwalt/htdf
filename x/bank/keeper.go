@@ -472,8 +472,8 @@ func trackDelegation(acc auth.Account, blockTime time.Time, amt sdk.Coins) error
 		vacc.TrackDelegation(blockTime, amt)
 		return nil
 	}
-
-	return acc.SetCoins(acc.GetCoins().Sub(amt))
+	var coins sdk.Coins = acc.GetCoins()
+	return acc.SetCoins(coins.Sub(amt))
 }
 
 // CONTRACT: assumes that amt is valid.
@@ -483,6 +483,6 @@ func trackUndelegation(acc auth.Account, amt sdk.Coins) error {
 		vacc.TrackUndelegation(amt)
 		return nil
 	}
-
-	return acc.SetCoins(acc.GetCoins().Add(amt))
+	var coins sdk.Coins = acc.GetCoins()
+	return acc.SetCoins(coins.Add(amt))
 }

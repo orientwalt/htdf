@@ -366,7 +366,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
-	resultData := ResultData{
+	resultData := sdk.ResultData{
 		Bloom:  bloomFilter,
 		Logs:   logs,
 		Ret:    ret,
@@ -377,7 +377,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 		resultData.ContractAddress = contractAddress
 	}
 
-	resBz, _err := EncodeResultData(resultData)
+	resBz, _err := sdk.EncodeResultData(resultData)
 	if _err != nil {
 		panic(_err)
 	}

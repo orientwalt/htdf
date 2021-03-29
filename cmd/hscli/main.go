@@ -181,6 +181,7 @@ func queryCmd(cdc *amino.Codec, mc []sdk.ModuleClients) *cobra.Command {
 		rpc.BlockCommand(),
 		tx.SearchTxCmd(cdc),
 		tx.QueryTxCmd(cdc),
+		tx.QueryTxReceiptCmd(cdc),
 		client.LineBreak,
 		authcmd.GetAccountCmd(storeAcc, cdc),
 		htdfservicecmd.GetCmdCall(cdc),

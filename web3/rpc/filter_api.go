@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	clientcontext "github.com/orientwalt/htdf/client/context"
+	sdk "github.com/orientwalt/htdf/types"
 
 	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 )
@@ -312,7 +313,7 @@ func (api *PublicFilterAPI) Logs(ctx context.Context, crit filters.FilterCriteri
 					return
 				}
 
-				resultData, err := evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				resultData, err := sdk.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}
@@ -380,8 +381,8 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 					return
 				}
 
-				var resultData evmtypes.ResultData
-				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				var resultData sdk.ResultData
+				resultData, err = sdk.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}
