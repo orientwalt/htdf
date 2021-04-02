@@ -333,6 +333,16 @@ func (rd ResultData) String() string {
 `, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
 }
 
+func (rd ResultData) StringEx() string {
+	return fmt.Sprintf(`ResultData:
+	ContractAddress: %s
+	Bloom: %s
+	Logs: %v
+	Ret: %v
+	TxHash: %s
+`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String())
+}
+
 type TxReceipt struct {
 	Height    int64      `json:"height"`
 	TxHash    string     `json:"txhash"`
@@ -368,7 +378,8 @@ func NewResponseResultTxReceipt(res *ctypes.ResultTx, tx Tx, timestamp string) T
 		return TxReceipt{}
 
 	}
-
+	fmt.Println(data.ContractAddress.String())
+	fmt.Printf("data: %v\n", data.TxHash)
 	return TxReceipt{
 		TxHash:    res.Hash.String(),
 		Height:    res.Height,
@@ -390,7 +401,7 @@ func (r TxReceipt) String() string {
 		sb.WriteString(fmt.Sprintf("  TxHash: %s\n", r.TxHash))
 	}
 	if r.Results.String() != "" {
-		sb.WriteString(fmt.Sprintf("  Results: %s\n", r.Results.String()))
+		sb.WriteString(fmt.Sprintf("  Results: %s\n", r.Results.StringEx()))
 	}
 	if r.GasWanted != 0 {
 		sb.WriteString(fmt.Sprintf("  GasWanted: %d\n", r.GasWanted))
@@ -570,7 +581,7 @@ func (r TxResponse) String() string {
 		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
 	}
 	if len(r.Events) > 0 {
-		sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Events.String()))
+		sb.WriteString(fmt.Sprintf("  Events: \n%s\n", r.Events.String()))
 	}
 
 	if r.Codespace != "" {
