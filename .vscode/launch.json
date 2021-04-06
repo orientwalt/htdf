@@ -12,7 +12,7 @@
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/hsd/",
             "env": {},
-            "args": ["start"]
+            "args": ["start", ]
         },
         {
             "name": "hscli",
