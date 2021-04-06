@@ -343,13 +343,42 @@ func (rd ResultData) StringEx() string {
 `, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String())
 }
 
+type ResultDataStr struct {
+	ContractAddress string `json:"contract_address"`
+	Bloom           string `json:"bloom"`
+	Logs            string `json:"logs"`
+	Ret             string `json:"ret"`
+	TxHash          string `json:"tx_hash"`
+}
+
+func NewResultDataStr(rd ResultData) ResultDataStr {
+
+	return ResultDataStr{
+		ContractAddress: rd.ContractAddress.String(),
+		Bloom:           rd.Bloom.Big().String(),
+		Logs:            fmt.Sprintf("%v", rd.Logs),
+		Ret:             fmt.Sprintf("%v", rd.Ret),
+		TxHash:          rd.TxHash.String(),
+	}
+}
+
+func (rd ResultDataStr) String() string {
+	return strings.TrimSpace(fmt.Sprintf(`ResultData:
+	ContractAddress: %s
+	Bloom: %s
+	Logs: %s
+	Ret: %s
+	TxHash: %s
+`, rd.ContractAddress, rd.Bloom, rd.Logs, rd.Ret, rd.TxHash))
+}
+
 type TxReceipt struct {
-	Height    int64      `json:"height"`
-	TxHash    string     `json:"txhash"`
-	Results   ResultData `json:"results,omitempty"`
-	GasWanted int64      `json:"gas_wanted,omitempty"`
-	GasUsed   int64      `json:"gas_used,omitempty"`
-	Timestamp string     `json:"timestamp,omitempty"`
+	Height    int64         `json:"height"`
+	TxHash    string        `json:"txhash"`
+	Results   ResultDataStr `json:"results,omitempty"`
+	GasWanted int64         `json:"gas_wanted,omitempty"`
+	GasUsed   int64         `json:"gas_used,omitempty"`
+	Timestamp string        `json:"timestamp,omitempty"`
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution
@@ -378,12 +407,10 @@ func NewResponseResultTxReceipt(res *ctypes.ResultTx, tx Tx, timestamp string) T
 		return TxReceipt{}
 
 	}
-	fmt.Println(data.ContractAddress.String())
-	fmt.Printf("data: %v\n", data.TxHash)
 	return TxReceipt{
 		TxHash:    res.Hash.String(),
 		Height:    res.Height,
-		Results:   data,
+		Results:   NewResultDataStr(data),
 		GasWanted: res.TxResult.GasWanted,
 		GasUsed:   res.TxResult.GasUsed,
 		Timestamp: timestamp,
@@ -401,7 +428,7 @@ func (r TxReceipt) String() string {
 		sb.WriteString(fmt.Sprintf("  TxHash: %s\n", r.TxHash))
 	}
 	if r.Results.String() != "" {
-		sb.WriteString(fmt.Sprintf("  Results: %s\n", r.Results.StringEx()))
+		sb.WriteString(fmt.Sprintf("  Results: %s\n", r.Results.String()))
 	}
 	if r.GasWanted != 0 {
 		sb.WriteString(fmt.Sprintf("  GasWanted: %d\n", r.GasWanted))
