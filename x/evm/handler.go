@@ -81,6 +81,7 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 
 	st.StateDB = k.CommitStateDB.WithContext(ctx)
 
+	logger().Infoln("=======================HandleMsgEthereumTx============================")
 	logger().Debugf("handler:*st.TxHash[%s]\n", (*st.TxHash).String())
 	// Prepare db for logs
 	// TODO: block hash
