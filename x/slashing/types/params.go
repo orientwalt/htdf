@@ -75,13 +75,13 @@ func (p Params) String() string {
 // Implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyMaxEvidenceAge, &p.MaxEvidenceAge},
-		{KeySignedBlocksWindow, &p.SignedBlocksWindow},
-		{KeyMinSignedPerWindow, &p.MinSignedPerWindow},
-		{KeyDowntimeJailDuration, &p.DowntimeJailDuration},
-		{KeySlashFractionDoubleSign, &p.SlashFractionDoubleSign},
-		{KeySlashFractionDowntime, &p.SlashFractionDowntime},
-		{KeySlashFractionCensorship, &p.SlashFractionCensorship},
+		{Key: KeyMaxEvidenceAge, Value: &p.MaxEvidenceAge},
+		{Key: KeySignedBlocksWindow, Value: &p.SignedBlocksWindow},
+		{Key: KeyMinSignedPerWindow, Value: &p.MinSignedPerWindow},
+		{Key: KeyDowntimeJailDuration, Value: &p.DowntimeJailDuration},
+		{Key: KeySlashFractionDoubleSign, Value: &p.SlashFractionDoubleSign},
+		{Key: KeySlashFractionDowntime, Value: &p.SlashFractionDowntime},
+		{Key: KeySlashFractionCensorship, Value: &p.SlashFractionCensorship},
 	}
 }
 

@@ -5,6 +5,8 @@ import (
 	"github.com/orientwalt/htdf/version"
 )
 
+const defaultProtocolVersion = version.ProtocolVersion
+
 // GenesisState - all upgrade state that must be provided at genesis
 type GenesisState struct {
 	GenesisVersion VersionInfo `json:genesis_version`
@@ -22,20 +24,20 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) {
 // WriteGenesis - output genesis parameters
 func ExportGenesis(ctx sdk.Context) GenesisState {
 	return GenesisState{
-		NewVersionInfo(sdk.DefaultUpgradeConfig("https://github.com/orientwalt/htdf/releases/tag/v"+version.Version), true),
+		NewVersionInfo(sdk.DefaultUpgradeConfig(defaultProtocolVersion, "https://github.com/orientwalt/htdf/releases/tag/v"+version.Version), true),
 	}
 }
 
 // get raw genesis raw message for testing
 func DefaultGenesisState() GenesisState {
 	return GenesisState{
-		NewVersionInfo(sdk.DefaultUpgradeConfig("https://github.com/orientwalt/htdf/releases/tag/v"+version.Version), true),
+		NewVersionInfo(sdk.DefaultUpgradeConfig(defaultProtocolVersion, "https://github.com/orientwalt/htdf/releases/tag/v"+version.Version), true),
 	}
 }
 
 // get raw genesis raw message for testing
 func DefaultGenesisStateForTest() GenesisState {
 	return GenesisState{
-		NewVersionInfo(sdk.DefaultUpgradeConfig("https://github.com/orientwalt/htdf/releases/tag/v"+version.Version), true),
+		NewVersionInfo(sdk.DefaultUpgradeConfig(defaultProtocolVersion, "https://github.com/orientwalt/htdf/releases/tag/v"+version.Version), true),
 	}
 }

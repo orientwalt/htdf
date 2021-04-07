@@ -1,9 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/params"
@@ -22,8 +28,8 @@ import (
 	guardian "github.com/orientwalt/htdf/x/guardian/client/cli"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cfg "github.com/tendermint/tendermint/config"
-	dbm "github.com/tendermint/tm-db"
 	tmtypes "github.com/tendermint/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
 )
 
 const (
@@ -84,7 +90,9 @@ func versionCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		Use:   "version",
 		Short: "print version, api security level",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("GitCommit=%s|version=%s|GitBranch=%s|\n", GitCommit, params.Version, GitBranch)
+			md5Sum, _ := getCurrentExeMd5Sum()
+			fmt.Printf("GoVersion=%s|GitCommit=%s|version=%s|GitBranch=%s|md5sum=%s\n",
+				runtime.Version(), GitCommit, params.Version, GitBranch, md5Sum)
 		},
 	}
 
@@ -112,4 +120,29 @@ func exportAppStateAndTMValidators(ctx *server.Context,
 	}
 	gApp := bam.NewHtdfServiceApp(logger, ctx.Config.Instrumentation, db, traceStore, true, uint(1))
 	return gApp.ExportAppStateAndValidators(forZeroHeight)
+}
+
+func getCurrentExeMd5Sum() (string, error) {
+	file, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return "", err
+	}
+	filePath, err := filepath.Abs(file)
+	if err != nil {
+		return "", err
+	}
+	var md5Sum string
+	fp, err := os.Open(filePath)
+	if err != nil {
+		return md5Sum, err
+	}
+	defer fp.Close()
+	hash := md5.New()
+	if _, err := io.Copy(hash, fp); err != nil {
+		return md5Sum, err
+	}
+	hashInBytes := hash.Sum(nil)[:4] // only show 4 bytes
+	// hashInBytes := hash.Sum(nil)
+	md5Sum = hex.EncodeToString(hashInBytes)
+	return md5Sum, nil
 }
