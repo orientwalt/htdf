@@ -232,7 +232,7 @@ func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()))
+	evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	st.evm = evm
 	return evm
