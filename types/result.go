@@ -326,21 +326,21 @@ type ResultData struct {
 func (rd ResultData) String() string {
 	return strings.TrimSpace(fmt.Sprintf(`ResultData:
 	ContractAddress: %s
-	Bloom: %s
+	Bloom: %0512x
 	Logs: %v
 	Ret: %v
 	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
+`, rd.ContractAddress.String(), rd.Bloom.Big(), rd.Logs, rd.Ret, rd.TxHash.String()))
 }
 
 func (rd ResultData) StringEx() string {
 	return fmt.Sprintf(`ResultData:
 	ContractAddress: %s
-	Bloom: %s
+	Bloom: %0512x
 	Logs: %v
 	Ret: %v
 	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String())
+`, rd.ContractAddress.String(), rd.Bloom.Big(), rd.Logs, rd.Ret, rd.TxHash.String())
 }
 
 type ResultDataStr struct {
@@ -355,7 +355,7 @@ func NewResultDataStr(rd ResultData) ResultDataStr {
 
 	return ResultDataStr{
 		ContractAddress: rd.ContractAddress.String(),
-		Bloom:           rd.Bloom.Big().String(),
+		Bloom:           fmt.Sprintf("%0512x", rd.Bloom.Big()),
 		Logs:            fmt.Sprintf("%v", rd.Logs),
 		Ret:             fmt.Sprintf("%v", rd.Ret),
 		TxHash:          rd.TxHash.String(),
