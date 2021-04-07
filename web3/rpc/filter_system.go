@@ -253,7 +253,7 @@ type filterIndex map[filters.Type]map[rpc.ID]*Subscription
 
 func (es *EventSystem) handleLogs(ev tmrpctypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
-	resultData, err := evmtypes.DecodeResultData(data.TxResult.Result.Data)
+	resultData, err := sdk.DecodeResultData(data.TxResult.Result.Data)
 	if err != nil {
 		return
 	}

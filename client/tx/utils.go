@@ -128,6 +128,15 @@ func formatTxResult(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.R
 	return sdk.NewResponseResultTx(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
 }
 
+func formatTxReceipt(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (sdk.TxReceipt, error) {
+	tx, err := parseTx(cdc, resTx.Tx)
+	if err != nil {
+		return sdk.TxReceipt{}, err
+	}
+
+	return sdk.NewResponseResultTxReceipt(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
+}
+
 func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
 	var tx auth.StdTx
 
@@ -167,6 +176,41 @@ func queryTx(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr string) (sd
 	}
 
 	out, err := formatTxResult(cdc, resTx, resBlocks[resTx.Height])
+	if err != nil {
+		return out, err
+	}
+
+	return out, nil
+}
+
+func queryTxReceipt(cdc *codec.Codec, cliCtx context.CLIContext, hashHexStr string) (sdk.TxReceipt, error) {
+	hash, err := hex.DecodeString(hashHexStr)
+	if err != nil {
+		return sdk.TxReceipt{}, err
+	}
+
+	node, err := cliCtx.GetNode()
+	if err != nil {
+		return sdk.TxReceipt{}, err
+	}
+
+	resTx, err := node.Tx(hash, !cliCtx.TrustNode)
+	if err != nil {
+		return sdk.TxReceipt{}, err
+	}
+
+	if !cliCtx.TrustNode {
+		if err = ValidateTxResult(cliCtx, resTx); err != nil {
+			return sdk.TxReceipt{}, err
+		}
+	}
+
+	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
+	if err != nil {
+		return sdk.TxReceipt{}, err
+	}
+
+	out, err := formatTxReceipt(cdc, resTx, resBlocks[resTx.Height])
 	if err != nil {
 		return out, err
 	}

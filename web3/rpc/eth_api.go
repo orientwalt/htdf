@@ -417,7 +417,7 @@ func (e *PublicEthAPI) Call(args CallArgs, blockNr BlockNumber, overrides *map[c
 		return []byte{}, err
 	}
 
-	data, err := evmtypes.DecodeResultData(simRes.Result.Data)
+	data, err := sdk.DecodeResultData(simRes.Result.Data)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -652,6 +652,7 @@ func newRPCTransaction(tx evmtypes.MsgEthereumTx, txHash, blockHash common.Hash,
 	// }
 
 	var toaddr = tx.ToAddress()
+	var coins sdk.Coins = tx.Amount
 
 	result := Transaction{
 		From:     tx.FromAddress(),
@@ -661,7 +662,7 @@ func newRPCTransaction(tx evmtypes.MsgEthereumTx, txHash, blockHash common.Hash,
 		Input:    hexutil.Bytes(tx.Data),
 		Nonce:    hexutil.Uint64(0),
 		To:       &toaddr,
-		Value:    (*hexutil.Big)(tx.Amount[0].Amount.BigInt()),
+		Value:    (*hexutil.Big)(coins[0].Amount.BigInt()),
 		// V:        (*hexutil.Big)(tx.Data.V),
 		// R:        (*hexutil.Big)(tx.Data.R),
 		// S:        (*hexutil.Big)(tx.Data.S),
@@ -775,7 +776,7 @@ func (e *PublicEthAPI) GetTransactionReceipt(hash common.Hash) (map[string]inter
 
 	txData := tx.TxResult.GetData()
 
-	data, err := evmtypes.DecodeResultData(txData)
+	data, err := sdk.DecodeResultData(txData)
 	if err != nil {
 		status = 0 // transaction failed
 	}

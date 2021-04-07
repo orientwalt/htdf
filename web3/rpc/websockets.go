@@ -26,9 +26,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
-	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 
 	context "github.com/orientwalt/htdf/client/context"
+	sdk "github.com/orientwalt/htdf/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -474,8 +474,8 @@ func (api *pubSubAPI) subscribeLogs(conn *websocket.Conn, extra interface{}) (rp
 					return
 				}
 				logger().Debugf("dataTx[%v]\n", dataTx)
-				var resultData evmtypes.ResultData
-				resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+				var resultData sdk.ResultData
+				resultData, err = sdk.DecodeResultData(dataTx.TxResult.Result.Data)
 				if err != nil {
 					return
 				}

@@ -135,6 +135,36 @@ func QueryTxCmd(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
+// QueryTxCmd implements the default command for a tx query.
+func QueryTxReceiptCmd(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tx-receipt [hash]",
+		Short: "Find a transaction by hash in a committed block.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			output, err := queryTxReceipt(cdc, cliCtx, args[0])
+			if err != nil {
+				return err
+			}
+
+			if output.Empty() {
+				return fmt.Errorf("No transaction found with hash %s", args[0])
+			}
+
+			return cliCtx.PrintOutput(output)
+		},
+	}
+
+	cmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
+	viper.BindPFlag(client.FlagNode, cmd.Flags().Lookup(client.FlagNode))
+	cmd.Flags().Bool(client.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
+	viper.BindPFlag(client.FlagTrustNode, cmd.Flags().Lookup(client.FlagTrustNode))
+
+	return cmd
+}
+
 // ----------------------------------------------------------------------------
 // REST
 // ----------------------------------------------------------------------------

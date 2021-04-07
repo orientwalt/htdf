@@ -8,6 +8,9 @@ import (
 	"math"
 	"strings"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/orientwalt/htdf/codec"
 	types "github.com/tendermint/tendermint/abci/types"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	yaml "gopkg.in/yaml.v2"
@@ -310,6 +313,141 @@ func (logs ABCIMessageLogs) String() (str string) {
 	return str
 }
 
+// ResultData represents the data returned in an sdk.Result
+type ResultData struct {
+	ContractAddress ethcmn.Address  `json:"contract_address"`
+	Bloom           ethtypes.Bloom  `json:"bloom"`
+	Logs            []*ethtypes.Log `json:"logs"`
+	Ret             []byte          `json:"ret"`
+	TxHash          ethcmn.Hash     `json:"tx_hash"`
+}
+
+// String implements fmt.Stringer interface.
+func (rd ResultData) String() string {
+	return strings.TrimSpace(fmt.Sprintf(`ResultData:
+	ContractAddress: %s
+	Bloom: %s
+	Logs: %v
+	Ret: %v
+	TxHash: %s
+`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
+}
+
+func (rd ResultData) StringEx() string {
+	return fmt.Sprintf(`ResultData:
+	ContractAddress: %s
+	Bloom: %s
+	Logs: %v
+	Ret: %v
+	TxHash: %s
+`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String())
+}
+
+type ResultDataStr struct {
+	ContractAddress string `json:"contract_address"`
+	Bloom           string `json:"bloom"`
+	Logs            string `json:"logs"`
+	Ret             string `json:"ret"`
+	TxHash          string `json:"tx_hash"`
+}
+
+func NewResultDataStr(rd ResultData) ResultDataStr {
+
+	return ResultDataStr{
+		ContractAddress: rd.ContractAddress.String(),
+		Bloom:           rd.Bloom.Big().String(),
+		Logs:            fmt.Sprintf("%v", rd.Logs),
+		Ret:             fmt.Sprintf("%v", rd.Ret),
+		TxHash:          rd.TxHash.String(),
+	}
+}
+
+func (rd ResultDataStr) String() string {
+	return strings.TrimSpace(fmt.Sprintf(`ResultData:
+	ContractAddress: %s
+	Bloom: %s
+	Logs: %s
+	Ret: %s
+	TxHash: %s
+`, rd.ContractAddress, rd.Bloom, rd.Logs, rd.Ret, rd.TxHash))
+}
+
+type TxReceipt struct {
+	Height    int64         `json:"height"`
+	TxHash    string        `json:"txhash"`
+	Results   ResultDataStr `json:"results,omitempty"`
+	GasWanted int64         `json:"gas_wanted,omitempty"`
+	GasUsed   int64         `json:"gas_used,omitempty"`
+	Timestamp string        `json:"timestamp,omitempty"`
+}
+
+// EncodeResultData takes all of the necessary data from the EVM execution
+// and returns the data as a byte slice encoded with amino
+func EncodeResultData(data ResultData) ([]byte, error) {
+	return codec.New().MarshalBinaryLengthPrefixed(data)
+}
+
+// DecodeResultData decodes an amino-encoded byte slice into ResultData
+func DecodeResultData(in []byte) (ResultData, error) {
+	var data ResultData
+	err := codec.New().UnmarshalBinaryLengthPrefixed(in, &data)
+	if err != nil {
+		return ResultData{}, err
+	}
+	return data, nil
+}
+
+func NewResponseResultTxReceipt(res *ctypes.ResultTx, tx Tx, timestamp string) TxReceipt {
+	if res == nil {
+		return TxReceipt{}
+	}
+
+	data, err := DecodeResultData(res.TxResult.Data)
+	if err != nil {
+		return TxReceipt{}
+
+	}
+	return TxReceipt{
+		TxHash:    res.Hash.String(),
+		Height:    res.Height,
+		Results:   NewResultDataStr(data),
+		GasWanted: res.TxResult.GasWanted,
+		GasUsed:   res.TxResult.GasUsed,
+		Timestamp: timestamp,
+	}
+}
+
+func (r TxReceipt) String() string {
+	var sb strings.Builder
+	sb.WriteString("Response:\n")
+
+	if r.Height > 0 {
+		sb.WriteString(fmt.Sprintf("  Height: %d\n", r.Height))
+	}
+	if r.TxHash != "" {
+		sb.WriteString(fmt.Sprintf("  TxHash: %s\n", r.TxHash))
+	}
+	if r.Results.String() != "" {
+		sb.WriteString(fmt.Sprintf("  Results: %s\n", r.Results.String()))
+	}
+	if r.GasWanted != 0 {
+		sb.WriteString(fmt.Sprintf("  GasWanted: %d\n", r.GasWanted))
+	}
+	if r.GasUsed != 0 {
+		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
+	}
+	if r.Timestamp != "" {
+		sb.WriteString(fmt.Sprintf("  Timestamp: %s\n", r.Timestamp))
+	}
+
+	return strings.TrimSpace(sb.String())
+}
+
+// Empty returns true if the response is empty
+func (r TxReceipt) Empty() bool {
+	return r.TxHash == ""
+}
+
 // TxResponse defines a structure containing relevant tx data and metadata. The
 // tags are stringified and the log is JSON decoded.
 type TxResponse struct {
@@ -470,7 +608,7 @@ func (r TxResponse) String() string {
 		sb.WriteString(fmt.Sprintf("  GasUsed: %d\n", r.GasUsed))
 	}
 	if len(r.Events) > 0 {
-		sb.WriteString(fmt.Sprintf("  Tags: \n%s\n", r.Events.String()))
+		sb.WriteString(fmt.Sprintf("  Events: \n%s\n", r.Events.String()))
 	}
 
 	if r.Codespace != "" {

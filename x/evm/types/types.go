@@ -2,11 +2,8 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
-	"strings"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/orientwalt/htdf/types"
 )
@@ -47,24 +44,4 @@ type ExecutionResult struct {
 	Bloom   *big.Int
 	Result  *sdk.Result
 	GasInfo GasInfo
-}
-
-// ResultData represents the data returned in an sdk.Result
-type ResultData struct {
-	ContractAddress ethcmn.Address  `json:"contract_address"`
-	Bloom           ethtypes.Bloom  `json:"bloom"`
-	Logs            []*ethtypes.Log `json:"logs"`
-	Ret             []byte          `json:"ret"`
-	TxHash          ethcmn.Hash     `json:"tx_hash"`
-}
-
-// String implements fmt.Stringer interface.
-func (rd ResultData) String() string {
-	return strings.TrimSpace(fmt.Sprintf(`ResultData:
-	ContractAddress: %s
-	Bloom: %s
-	Logs: %v
-	Ret: %v
-	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Logs, rd.Ret, rd.TxHash.String()))
 }
