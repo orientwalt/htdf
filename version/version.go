@@ -5,12 +5,17 @@ import (
 	"strconv"
 
 	"github.com/orientwalt/htdf/codec"
+	"github.com/orientwalt/htdf/params"
 	"github.com/spf13/cobra"
 )
 
-// Version - Htdf Version
-const ProtocolVersion = 0
-const Version = "0.14.1"
+// DO NOT EDIT THIS AppVersion
+const AppVersion = 0
+
+//-------------------------------------------
+// ProtocolVersion - protocol version of (software)upgrade
+const ProtocolVersion = 1 // start from version 1 by yqq 2021-04-07
+var Version = params.Version
 
 // GitCommit set by build flags
 var GitCommit = ""

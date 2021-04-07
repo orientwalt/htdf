@@ -65,10 +65,10 @@ func NewParams(unbondingTime time.Duration, maxValidators, maxEntries uint16,
 // Implements params.ParamSet
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeyUnbondingTime, &p.UnbondingTime},
-		{KeyMaxValidators, &p.MaxValidators},
-		{KeyMaxEntries, &p.MaxEntries},
-		{KeyBondDenom, &p.BondDenom},
+		{Key: KeyUnbondingTime, Value: &p.UnbondingTime},
+		{Key: KeyMaxValidators, Value: &p.MaxValidators},
+		{Key: KeyMaxEntries, Value: &p.MaxEntries},
+		{Key: KeyBondDenom, Value: &p.BondDenom},
 	}
 }
 
@@ -183,7 +183,7 @@ func validateUnbondingTime(v time.Duration) sdk.Error {
 	// planed to be modified by junying, 2019-11-20
 	// because two-week unbond time may be too long
 	// if v < 2*sdk.Week {
-	if v < 3*sdk.Day{
+	if v < 3*sdk.Day {
 		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidUnbondingTime, fmt.Sprintf("Invalid UnbondingTime [%s] should be greater than or equal to 2 weeks", v.String()))
 	}
 	return nil

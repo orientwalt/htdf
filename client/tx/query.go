@@ -231,3 +231,55 @@ func QueryTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.H
 		rest.PostProcessResponse(w, cdc, output, cliCtx.Indent)
 	}
 }
+
+// Mempool tx queries REST, do not supply CLI implements.
+// If needed , using Tendermint API `localhost:26657/unconfirmed_txs` or
+// `localhost:26657/num_unconfirmed_txs` as an alternative.
+// But, txs field details of reponse are not readable for user.
+
+// QueryTxRequestHandlerFn implements a REST handler that queries a transaction
+// by hash in mempool, only queries the front 100 txs in mempool because of Tendermint limit.
+func QueryMempoolTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		hashHexStr := vars["hash"]
+
+		output, mperr := queryTxInMempool(cdc, cliCtx, hashHexStr)
+		if output.Empty() || mperr != nil {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, mperr.Error())
+			return
+		}
+
+		if output.Empty() {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("no transaction found with hash %s", hashHexStr))
+		}
+
+		rest.PostProcessResponse(w, cdc, output, cliCtx.Indent)
+	}
+}
+
+// QueryMempoolTxRequestHandlerFn implements a REST handler that queries the front 100 transactions
+// in mempool, only queries the front 100 txs in mempool because of Tendermint limit.
+func QueryMempoolTxsRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		outputs, mperr := queryTxsInMempool(cdc, cliCtx)
+		if mperr != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, mperr.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cdc, outputs, cliCtx.Indent)
+	}
+}
+
+// QueryMempoolTxsNumRequestHandlerFn  query mempool txs count
+func QueryMempoolTxsNumRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		result, mperr := queryTxsNumInMempool(cdc, cliCtx)
+		if mperr != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, mperr.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cdc, result, cliCtx.Indent)
+	}
+}

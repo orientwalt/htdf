@@ -312,6 +312,17 @@ func (ctx CLIContext) PrintOutput(toPrint fmt.Stringer) (err error) {
 	return
 }
 
+// GetNewHttpClient  get http client to connection node for quering mempool txs 
+func (ctx CLIContext) GetNewHttpClient() (httpcli *rpchttp.HTTP, err error) {
+	nodeURI := viper.GetString(client.FlagNode)
+	if nodeURI != "" {
+		httpcli, err = rpchttp.New(nodeURI, "/websocket")
+	} else {
+		httpcli, err = nil, fmt.Errorf("Empty nodeURI. It couldn't establish with node to query mempool txs.")
+	}
+	return
+}
+
 // GetFromFields returns a from account address and Keybase name given either
 // an address or key name. If genOnly is true, only a valid Bech32 cosmos
 // address is returned.

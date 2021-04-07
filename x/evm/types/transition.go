@@ -157,7 +157,7 @@ func (st *StateTransition) GetSender() common.Address {
 }
 
 //
-func (st *StateTransition) GetRecipeint() common.Address {
+func (st *StateTransition) GetRecipient() common.Address {
 	return *st.recipient
 }
 
@@ -299,19 +299,27 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
 	logging().Debugln(st.ContractCreation)
 
-	//
 	// stateDB.SetNonce(st.sender, currentNonce+1)
-
 	// create contract or execute call
 	switch st.ContractCreation {
 	case true:
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.payload, gasLimit, st.amount)
 		recipientLog = fmt.Sprintf("contract address: %s", contractAddress.String())
 	default:
-		// Increment the nonce for the next transaction	(just for evm state transition)
-		ret, leftOverGas, err = evm.Call(senderRef, *st.recipient, st.payload, gasLimit, st.amount)
-		recipientLog = fmt.Sprintf("recipient address: %s", st.recipient.String())
+		if code := evm.StateDB.GetCode(st.GetRecipient()); len(st.payload) > 0 && len(code) == 0 {
+			// copy from v1.3.0 2021-04-07
+			// added by yqq 2020-12-07
+			// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data`
+			// and `MsgSend.To` is not contract address.
+			ret, leftOverGas, err = nil, 0, fmt.Errorf("invalid contract address")
+			recipientLog = fmt.Sprintf("contract address: %s", contractAddress.String())
+		} else {
+			// Increment the nonce for the next transaction	(just for evm state transition)
+			ret, leftOverGas, err = evm.Call(senderRef, *st.recipient, st.payload, gasLimit, st.amount)
+			recipientLog = fmt.Sprintf("recipient address: %s", st.recipient.String())
+		}
 	}
+
 	recipientLog = fmt.Sprintf("%s, output: %s", recipientLog, hex.EncodeToString(ret))
 	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
 	logger().Debugf("in TransitionDb:leftOverGas[%d]\n", leftOverGas)

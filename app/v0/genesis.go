@@ -173,7 +173,7 @@ func HtdfAppGenState(cdc *codec.Codec, genDoc tmtypes.GenesisDoc, appGenTxs []js
 
 	genesisState.StakeData = stakeData
 	genesisState.GenTxs = appGenTxs
-	genesisState.UpgradeData = genesisState.UpgradeData
+	// genesisState.UpgradeData = genesisState.UpgradeData
 	return genesisState, nil
 }
 
