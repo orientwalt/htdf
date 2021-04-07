@@ -26,15 +26,31 @@ clean:
 
 test_normal_tx:clean
 	pytest -v --disable-warnings -s ./test_normal_tx.py  --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 test_hrc20_contract_tx:clean
 	pytest -v --disable-warnings -s ./test_hrc20_contract_tx.py --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 test_htdf_faucet_contract:clean
 	pytest -v --disable-warnings -s ./test_htdf_faucet_contract.py  --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 test:clean
 	pytest -v ./ --disable-warnings -s --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 stop:
 	-pkill loop
