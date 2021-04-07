@@ -239,7 +239,8 @@ func TestNewEvm(t *testing.T) {
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
-	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000)
+	// evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000)
+	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
 
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
@@ -409,7 +410,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
-	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000)
+	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
 	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	contractRef := vm.AccountRef(fromAddress)
 
