@@ -29,13 +29,17 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/log"
+
+	// v0staking "github.com/orientwalt/htdf/app/v0/staking"
 )
 
 const (
 	//
 	RouterKey = "htdfservice"
-	// junying-comment, 2020-06-15
-	TxSizeLimit = 1200000 // tx size is limited to 1200000(bytes)
+	// fix issue #9
+	// tx size limit shrinked to 35000(bytes) because 4G RAM causes out-of-memory
+	// crashing for 500tx-airdrop tx with gaswanted of over 10,000,000 gas
+	TxSizeLimit = 100000
 )
 
 var _ protocol.Protocol = (*ProtocolV0)(nil)
@@ -389,6 +393,7 @@ func (p *ProtocolV0) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 	// tags := slashing.BeginBlocker(ctx, req, p.slashingKeeper)
 	return abci.ResponseBeginBlock{
 		// Tags: tags.ToKVPairs(),
+		Events: ctx.EventManager().ABCIEvents(),
 	}
 }
 
@@ -407,7 +412,7 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
 		// Tags:             tags,
-		// Events: ctx.EventManager().ABCIEvents(),
+		Events: ctx.EventManager().ABCIEvents(),
 	}
 }
 

@@ -5,9 +5,9 @@ else
     CURRENT_OS := $(shell uname -s)
 endif
 
-# export GO111MODULE = on
-# default: log
-export LOG_LEVEL=debug
+export GO111MODULE=on
+export LOG_LEVEL=info
+export CGO_ENABLED=0 
 
 #GOBIN
 GOBIN = $(shell pwd)/build/bin
@@ -28,56 +28,23 @@ INEFFASSIGN_CHK := $(shell command -v ineffassign 2> /dev/null)
 MISSPELL_CHK := $(shell command -v misspell 2> /dev/null)
 ERRCHECK_CHK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHK := $(shell command -v unparam 2> /dev/null)
-#
 LEDGER_ENABLED ?= false
 
 build_tags = netgo
-# ifeq ($(LEDGER_ENABLED),true)
-#   ifeq ($(OS),Windows_NT)
-#     GCCEXE = $(shell where gcc.exe 2> NUL)
-#     ifeq ($(GCCEXE),)
-#       $(error gcc.exe not installed for ledger support, please install or set LEDGER_ENABLED=false)
-#     else
-#       build_tags += ledger
-#     endif
-#   else
-#     UNAME_S = $(shell uname -s)
-#     ifeq ($(UNAME_S),OpenBSD)
-#       $(warning OpenBSD detected, disabling ledger support (https://github.com/orientwalt/htdf/issues/1988))
-#     else
-#       GCC = $(shell command -v gcc 2> /dev/null)
-#       ifeq ($(GCC),)
-#         $(error gcc not installed for ledger support, please install or set LEDGER_ENABLED=false)
-#       else
-#         build_tags += ledger
-#       endif
-#     endif
-#   endif
-# endif
 
-ifeq ($(WITH_CLEVELDB),yes)
-  build_tags += gcc
-endif
+
+
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
 BUILD_FLAGS = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH}'
 BUILD_FLAGS_STATIC_LINK = -tags "$(build_tags)" -ldflags '-X github.com/orientwalt/htdf/version.GitCommit=${COMMIT_HASH} -X main.GitCommit=${COMMIT_HASH} -X main.DEBUGAPI=${DEBUGAPI} -X main.GitBranch=${GIT_BRANCH} -linkmode external -w -extldflags "-static"'
 
-all: tools deps build
+all: verify build
 
-tools:
-ifndef DEP_CHK
-	@echo "Installing dep"
-	go get -u -v github.com/golang/dep/cmd/dep
-else
-	@echo "Dep is already installed..."
-endif
-
-deps:
-	@echo "--> Generating vendor directory via dep ensure"
-	@rm -rf .vendor-new
-	@dep ensure -v -vendor-only
+verify:
+	@echo "verify modules"
+	@go mod verify
 
 update:
 	@echo "--> Running dep ensure"
@@ -133,12 +100,9 @@ test:
 	@echo $(PACKAGES)
 
 unittest:
-	@go test -v ./x/evm/...
 	@go test -v ./types/...
 	@go test -v ./store/...
 	@go test -v ./utils/...
-	@go test -v ./x/mint/...
-	@go test -v ./x/bank/...
 	@go test -v ./accounts/...
 	@go test -v ./app/...
 	@go test -v ./client/...
@@ -146,6 +110,9 @@ unittest:
 	@go test -v ./crypto/...
 	@go test -v ./server/...
 	@go test -v ./tools/...
+	@go test -v ./x/mint/...
+	@go test -v ./x/bank/...
+	@go test -v ./x/evm/...
 	@go test -v ./x/auth/...
 	@go test -v ./x/crisis/...
 	@go test -v ./x/distribution/...
@@ -166,7 +133,7 @@ new: install clear hsinit accs conf vals
 new.pure: clear hsinit accs conf vals
 
 hsinit:
-	@hsd init yjy --chain-id $(CHAIN_ID)
+	@hsd init mynode --chain-id $(CHAIN_ID)
 
 accs:
 	@echo create new accounts....;\
@@ -194,7 +161,7 @@ start.daemon:
 	@nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
 
 start.rest:
-	@sleep 2
+	@sleep 0.2
 	@echo starting rest server...
 	@nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
 
@@ -280,71 +247,6 @@ hscheck:
 hsclean:
 	@docker rmi ${DOCKER_VALIDATOR_IMAGE} ${DOCKER_CLIENT_IMAGE}
 
-##############################################################################################################################
-# ethernet part
-##############################################################################################################################
-clean-t:
-	@find build -name testnet |xargs rm -rf
-	
-# addrs:
-# 	@if [ -f ipaddrs.conf ]; then rm ipaddrs.conf ;fi
-# 	# modify conf files
-# 	@for index in $$(seq -s ' ' 4); do \
-# 	 read -p "Enter node$$index IP addr: " ipaddr;\
-# 	 echo $$ipaddr >> ipaddrs.conf; done
-
-# killall:
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') pkill -9 hsd
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') pkill -9 hsd
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') pkill -9 hsd
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') pkill -9 hsd
-
-# startall:
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') nohup hsd start & > /dev/null
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') nohup hsd start & > /dev/null
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') nohup hsd start & > /dev/null
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') nohup hsd start & > /dev/null
-
-# cleanall:
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p') rm -rf /root/.hsd /root/.hscli
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p') rm -rf /root/.hsd /root/.hscli
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p') rm -rf /root/.hsd /root/.hscli
-# 	@sshpass -p miss16980 ssh root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p') rm -rf /root/.hsd /root/.hscli
-
-# copyall:
-# 	# upload files
-# 	### 1st server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node0/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '1p'):/usr/local/bin
-# 	### 2nd server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node1/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '2p'):/usr/local/bin
-# 	### 3rd server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node2/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
-# 	@sshpass -p miss16980 scp -r build/testnet/node2/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '3p'):/usr/local/bin
-# 	### 4th server
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
-# 	@sshpass -p miss16980 scp -r ${TESTNETDIR}/node3/.hscli root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/root
-# 	@sshpass -p miss16980 scp -r build/bin/hsd root@$$(cat networks/remote/ipaddrs.conf | sed -n '4p'):/usr/local/bin
-
-# resetall: #clean-4 install-
-# 	@if ! [ -d ${TESTNETDIR} ]; then mkdir -p ${TESTNETDIR}; fi
-# 	@hsd testnet --chain-id mainchain \
-# 				 --v 4 \
-# 				 -o ${TESTNETDIR} \
-# 				 --validator-ip-addresses $(CURDIR)/networks/remote/ipaddrs.conf \
-# 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
-
-# clean-testnet:
-# 	@rm -rf $(CURDIR)/build/testnet
-
-# testnet: clean-testnet install resetall #copyall startall # killall cleanall 
-
-# chketh:
-# 	@sshpass -p miss16980 ssh root@192.168.10.69
 
 ##############################################################################################################################
 # ethernet distribution part

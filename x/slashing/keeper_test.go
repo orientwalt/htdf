@@ -197,10 +197,12 @@ func TestHandleAbsentValidator(t *testing.T) {
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Unbonding, validator.GetStatus())
 
-	slashAmt := amt.ToDec().Mul(keeper.SlashFractionDowntime(ctx)).RoundInt64()
 
+	// 2021-04-08 yqq, because of we had move v1/slashing to x/slashing, no slahing of validator absense
+	// slashAmt := amt.ToDec().Mul(keeper.SlashFractionDowntime(ctx)).RoundInt64()
 	// validator should have been slashed
-	require.Equal(t, amt.Int64()-slashAmt, validator.GetTokens().Int64())
+	// require.Equal(t, amt.Int64()-slashAmt, validator.GetTokens().Int64())
+	require.Equal(t, amt.Int64(), validator.GetTokens().Int64())
 
 	// 502nd block *also* missed (since the LastCommit would have still included the just-unbonded validator)
 	height++
@@ -214,9 +216,11 @@ func TestHandleAbsentValidator(t *testing.T) {
 	// end block
 	staking.EndBlocker(ctx, sk)
 
+	// 2021-04-08 yqq, 
 	// validator should not have been slashed any more, since it was already jailed
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
-	require.Equal(t, amt.Int64()-slashAmt, validator.GetTokens().Int64())
+	// require.Equal(t, amt.Int64()-slashAmt, validator.GetTokens().Int64())
+	require.Equal(t, amt.Int64(), validator.GetTokens().Int64())
 
 	// unrevocation should fail prior to jail expiration
 	got = slh(ctx, slashingtypes.NewMsgUnjail(addr))
@@ -234,9 +238,11 @@ func TestHandleAbsentValidator(t *testing.T) {
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Bonded, validator.GetStatus())
 
+	// 2021-04-08 yqq, 
 	// validator should have been slashed
 	pool = sk.GetPool(ctx)
-	require.Equal(t, amt.Int64()-slashAmt, pool.BondedTokens.Int64())
+	// require.Equal(t, amt.Int64()-slashAmt, pool.BondedTokens.Int64())
+	require.Equal(t, amt.Int64(), pool.BondedTokens.Int64())
 
 	// Validator start height should not have been changed
 	info, found = keeper.getValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
@@ -355,8 +361,9 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	require.Equal(t, sdk.Unbonding, validator.GetStatus())
 
 	// validator should have been slashed
-	resultingTokens := amt.Sub(sdk.TokensFromTendermintPower(1))
-	require.Equal(t, resultingTokens, validator.GetTokens())
+	// 2021-04-08 yqq, because of we had move v1/slashing to x/slashing, no slahing of validator "down"
+	// resultingTokens := amt.Sub(sdk.TokensFromTendermintPower(1))
+	require.Equal(t, amt, validator.GetTokens())
 
 	// another block missed
 	ctx = ctx.WithBlockHeight(height)
@@ -364,7 +371,9 @@ func TestHandleAlreadyJailed(t *testing.T) {
 
 	// validator should not have been slashed twice
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
-	require.Equal(t, resultingTokens, validator.GetTokens())
+	// 2021-04-08 yqq, 
+	// require.Equal(t, resultingTokens, validator.GetTokens())
+	require.Equal(t, amt, validator.GetTokens())
 
 }
 
