@@ -29,31 +29,31 @@ MISSPELL_CHK := $(shell command -v misspell 2> /dev/null)
 ERRCHECK_CHK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHK := $(shell command -v unparam 2> /dev/null)
 #
-LEDGER_ENABLED ?= true
+LEDGER_ENABLED ?= false
 
 build_tags = netgo
-ifeq ($(LEDGER_ENABLED),true)
-  ifeq ($(OS),Windows_NT)
-    GCCEXE = $(shell where gcc.exe 2> NUL)
-    ifeq ($(GCCEXE),)
-      $(error gcc.exe not installed for ledger support, please install or set LEDGER_ENABLED=false)
-    else
-      build_tags += ledger
-    endif
-  else
-    UNAME_S = $(shell uname -s)
-    ifeq ($(UNAME_S),OpenBSD)
-      $(warning OpenBSD detected, disabling ledger support (https://github.com/orientwalt/htdf/issues/1988))
-    else
-      GCC = $(shell command -v gcc 2> /dev/null)
-      ifeq ($(GCC),)
-        $(error gcc not installed for ledger support, please install or set LEDGER_ENABLED=false)
-      else
-        build_tags += ledger
-      endif
-    endif
-  endif
-endif
+# ifeq ($(LEDGER_ENABLED),true)
+#   ifeq ($(OS),Windows_NT)
+#     GCCEXE = $(shell where gcc.exe 2> NUL)
+#     ifeq ($(GCCEXE),)
+#       $(error gcc.exe not installed for ledger support, please install or set LEDGER_ENABLED=false)
+#     else
+#       build_tags += ledger
+#     endif
+#   else
+#     UNAME_S = $(shell uname -s)
+#     ifeq ($(UNAME_S),OpenBSD)
+#       $(warning OpenBSD detected, disabling ledger support (https://github.com/orientwalt/htdf/issues/1988))
+#     else
+#       GCC = $(shell command -v gcc 2> /dev/null)
+#       ifeq ($(GCC),)
+#         $(error gcc not installed for ledger support, please install or set LEDGER_ENABLED=false)
+#       else
+#         build_tags += ledger
+#       endif
+#     endif
+#   endif
+# endif
 
 ifeq ($(WITH_CLEVELDB),yes)
   build_tags += gcc
