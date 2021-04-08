@@ -14,7 +14,8 @@ const AppVersion = 0
 
 //-------------------------------------------
 // ProtocolVersion - protocol version of (software)upgrade
-const ProtocolVersion = 1 // start from version 1 by yqq 2021-04-07
+// start from version 0 by yqq 2021-04-08, due to we have moved v1 and v2 to x
+const ProtocolVersion = 0 
 var Version = params.Version
 
 // GitCommit set by build flags

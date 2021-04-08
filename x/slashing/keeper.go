@@ -2,6 +2,7 @@ package slashing
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/tendermint/tendermint/crypto"
@@ -11,7 +12,25 @@ import (
 	"github.com/orientwalt/htdf/x/params"
 	"github.com/orientwalt/htdf/x/slashing/types"
 	stake "github.com/orientwalt/htdf/x/staking/types"
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	// junying-todo,2020-01-17
+	lvl, ok := os.LookupEnv("LOG_LEVEL")
+	// LOG_LEVEL not set, let's default to debug
+	if !ok {
+		lvl = "info" //trace/debug/info/warn/error/parse/fatal/panic
+	}
+	// parse string, this is built-in feature of logrus
+	ll, err := log.ParseLevel(lvl)
+	if err != nil {
+		ll = log.FatalLevel //TraceLevel/DebugLevel/InfoLevel/WarnLevel/ErrorLevel/ParseLevel/FatalLevel/PanicLevel
+	}
+	// set global log level
+	log.SetLevel(ll)
+	log.SetFormatter(&log.TextFormatter{}) //&log.JSONFormatter{})
+}
 
 // Keeper of the slashing store
 type Keeper struct {
@@ -188,8 +207,13 @@ func (k Keeper) handleValidatorSignature(ctx sdk.Context, addr crypto.Address, p
 			// Note that this *can* result in a negative "distributionHeight" up to -ValidatorUpdateDelay-1,
 			// i.e. at the end of the pre-genesis block (none) = at the beginning of the genesis block.
 			// That's fine since this is just used to filter unbonding delegations & redelegations.
-			distributionHeight := height - sdk.ValidatorUpdateDelay - 1
-			k.validatorSet.Slash(ctx, consAddr, distributionHeight, power, k.SlashFractionDowntime(ctx))
+
+			// move from app/v1/slashing to here , yqq , 2021-04-08
+			// Disable Slashing for ValidatorSignatureMissing. junying-todo, 2020-05-26
+			// distributionHeight := height - sdk.ValidatorUpdateDelay - 1
+			// k.validatorSet.Slash(ctx, consAddr, distributionHeight, power, k.SlashFractionDowntime(ctx))
+
+			log.Infof("No Slashing For ValidatorSignatureMissing(Jailed:%s)\n", pubkey.Address())
 			k.validatorSet.Jail(ctx, consAddr)
 			signInfo.JailedUntil = ctx.BlockHeader().Time.Add(k.DowntimeJailDuration(ctx))
 

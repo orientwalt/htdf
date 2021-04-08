@@ -20,7 +20,6 @@ import (
 	"github.com/orientwalt/htdf/x/mint"
 	"github.com/orientwalt/htdf/x/service"
 	"github.com/orientwalt/htdf/x/slashing"
-	"github.com/orientwalt/htdf/x/staking"
 	stake "github.com/orientwalt/htdf/x/staking"
 	"github.com/orientwalt/htdf/x/upgrade"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -173,7 +172,6 @@ func HtdfAppGenState(cdc *codec.Codec, genDoc tmtypes.GenesisDoc, appGenTxs []js
 
 	genesisState.StakeData = stakeData
 	genesisState.GenTxs = appGenTxs
-	// genesisState.UpgradeData = genesisState.UpgradeData
 	return genesisState, nil
 }
 
@@ -385,7 +383,7 @@ func CollectStdTxsEx(cdc *codec.Codec, moniker string, genTxsDir string, genDoc 
 				"each genesis transaction must provide a single genesis message")
 		}
 
-		msg := msgs[0].(staking.MsgCreateValidator)
+		msg := msgs[0].(stake.MsgCreateValidator)
 		// validate delegator and validator addresses and funds against the accounts in the state
 		delAddr := msg.DelegatorAddress.String()
 		valAddr := sdk.AccAddress(msg.ValidatorAddress).String()

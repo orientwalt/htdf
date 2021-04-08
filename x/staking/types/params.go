@@ -16,8 +16,9 @@ const (
 	DefaultParamSpace = sdk.DefaultDenom // junying-todo, 2019-08-27, "stake" to satoshi
 	// DefaultUnbondingTime reflects three weeks in seconds as the default
 	// unbonding time.
-	// TODO: Justify our choice of default here.
-	DefaultUnbondingTime time.Duration = time.Second * 60 * 60 * 24 * 14 // 3 to 7,junying-todo, 2019-11-20
+
+	// 2021-04-08 yqq, modify 14 days to 3 days
+	DefaultUnbondingTime time.Duration = time.Second * 60 * 60 * 24 * 3 
 
 	// Default maximum number of bonded validators
 	DefaultMaxValidators uint16 = 50

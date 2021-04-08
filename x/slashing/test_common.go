@@ -84,7 +84,7 @@ func createTestInput(t *testing.T, defaults types.Params) (sdk.Context, bank.Kee
 
 	for _, addr := range addrs {
 		_, _, err = ck.AddCoins(ctx, sdk.AccAddress(addr), sdk.Coins{
-			{sk.GetParams(ctx).BondDenom, initCoins},
+			sdk.Coin{Denom: sk.GetParams(ctx).BondDenom, Amount: initCoins},
 		})
 	}
 	require.Nil(t, err)
