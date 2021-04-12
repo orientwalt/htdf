@@ -1101,13 +1101,18 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		return
 	}
 	result.GasWanted = gasWanted
-	logger().Traceln("10runTx!!!!!!!!!!!!!!!!!", result.IsOK(), result.GasUsed, result.GasWanted)
+	logger().Traceln("10runTx!!!!!!!!!!!!!!!!!", result.IsOK(), result.Code, result.GasUsed, result.GasWanted)
 	// only update state if all messages pass
 	// junying-todo, 2019-11-05
 	// wondering if should add some condition for evm failure
 	// if result.IsOK()
-	// result.Code = 0: Success
-	// result.Code = 1,2: EVM ERROR
+	// ErrCodeOK             CodeType = 0
+	// ErrCodeCreateContract CodeType = 1
+	// ErrCodeOpenContract   CodeType = 2
+	// ErrCodeBeZeroAmount   CodeType = 3
+	// ErrCodeParam          CodeType = 4
+	// ErrCodeParsing        CodeType = 5
+	// ErrCodeIntrinsicGas   CodeType = 6
 	if result.Code < 3 {
 		logger().Traceln("11runTx!!!!!!!!!!!!!!!!!")
 		msCache.Write()

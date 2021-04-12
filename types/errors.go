@@ -15,13 +15,13 @@ import (
 const (
 	Codespace CodespaceType = "htdf"
 
-	ErrCodeOK CodeType = iota
-	ErrCodeCreateContract
-	ErrCodeOpenContract
-	ErrCodeBeZeroAmount
-	ErrCodeParam
-	ErrCodeParsing
-	ErrCodeIntrinsicGas
+	ErrCodeOK             CodeType = 0
+	ErrCodeCreateContract CodeType = 1
+	ErrCodeOpenContract   CodeType = 2
+	ErrCodeBeZeroAmount   CodeType = 3
+	ErrCodeParam          CodeType = 4
+	ErrCodeParsing        CodeType = 5
+	ErrCodeIntrinsicGas   CodeType = 6
 )
 
 //
