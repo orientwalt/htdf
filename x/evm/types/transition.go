@@ -312,7 +312,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 			// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data`
 			// and `MsgSend.To` is not contract address.
 			ret, leftOverGas, err = nil, 0, fmt.Errorf("invalid contract address")
-			recipientLog = fmt.Sprintf("contract address: %s", contractAddress.String())
+			recipientLog = fmt.Sprintf("contract address: %s", st.GetRecipient().String())
 		} else {
 			// Increment the nonce for the next transaction	(just for evm state transition)
 			ret, leftOverGas, err = evm.Call(senderRef, *st.recipient, st.payload, gasLimit, st.amount)
@@ -327,7 +327,8 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	logging().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
 	logging().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
 	if err != nil {
-		st.GasUsed = st.gasLimit //? this waste-all part is still necessary
+		// st.GasUsed = st.gasLimit //? this waste-all part is still necessary
+		st.GasUsed = st.initialGas //? this waste-all part is still necessary
 		recipientLog = fmt.Sprintf("%s, err: %s", recipientLog, err)
 		// Consume gas before returning
 		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")

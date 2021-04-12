@@ -28,6 +28,7 @@ def deploy_htdf_faucet(conftest_args):
     run this test case, if only run single test
     run this test case, if run this test file
     """
+    time.sleep(5)
 
     gas_wanted = 3000000
     gas_price = 100
@@ -265,11 +266,13 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
 
         time.sleep(8)  # wait for chain state update
         if expected_result[n] == True:
+            assert int(tx['gas_wanted']) > int(tx['gas_used'])
             once_htdf_satoshi = hc.call(hc.functions.onceAmount())
             contract_acc_end = htdfrpc.get_account_info(address=contract_address.address)
             assert contract_acc_end is not None
             assert contract_acc_end.balance_satoshi == contract_acc_begin.balance_satoshi - once_htdf_satoshi
         elif expected_result[n] == False:
+            assert int(tx['gas_wanted']) == int(tx['gas_used'])  # all gas be consumed
             contract_acc_end = htdfrpc.get_account_info(address=contract_address.address)
             assert contract_acc_end is not None
             assert contract_acc_end.balance_satoshi == contract_acc_begin.balance_satoshi  # contract's balance doesn't changes
@@ -297,7 +300,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     data = remove_0x_prefix(deposit_tx['data'])
     assert len(data) > 0 and ((len(data) & 1) == 0)
 
-    # test for  non-owner , it will be failed
+    ################## test for  non-owner , it will be failed
     from_addr = Address('htdf188tzdtuka7yc6xnkm20pv84f3kgthz05650au5')
     private_key = HtdfPrivateKey('f3024714bb950cfbd2461b48ef4d3a9aea854309c4ab843fda57be34cdaf856e')
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
@@ -306,7 +309,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         gas_price = 100
         tx_amount = htdf_to_satoshi(10)
         #data = ''
-        memo = 'test_normal_transaction'
+        memo = 'create a tmp address'
 
         htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'],
                           rpc_port=conftest_args['RPC_PORT'])
@@ -345,6 +348,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         from_acc = htdfrpc.get_account_info(address=from_addr.address)
         assert from_acc is not None and from_acc.balance_satoshi >= 100*200000
 
+    gas_price = 100
     signed_tx = HtdfTxBuilder(
         from_address=from_addr,
         to_address=contract_address,
@@ -352,10 +356,10 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         sequence=from_acc.sequence,
         account_number=from_acc.account_number,
         chain_id=htdfrpc.chain_id,
-        gas_price=100,
+        gas_price=gas_price,
         gas_wanted=200000,
         data=data,
-        memo='htdf_faucet.setOnceAmount()'
+        memo='htdf_faucet.setOnceAmount() by non-owner'
     ).build_and_sign(private_key=private_key)
 
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
@@ -364,12 +368,15 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
     assert tx['logs'][0]['success'] == False
+    assert int(tx['gas_wanted']) == int(tx['gas_used'])    # if evm reverted, all gas be consumed
 
     time.sleep(8)  # wait for chain state update
     once_amount_satoshi_end = hc.call(cfn=hc.functions.onceAmount())
     assert once_amount_satoshi_end == once_htdf_satoshi_begin
+    from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
+    assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (int(tx['gas_used']) * gas_price)
 
-    # test for owner , it should be succeed
+    ################## test for owner , it should be succeed
     from_addr = Address(conftest_args['ADDRESS'])
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
@@ -380,10 +387,10 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         sequence=from_acc.sequence,
         account_number=from_acc.account_number,
         chain_id=htdfrpc.chain_id,
-        gas_price=100,
+        gas_price=gas_price,
         gas_wanted=200000,
         data=data,
-        memo='htdf_faucet.deposit()'
+        memo='htdf_faucet.setOnceAmount() by owner'
     ).build_and_sign(private_key=private_key)
 
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
@@ -392,10 +399,14 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
+    assert int(tx['gas_wanted']) > int(tx['gas_used'])
+
 
     time.sleep(8)  # wait for chain state update
     once_amount_satoshi_end = hc.call(cfn=hc.functions.onceAmount())
     assert once_amount_satoshi_end == once_htdf_to_set
+    from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
+    assert from_acc_new.balance_satoshi == from_acc.balance_satoshi - (int(tx['gas_used']) * gas_price)
 
     pass
 
