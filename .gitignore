@@ -7,7 +7,7 @@
 
 # IdeaIDE
 vendor
-build
+./build
 .idea/
 
 utils/keystores
