@@ -124,7 +124,7 @@ func RegisterRestServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(FlagListenAddr, "tcp://localhost:1317", "The address for the server to listen on")
 	cmd.Flags().String(FlagCORS, "", "Set the domains that can make CORS requests (* for all)")
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections")
-	cmd.Flags().String(FlagWsPort, "8546", "websocket port to listen to")
+	cmd.Flags().String(FlagWsPort, "1318", "websocket port to listen to")
 	cmd.Flags().StringP(FlagBroadcastMode, "b", BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
 	return cmd
 }
