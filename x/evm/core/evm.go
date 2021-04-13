@@ -20,11 +20,12 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/orientwalt/htdf/utils"
-
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/orientwalt/htdf/x/evm/core/types"
-	"github.com/orientwalt/htdf/x/evm/core/vm"
+	"github.com/ethereum/go-ethereum/core/types"
+
+	// "github.com/ethereum/go-ethereum/core/vm"
+	"github.com/orientwalt/htdf/utils"
+	evm "github.com/orientwalt/htdf/x/evm/core/vm"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -52,7 +53,23 @@ type ChainContext interface {
 
 type IMessage interface {
 	FromAddress() common.Address
+	// GetGasPrice() *big.Int
 }
+
+// Message represents a message sent to a contract.
+// type Message interface {
+// 	From() common.Address
+// 	To() *common.Address
+
+// 	GasPrice() *big.Int
+// 	Gas() uint64
+// 	Value() *big.Int
+
+// 	Nonce() uint64
+// 	CheckNonce() bool
+// 	Data() []byte
+// 	AccessList() types.AccessList
+// }
 
 type FooChainContext struct {
 	blockTime time.Time
@@ -66,13 +83,15 @@ func (self FooChainContext) GetHeader(hash common.Hash, number uint64) *types.He
 		GasLimit:   0,
 		GasUsed:    0,
 		// Time:       big.NewInt(time.Now().Unix()), //.Uint64(),
-		Time:  big.NewInt(self.blockTime.Unix()), // time should be deterministic
+		Time:  uint64(self.blockTime.Unix()), // time should be deterministic
 		Extra: nil,
 	}
 }
 
-// NewEVMContext creates a new context for use in the EVM.
-func NewEVMContext(msg IMessage, author *common.Address, height uint64, blockTime time.Time) vm.Context {
+// NewEVMBlockContext creates a new context for use in the EVM.
+// func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
+func NewEVMBlockContext(author *common.Address, height uint64, blockTime time.Time) evm.BlockContext {
+	//
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	var beneficiary common.Address
 	// if author == nil {
@@ -80,47 +99,117 @@ func NewEVMContext(msg IMessage, author *common.Address, height uint64, blockTim
 	// } else {
 	// 	beneficiary = *author
 	// }
-	beneficiary = *author
 
+	beneficiary = *author
 	fooChainContext := FooChainContext{blockTime: blockTime}
 	fooHash := utils.StringToHash("xxx")
 	fooHeader := fooChainContext.GetHeader(fooHash, height)
 
-	return vm.Context{
+	return evm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(fooHeader, fooChainContext),
-		Origin:      msg.FromAddress(),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(fooHeader.Number),
-		Time:        new(big.Int).Set(fooHeader.Time), //big.NewInt(int64(fooHeader.Time))),
+		Time:        new(big.Int).SetUint64(fooHeader.Time),
 		Difficulty:  new(big.Int).Set(fooHeader.Difficulty),
 		GasLimit:    fooHeader.GasLimit,
-		GasPrice:    big.NewInt(0),
 	}
 }
 
+// NewEVMTxContext creates a new transaction context for a single transaction.
+func NewEVMTxContext(msg IMessage) evm.TxContext {
+	return evm.TxContext{
+		Origin:   msg.FromAddress(),
+		// GasPrice: new(big.Int).Set(msg.GetGasPrice()),
+		GasPrice: new(big.Int).SetInt64(0),
+	}
+}
+
+// // NewEVMContext creates a new context for use in the EVM.
+// func NewEVMContext(msg IMessage, author *common.Address, height uint64, blockTime time.Time) vm.Context {
+// 	// If we don't have an explicit author (i.e. not mining), extract from the header
+// 	var beneficiary common.Address
+// 	// if author == nil {
+// 	// 	beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
+// 	// } else {
+// 	// 	beneficiary = *author
+// 	// }
+// 	beneficiary = *author
+
+// 	fooChainContext := FooChainContext{blockTime: blockTime}
+// 	fooHash := utils.StringToHash("xxx")
+// 	fooHeader := fooChainContext.GetHeader(fooHash, height)
+
+// 	return vm.Context{
+// 		CanTransfer: CanTransfer,
+// 		Transfer:    Transfer,
+// 		GetHash:     GetHashFn(fooHeader, fooChainContext),
+// 		Origin:      msg.FromAddress(),
+// 		Coinbase:    beneficiary,
+// 		BlockNumber: new(big.Int).Set(fooHeader.Number),
+// 		Time:        new(big.Int).Set(fooHeader.Time), //big.NewInt(int64(fooHeader.Time))),
+// 		Difficulty:  new(big.Int).Set(fooHeader.Difficulty),
+// 		GasLimit:    fooHeader.GasLimit,
+// 		GasPrice:    big.NewInt(0),
+// 	}
+// }
+
+// // GetHashFn returns a GetHashFunc which retrieves header hashes by number
+// func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash {
+// 	return func(n uint64) common.Hash {
+// 		for header := chain.GetHeader(ref.ParentHash, ref.Number.Uint64()-1); header != nil; header = chain.GetHeader(header.ParentHash, header.Number.Uint64()-1) {
+// 			if header.Number.Uint64() == n {
+// 				return header.Hash()
+// 			}
+// 		}
+
+// 		return common.Hash{}
+// 	}
+// }
+
 // GetHashFn returns a GetHashFunc which retrieves header hashes by number
 func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash {
+	// Cache will initially contain [refHash.parent],
+	// Then fill up with [refHash.p, refHash.pp, refHash.ppp, ...]
+	var cache []common.Hash
+
 	return func(n uint64) common.Hash {
-		for header := chain.GetHeader(ref.ParentHash, ref.Number.Uint64()-1); header != nil; header = chain.GetHeader(header.ParentHash, header.Number.Uint64()-1) {
-			if header.Number.Uint64() == n {
-				return header.Hash()
+		// If there's no hash cache yet, make one
+		if len(cache) == 0 {
+			cache = append(cache, ref.ParentHash)
+		}
+		if idx := ref.Number.Uint64() - n - 1; idx < uint64(len(cache)) {
+			return cache[idx]
+		}
+		// No luck in the cache, but we can start iterating from the last element we already know
+		lastKnownHash := cache[len(cache)-1]
+		lastKnownNumber := ref.Number.Uint64() - uint64(len(cache))
+
+		for {
+			header := chain.GetHeader(lastKnownHash, lastKnownNumber)
+			if header == nil {
+				break
+			}
+			cache = append(cache, header.ParentHash)
+			lastKnownHash = header.ParentHash
+			lastKnownNumber = header.Number.Uint64() - 1
+			if n == lastKnownNumber {
+				return lastKnownHash
 			}
 		}
-
 		return common.Hash{}
 	}
 }
 
 // CanTransfer checks wether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
-func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
+func CanTransfer(db evm.StateDB, addr common.Address, amount *big.Int) bool {
 	return db.GetBalance(addr).Cmp(amount) >= 0
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
-func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
+func Transfer(db evm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }

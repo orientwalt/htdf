@@ -60,7 +60,7 @@ func logger() *log.Entry {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, homestead bool, isEIP2028 bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation && homestead {
@@ -78,10 +78,17 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 			}
 		}
 		// Make sure we don't exceed uint64 for all data combinations
-		if (math.MaxUint64-gas)/ethparams.TxDataNonZeroGas < nz {
+		// if (math.MaxUint64-gas)/ethparams.TxDataNonZeroGas < nz {
+		// Make sure we don't exceed uint64 for all data combinations
+		nonZeroGas := ethparams.TxDataNonZeroGasFrontier
+		if isEIP2028 {
+			nonZeroGas = ethparams.TxDataNonZeroGasEIP2028
+		}
+
+		if (math.MaxUint64-gas)/nonZeroGas < nz {
 			return 0, vm.ErrOutOfGas
 		}
-		gas += nz * ethparams.TxDataNonZeroGas
+		gas += nz * nonZeroGas
 
 		z := uint64(len(data)) - nz
 		if (math.MaxUint64-gas)/ethparams.TxDataZeroGas < z {
@@ -233,8 +240,11 @@ func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
-	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+	blockCtx := vmcore.NewEVMBlockContext(&st.sender,uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	txCtx := vmcore.NewEVMTxContext(st.msg)
+
+	// evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
 	st.evm = evm
 	return evm
 }
@@ -267,7 +277,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	// default non-contract tx gas: 21000
 	// default contract tx gas: 53000 + f(tx.data)
 	logging().Debugf("in TransitionDb\n")
-	cost, err := IntrinsicGas(st.payload, st.ContractCreation, true)
+	cost, err := IntrinsicGas(st.payload, st.ContractCreation, true, true)
 	logging().Debugf("in TransitionDb:cost[%d]\n", cost)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "invalid intrinsic gas for transaction")
@@ -372,8 +382,13 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 		if _err != nil {
 			return nil, _err
 		}
-		bloomInt = ethtypes.LogsBloom(logs)
-		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
+		// bloomInt = ethtypes.LogsBloom(logs)
+		var bloom  ethtypes.Bloom
+		bzBloom := ethtypes.LogsBloom(logs)
+		bloom.SetBytes(bzBloom)
+		bloomInt = bloom.Big()
+
+		bloomFilter = ethtypes.BytesToBloom(bzBloom)
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result
