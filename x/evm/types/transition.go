@@ -178,9 +178,9 @@ func (st *StateTransition) buyGas() error {
 	eaSender := apptypes.ToEthAddress(st.msg.From)
 
 	msgGasVal := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.GasWanted), st.gasPrice)
-	fmt.Printf("msgGasVal=%s\n", msgGasVal.String())
-	fmt.Printf("msgGasVal=%s\n", eaSender.String())
-	fmt.Printf("st.StateDB.GetBalance=%v\n", st.StateDB.GetBalance(eaSender))
+	// fmt.Printf("msgGasVal=%s\n", msgGasVal.String())
+	// fmt.Printf("msgGasVal=%s\n", eaSender.String())
+	fmt.Printf("st.StateDB.GetBalance(Before)=%v\n", st.StateDB.GetBalance(eaSender))
 
 	if st.StateDB.GetBalance(eaSender).Cmp(msgGasVal) < 0 {
 		return errors.New("insufficient balance for gas")
@@ -193,6 +193,7 @@ func (st *StateTransition) buyGas() error {
 	}
 
 	st.StateDB.SubBalance(eaSender, msgGasVal)
+	fmt.Printf("st.StateDB.GetBalance(After)=%v\n", st.StateDB.GetBalance(eaSender))
 	return nil
 }
 
@@ -297,7 +298,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	logging().Debugf("in TransitionDb:currentNonce[%d]\n", currentNonce)
 
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
-	logging().Debugln(st.ContractCreation)
+	// logging().Debugln(st.ContractCreation)
 
 	// stateDB.SetNonce(st.sender, currentNonce+1)
 	// create contract or execute call
@@ -323,12 +324,13 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	recipientLog = fmt.Sprintf("%s, output: %s", recipientLog, hex.EncodeToString(ret))
 	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
 	logger().Debugf("in TransitionDb:leftOverGas[%d]\n", leftOverGas)
-	st.GasUsed = gasLimit - leftOverGas
-	logging().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
-	logging().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
+	// st.GasUsed = gasLimit - leftOverGas
+	// logging().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
+	// logging().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
+
 	if err != nil {
+		st.GasUsed = st.initialGas
 		// st.GasUsed = st.gasLimit //? this waste-all part is still necessary
-		st.GasUsed = st.initialGas //? this waste-all part is still necessary
 		recipientLog = fmt.Sprintf("%s, err: %s", recipientLog, err)
 		// Consume gas before returning
 		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
@@ -345,7 +347,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	stateDB.SetNonce(st.sender, currentNonce+1)
 
 	if !st.simulate {
-		logging().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
+		// logging().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
 		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed), st.gasPrice)
 		fck.AddCollectedFees(ctx, sdk.Coins{sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(gasUsed))})
 		logging().Debugf("in TransitionDb:feeCollectionKeeper.gasUsed[%v]\n", gasUsed)

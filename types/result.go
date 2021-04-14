@@ -315,11 +315,11 @@ func (logs ABCIMessageLogs) String() (str string) {
 
 // ResultData represents the data returned in an sdk.Result
 type ResultData struct {
-	ContractAddress ethcmn.Address  `json:"contract_address"`
-	Bloom           ethtypes.Bloom  `json:"bloom"`
-	Logs            []*ethtypes.Log `json:"logs"`
-	Ret             []byte          `json:"ret"`
-	TxHash          ethcmn.Hash     `json:"tx_hash"`
+	ContractAddress ethcmn.Address  `json:"contractAddress" gencodec:"required"`
+	Bloom           ethtypes.Bloom  `json:"logsBloom" gencodec:"required"`
+	Logs            []*ethtypes.Log `json:"logs" gencodec:"required"`
+	Ret             []byte          `json:"ret" gencodec:"required"`
+	TxHash          ethcmn.Hash     `json:"transactionHash" gencodec:"required"`
 }
 
 // String implements fmt.Stringer interface.
@@ -328,9 +328,9 @@ func (rd ResultData) String() string {
 	ContractAddress: %s
 	Bloom: %0512x
 	Logs: %v
-	Ret: %v
+	Ret: %s
 	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big(), rd.Logs, rd.Ret, rd.TxHash.String()))
+`, rd.ContractAddress.String(), fmt.Sprintf("0x%x", rd.Bloom.Big()), rd.Logs, fmt.Sprintf("0x%x", rd.Ret), rd.TxHash.String()))
 }
 
 func (rd ResultData) StringEx() string {
@@ -338,26 +338,42 @@ func (rd ResultData) StringEx() string {
 	ContractAddress: %s
 	Bloom: %0512x
 	Logs: %v
-	Ret: %v
+	Ret: %s
 	TxHash: %s
-`, rd.ContractAddress.String(), rd.Bloom.Big(), rd.Logs, rd.Ret, rd.TxHash.String())
+`, rd.ContractAddress.String(), fmt.Sprintf("0x%x", rd.Bloom.Big()), rd.Logs, fmt.Sprintf("0x%x", rd.Ret), rd.TxHash.String())
 }
 
 type ResultDataStr struct {
-	ContractAddress string `json:"contract_address"`
-	Bloom           string `json:"bloom"`
-	Logs            string `json:"logs"`
-	Ret             string `json:"ret"`
-	TxHash          string `json:"tx_hash"`
+	ContractAddress string          `json:"contractAddress"`
+	Bloom           string          `json:"logsBloom"`
+	Logs            []*ethtypes.Log `json:"logs" gencodec:"required"`
+	Ret             string          `json:"ret"`
+	TxHash          string          `json:"transactionHash"`
+}
+
+func allZero(s []byte) bool {
+	for _, v := range s {
+		if v != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func NewResultDataStr(rd ResultData) ResultDataStr {
-
+	var contractAddr string
+	if !allZero(rd.ContractAddress.Bytes()) {
+		contractAddr = rd.ContractAddress.String()
+	}
+	// var ret bool = false
+	// if !allZero(rd.Ret) {
+	// 	ret = true
+	// }
 	return ResultDataStr{
-		ContractAddress: rd.ContractAddress.String(),
-		Bloom:           fmt.Sprintf("%0512x", rd.Bloom.Big()),
-		Logs:            fmt.Sprintf("%v", rd.Logs),
-		Ret:             fmt.Sprintf("%v", rd.Ret),
+		ContractAddress: contractAddr,
+		Bloom:           fmt.Sprintf("0x%x", rd.Bloom.Big()),
+		Logs:            rd.Logs,
+		Ret:             fmt.Sprintf("0x%x", rd.Ret),
 		TxHash:          rd.TxHash.String(),
 	}
 }
@@ -375,7 +391,7 @@ func (rd ResultDataStr) String() string {
 type TxReceipt struct {
 	Height    int64         `json:"height"`
 	TxHash    string        `json:"txhash"`
-	Results   ResultDataStr `json:"results,omitempty"`
+	Results   ResultDataStr `json:"results,omitempty" gencodec:"required"`
 	GasWanted int64         `json:"gas_wanted,omitempty"`
 	GasUsed   int64         `json:"gas_used,omitempty"`
 	Timestamp string        `json:"timestamp,omitempty"`
