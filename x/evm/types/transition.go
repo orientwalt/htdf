@@ -319,17 +319,18 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	// st.GasUsed = gasLimit - leftOverGas
 	// logging().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
 	// logging().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
-	st.gasLimit = leftOverGas
-	st.refundGas()
-	st.GasUsed = st.gasUsed()
+
 	if err != nil {
-		// st.GasUsed = st.initialGas
+		st.GasUsed = st.initialGas
 		// st.GasUsed = st.gasLimit //? this waste-all part is still necessary
 		recipientLog = fmt.Sprintf("%s, err: %s", recipientLog, err)
 		// Consume gas before returning
 		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
 		// return nil, err
 	} else {
+		st.gasLimit = leftOverGas
+		st.refundGas()
+		st.GasUsed = st.gasUsed()
 		st.ContractAddress = &contractAddress
 		logger().Debugf("in TransitionDb:contractAddress[%s]\n", contractAddress.String())
 	}
