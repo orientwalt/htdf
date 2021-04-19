@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
 	"github.com/orientwalt/htdf/app/protocol"
@@ -240,7 +241,7 @@ func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	blockCtx := vmcore.NewEVMBlockContext(&st.sender,uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	blockCtx := vmcore.NewEVMBlockContext(&st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
 	txCtx := vmcore.NewEVMTxContext(st.msg)
 
 	// evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
@@ -341,7 +342,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 	if err != nil {
 		st.GasUsed = st.initialGas
 		// st.GasUsed = st.gasLimit //? this waste-all part is still necessary
-		recipientLog = fmt.Sprintf("%s, err: %s", recipientLog, err)
+		reason, _ := abi.UnpackRevert(ret)
+		recipientLog = fmt.Sprintf("%s, err: %s, reason:%s", recipientLog, err, reason)
+		logger().Warnf("evm revert reason: %s", reason)
+
 		// Consume gas before returning
 		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
 		// return nil, err
@@ -383,7 +387,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 			return nil, _err
 		}
 		// bloomInt = ethtypes.LogsBloom(logs)
-		var bloom  ethtypes.Bloom
+		var bloom ethtypes.Bloom
 		bzBloom := ethtypes.LogsBloom(logs)
 		bloom.SetBytes(bzBloom)
 		bloomInt = bloom.Big()
