@@ -234,14 +234,14 @@ func (st *StateTransition) tokenUsed() uint64 {
 	return new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice).Uint64()
 }
 
-func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
+func (st *StateTransition) newEVM(ctx sdk.Context, chainCtx vmcore.ChainContext, stateDB vm.StateDB) *vm.EVM {
 	// Create context for evm
 	config := appParams.MainnetChainConfig
 	logConfig := vm.LogConfig{}
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	blockCtx := vmcore.NewEVMBlockContext(&st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	blockCtx := vmcore.NewEVMBlockContext(ctx.BlockHeader(), chainCtx, &st.sender, uint64(ctx.BlockHeight()))
 	txCtx := vmcore.NewEVMTxContext(st.msg)
 
 	// evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
@@ -253,7 +253,7 @@ func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
+func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainContext, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
 	if st.StateDB == nil {
 		stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
 		if err != nil {
@@ -265,7 +265,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, 
 
 	stateDB := st.StateDB
 
-	evm := st.newEVM(ctx, stateDB)
+	evm := st.newEVM(ctx, chainCtx, stateDB)
 
 	// commented by junying, 2019-08-22
 	// subtract GasWanted*gasprice from sender

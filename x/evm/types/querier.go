@@ -137,10 +137,9 @@ func queryContract(ctx sdk.Context, req abci.RequestQuery, accountKeeper auth.Ac
 	// evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
 	// evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 
-	blockCtx := vmcore.NewEVMBlockContext(&fromAddress, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	blockCtx := vmcore.NewEVMBlockContext(ctx.BlockHeader(), &vmcore.FakeChainContext{}, &fromAddress, uint64(ctx.BlockHeight()))
 	txCtx := vmcore.NewEVMTxContext(msg)
 	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
-
 
 	contractRef := vm.AccountRef(fromAddress)
 	// return contract codedata if inputcode is all zero

@@ -18,14 +18,15 @@ package core
 
 import (
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	// "github.com/ethereum/go-ethereum/core/vm"
-	"github.com/orientwalt/htdf/utils"
+
 	evm "github.com/orientwalt/htdf/x/evm/core/vm"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -38,135 +39,61 @@ type ChainContext interface {
 	GetHeader(common.Hash, uint64) *types.Header
 }
 
-// func (cc ChainContext) GetHeader(hash common.Hash, number uint64) *ethtypes.Header {
-
-// 	return &ethtypes.Header{
-// 		Coinbase:   fromAddress,
-// 		Difficulty: big.NewInt(1),
-// 		Number:     big.NewInt(1),
-// 		GasLimit:   1000000,
-// 		GasUsed:    0,
-// 		Time:       big.NewInt(time.Now().Unix()).Uint64(),
-// 		Extra:      nil,
-// 	}
-// }
-
 type IMessage interface {
 	FromAddress() common.Address
-	// GetGasPrice() *big.Int
 }
 
-// Message represents a message sent to a contract.
-// type Message interface {
-// 	From() common.Address
-// 	To() *common.Address
-
-// 	GasPrice() *big.Int
-// 	Gas() uint64
-// 	Value() *big.Int
-
-// 	Nonce() uint64
-// 	CheckNonce() bool
-// 	Data() []byte
-// 	AccessList() types.AccessList
-// }
-
-type FooChainContext struct {
-	blockTime time.Time
+// FakeChainContext impl interface ChainContext
+type FakeChainContext struct {
 }
 
-func (self FooChainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
-
-	return &types.Header{
-		Difficulty: big.NewInt(1),
-		Number:     big.NewInt(int64(number)),
-		GasLimit:   0,
-		GasUsed:    0,
-		// Time:       big.NewInt(time.Now().Unix()), //.Uint64(),
-		Time:  uint64(self.blockTime.Unix()), // time should be deterministic
-		Extra: nil,
-	}
+func (self FakeChainContext) GetHeader(hash common.Hash, number uint64) *ethtypes.Header {
+	return nil
 }
 
 // NewEVMBlockContext creates a new context for use in the EVM.
-// func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
-func NewEVMBlockContext(author *common.Address, height uint64, blockTime time.Time) evm.BlockContext {
-	//
+func NewEVMBlockContext(header abci.Header, chainCtx ChainContext, author *common.Address, height uint64) evm.BlockContext {
+
 	// If we don't have an explicit author (i.e. not mining), extract from the header
-	var beneficiary common.Address
+	// var beneficiary common.Address
 	// if author == nil {
 	// 	beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
 	// } else {
 	// 	beneficiary = *author
 	// }
 
-	beneficiary = *author
-	fooChainContext := FooChainContext{blockTime: blockTime}
-	fooHash := utils.StringToHash("xxx")
-	fooHeader := fooChainContext.GetHeader(fooHash, height)
+	beneficiary := *author
+
+	curBlockHeader := &types.Header{
+		ParentHash: common.BytesToHash(header.LastBlockId.Hash),
+		Number:     big.NewInt(int64(header.Height)),
+		Difficulty: big.NewInt(1),
+		GasLimit:   0,
+		GasUsed:    0,
+		Time:       uint64(header.Time.Unix()), // time should be deterministic
+		Extra:      nil,
+	}
 
 	return evm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
-		GetHash:     GetHashFn(fooHeader, fooChainContext),
-		Coinbase:    beneficiary,
-		BlockNumber: new(big.Int).Set(fooHeader.Number),
-		Time:        new(big.Int).SetUint64(fooHeader.Time),
-		Difficulty:  new(big.Int).Set(fooHeader.Difficulty),
-		GasLimit:    fooHeader.GasLimit,
+		GetHash:     GetHashFn(curBlockHeader, chainCtx),         // for evm opCode BLOCKHASH
+		Coinbase:    beneficiary,                                 // for evm opCode COINBASE
+		BlockNumber: new(big.Int).Set(curBlockHeader.Number),     // for evm opCode BLOCKNUMBER
+		Time:        new(big.Int).SetUint64(curBlockHeader.Time), // for evm opCode BLOCKTIME
+		Difficulty:  new(big.Int).Set(curBlockHeader.Difficulty), // for evm opCode DIFFICULTY
+		GasLimit:    curBlockHeader.GasLimit,                     // for evm opCode GASLIMIT
 	}
 }
 
 // NewEVMTxContext creates a new transaction context for a single transaction.
 func NewEVMTxContext(msg IMessage) evm.TxContext {
 	return evm.TxContext{
-		Origin:   msg.FromAddress(),
+		Origin: msg.FromAddress(),
 		// GasPrice: new(big.Int).Set(msg.GetGasPrice()),
 		GasPrice: new(big.Int).SetInt64(0),
 	}
 }
-
-// // NewEVMContext creates a new context for use in the EVM.
-// func NewEVMContext(msg IMessage, author *common.Address, height uint64, blockTime time.Time) vm.Context {
-// 	// If we don't have an explicit author (i.e. not mining), extract from the header
-// 	var beneficiary common.Address
-// 	// if author == nil {
-// 	// 	beneficiary, _ = chain.Engine().Author(header) // Ignore error, we're past header validation
-// 	// } else {
-// 	// 	beneficiary = *author
-// 	// }
-// 	beneficiary = *author
-
-// 	fooChainContext := FooChainContext{blockTime: blockTime}
-// 	fooHash := utils.StringToHash("xxx")
-// 	fooHeader := fooChainContext.GetHeader(fooHash, height)
-
-// 	return vm.Context{
-// 		CanTransfer: CanTransfer,
-// 		Transfer:    Transfer,
-// 		GetHash:     GetHashFn(fooHeader, fooChainContext),
-// 		Origin:      msg.FromAddress(),
-// 		Coinbase:    beneficiary,
-// 		BlockNumber: new(big.Int).Set(fooHeader.Number),
-// 		Time:        new(big.Int).Set(fooHeader.Time), //big.NewInt(int64(fooHeader.Time))),
-// 		Difficulty:  new(big.Int).Set(fooHeader.Difficulty),
-// 		GasLimit:    fooHeader.GasLimit,
-// 		GasPrice:    big.NewInt(0),
-// 	}
-// }
-
-// // GetHashFn returns a GetHashFunc which retrieves header hashes by number
-// func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash {
-// 	return func(n uint64) common.Hash {
-// 		for header := chain.GetHeader(ref.ParentHash, ref.Number.Uint64()-1); header != nil; header = chain.GetHeader(header.ParentHash, header.Number.Uint64()-1) {
-// 			if header.Number.Uint64() == n {
-// 				return header.Hash()
-// 			}
-// 		}
-
-// 		return common.Hash{}
-// 	}
-// }
 
 // GetHashFn returns a GetHashFunc which retrieves header hashes by number
 func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash {
