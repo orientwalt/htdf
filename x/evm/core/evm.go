@@ -67,9 +67,9 @@ func NewEVMBlockContext(header abci.Header, chainCtx ChainContext, author *commo
 	curBlockHeader := &types.Header{
 		ParentHash: common.BytesToHash(header.LastBlockId.Hash),
 		Number:     big.NewInt(int64(header.Height)),
-		Difficulty: big.NewInt(1),
-		GasLimit:   0,
-		GasUsed:    0,
+		Difficulty: big.NewInt(1),              // TODO: make as pseudo-random, such as blockhash
+		GasLimit:   0,                          // TODO: yqq , set as tx gaslimit
+		GasUsed:    0,                          // TODO: yqq ,
 		Time:       uint64(header.Time.Unix()), // time should be deterministic
 		Extra:      nil,
 	}
