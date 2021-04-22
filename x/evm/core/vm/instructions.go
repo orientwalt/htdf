@@ -440,6 +440,9 @@ func opBlockhash(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) (
 	var upper, lower uint64
 	upper = interpreter.evm.Context.BlockNumber.Uint64()
 	if upper < 257 {
+		// by yqq 2021-04-22
+		// Although htdf chain genesis from block 1,
+		// we have made some compatible operations in evm.BeginBlocker.
 		lower = 0
 	} else {
 		lower = upper - 256

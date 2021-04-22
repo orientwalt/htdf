@@ -115,7 +115,7 @@ func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error
 
 func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, sdk.Error) {
 	blockHash := ethcmn.FromHex(path[1])
-	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
+	blockNumber, found := keeper.GetBlockNumberByHash(ctx, blockHash)
 	if !found {
 		return []byte{}, sdk.ErrJsonMarshal(fmt.Errorf("block height not found for hash %s", path[1]).Error())
 	}
