@@ -241,7 +241,7 @@ func (st *StateTransition) newEVM(ctx sdk.Context, chainCtx vmcore.ChainContext,
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	blockCtx := vmcore.NewEVMBlockContext(ctx.BlockHeader(), chainCtx, &st.sender, uint64(ctx.BlockHeight()))
+	blockCtx := vmcore.NewEVMBlockContext(ctx.BlockHeader(), chainCtx, &st.sender)
 	txCtx := vmcore.NewEVMTxContext(st.msg)
 
 	// evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)

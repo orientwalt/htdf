@@ -15,6 +15,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/evm/types"
 	log "github.com/sirupsen/logrus"
+	"github.com/orientwalt/htdf/params"
 )
 
 const ZeroBlockHash = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -79,14 +80,16 @@ type BlockchainContext struct {
 	parentHash common.Hash
 	keeper     Keeper // evm.Keeper to get blockhash by block number
 	ctx        sdk.Context
+	blockGasLimit   uint64 // block
 }
 
-func NewBlockchainContext(ctx sdk.Context, keeper Keeper) *BlockchainContext {
+func NewBlockchainContext(ctx sdk.Context, keeper Keeper, blockGasLimit uint64) *BlockchainContext {
 	return &BlockchainContext{
 		ctx:        ctx,
 		blockTime:  ctx.BlockHeader().Time,
 		parentHash: common.BytesToHash(ctx.BlockHeader().LastBlockId.Hash),
 		keeper:     keeper,
+		blockGasLimit:   blockGasLimit,
 	}
 }
 
@@ -105,7 +108,7 @@ func (self BlockchainContext) GetHeader(_ common.Hash, number uint64) *ethtypes.
 		ParentHash: common.BytesToHash(bzParentHash),
 		Difficulty: big.NewInt(1),
 		Number:     big.NewInt(int64(number)),
-		GasLimit:   0,
+		GasLimit:   self.blockGasLimit,
 		GasUsed:    0,
 		Extra:      nil,
 
@@ -136,7 +139,7 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 	k.CommitStateDB.Prepare(*st.TxHash, common.Hash{}, k.TxCount)
 	k.TxCount++
 
-	chainCtx := NewBlockchainContext(ctx, k)
+	chainCtx := NewBlockchainContext(ctx, k,  params.TxGasLimit)
 	evmResult, err := st.TransitionDb(ctx, chainCtx, k.AccountKeeper, k.FeeCollectionKeeper)
 
 	//

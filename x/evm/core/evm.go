@@ -52,7 +52,7 @@ func (self FakeChainContext) GetHeader(hash common.Hash, number uint64) *ethtype
 }
 
 // NewEVMBlockContext creates a new context for use in the EVM.
-func NewEVMBlockContext(header abci.Header, chainCtx ChainContext, author *common.Address, height uint64) evm.BlockContext {
+func NewEVMBlockContext(header abci.Header, chainCtx ChainContext, author *common.Address) evm.BlockContext {
 
 	// If we don't have an explicit author (i.e. not mining), extract from the header
 	// var beneficiary common.Address
@@ -64,12 +64,22 @@ func NewEVMBlockContext(header abci.Header, chainCtx ChainContext, author *commo
 
 	beneficiary := *author
 
+	// make a difficulty as pseudo-random, such as blockhash and evidenceHash
+	parentHash := big.NewInt(0).SetBytes(header.LastBlockId.Hash)
+	evidenceHash := big.NewInt(0).SetBytes(header.GetEvidenceHash())
+	difficulty := parentHash.Or(parentHash, evidenceHash)
+
+	var gasLimit uint64 = 0
+	fakeHeader := chainCtx.GetHeader(common.Hash{}, uint64(header.Height))
+	if fakeHeader != nil {
+		gasLimit = fakeHeader.GasLimit
+	}
+
 	curBlockHeader := &types.Header{
 		ParentHash: common.BytesToHash(header.LastBlockId.Hash),
 		Number:     big.NewInt(int64(header.Height)),
-		Difficulty: big.NewInt(1),              // TODO: make as pseudo-random, such as blockhash
-		GasLimit:   0,                          // TODO: yqq , set as tx gaslimit
-		GasUsed:    0,                          // TODO: yqq ,
+		Difficulty: difficulty,
+		GasLimit:   gasLimit,
 		Time:       uint64(header.Time.Unix()), // time should be deterministic
 		Extra:      nil,
 	}

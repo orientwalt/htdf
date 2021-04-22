@@ -243,7 +243,7 @@ func TestNewEvm(t *testing.T) {
 	// evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
 	// evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 
-	blockCtx := evmcore.NewEVMBlockContext(ctx.BlockHeader(), &evmcore.FakeChainContext{}, &fromAddress, 1000)
+	blockCtx := evmcore.NewEVMBlockContext(ctx.BlockHeader(), &evmcore.FakeChainContext{}, &fromAddress)
 	txCtx := evmcore.NewEVMTxContext(msg)
 	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
 
@@ -417,7 +417,7 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	// evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
 	// evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 
-	blockCtx := evmcore.NewEVMBlockContext(ctx.BlockHeader(), &evmcore.FakeChainContext{}, &fromAddress, 1000)
+	blockCtx := evmcore.NewEVMBlockContext(ctx.BlockHeader(), &evmcore.FakeChainContext{}, &fromAddress)
 	txCtx := evmcore.NewEVMTxContext(msg)
 	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
 
