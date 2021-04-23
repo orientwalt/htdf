@@ -89,6 +89,12 @@ func (msg MsgTest) FromAddress() common.Address {
 	return types.ToEthAddress(msg.From)
 }
 
+// func (msg MsgTest) GetGasPrice() *big.Int {
+// 	var gasPrice big.Int
+// 	gasPrice.SetUint64(msg.GasPrice)
+// 	return &gasPrice
+// }
+
 func isZeroByte(data []byte) bool {
 	for index := 0; index < len(data); index++ {
 		if data[index] != 0 {
@@ -128,8 +134,13 @@ func queryContract(ctx sdk.Context, req abci.RequestQuery, accountKeeper auth.Ac
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
-	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+	// evmCtx := vmcore.NewEVMContext(msg, &fromAddress, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	// evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+
+	blockCtx := vmcore.NewEVMBlockContext(ctx.BlockHeader(), &vmcore.FakeChainContext{}, &fromAddress)
+	txCtx := vmcore.NewEVMTxContext(msg)
+	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
+
 	contractRef := vm.AccountRef(fromAddress)
 	// return contract codedata if inputcode is all zero
 	var outputs []byte

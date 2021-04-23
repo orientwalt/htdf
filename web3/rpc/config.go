@@ -23,7 +23,7 @@ const (
 func EmintServeCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := lcd.ServeCommand(cdc, registerRoutes)
 	// cmd.Flags().String(flagUnlockKey, "", "Select a key to unlock on the RPC server")
-	cmd.Flags().String(flagWebsocket, "8546", "websocket port to listen to")
+	cmd.Flags().String(flagWebsocket, "1318", "websocket port to listen to")
 	cmd.Flags().StringP(client.FlagBroadcastMode, "b", client.BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
 	return cmd
 }

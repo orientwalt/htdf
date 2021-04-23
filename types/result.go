@@ -382,7 +382,7 @@ func (rd ResultDataStr) String() string {
 	return strings.TrimSpace(fmt.Sprintf(`ResultData:
 	ContractAddress: %s
 	Bloom: %s
-	Logs: %s
+	Logs: %v
 	Ret: %s
 	TxHash: %s
 `, rd.ContractAddress, rd.Bloom, rd.Logs, rd.Ret, rd.TxHash))
