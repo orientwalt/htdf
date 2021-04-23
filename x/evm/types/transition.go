@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
 	"github.com/orientwalt/htdf/app/protocol"
@@ -61,7 +60,7 @@ func logger() *log.Entry {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation, homestead bool, isEIP2028 bool) (uint64, error) {
+func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if contractCreation && homestead {
@@ -79,17 +78,10 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool, isEIP2028 bool)
 			}
 		}
 		// Make sure we don't exceed uint64 for all data combinations
-		// if (math.MaxUint64-gas)/ethparams.TxDataNonZeroGas < nz {
-		// Make sure we don't exceed uint64 for all data combinations
-		nonZeroGas := ethparams.TxDataNonZeroGasFrontier
-		if isEIP2028 {
-			nonZeroGas = ethparams.TxDataNonZeroGasEIP2028
-		}
-
-		if (math.MaxUint64-gas)/nonZeroGas < nz {
+		if (math.MaxUint64-gas)/ethparams.TxDataNonZeroGas < nz {
 			return 0, vm.ErrOutOfGas
 		}
-		gas += nz * nonZeroGas
+		gas += nz * ethparams.TxDataNonZeroGas
 
 		z := uint64(len(data)) - nz
 		if (math.MaxUint64-gas)/ethparams.TxDataZeroGas < z {
@@ -234,18 +226,15 @@ func (st *StateTransition) tokenUsed() uint64 {
 	return new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice).Uint64()
 }
 
-func (st *StateTransition) newEVM(ctx sdk.Context, chainCtx vmcore.ChainContext, stateDB vm.StateDB) *vm.EVM {
+func (st *StateTransition) newEVM(ctx sdk.Context, stateDB vm.StateDB) *vm.EVM {
 	// Create context for evm
 	config := appParams.MainnetChainConfig
 	logConfig := vm.LogConfig{}
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	blockCtx := vmcore.NewEVMBlockContext(ctx.BlockHeader(), chainCtx, &st.sender)
-	txCtx := vmcore.NewEVMTxContext(st.msg)
-
-	// evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
-	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
+	evmCtx := vmcore.NewEVMContext(st.msg, &st.sender, uint64(ctx.BlockHeight()), ctx.BlockHeader().Time)
+	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 	st.evm = evm
 	return evm
 }
@@ -253,7 +242,7 @@ func (st *StateTransition) newEVM(ctx sdk.Context, chainCtx vmcore.ChainContext,
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
-func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainContext, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
+func (st *StateTransition) TransitionDb(ctx sdk.Context, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
 	if st.StateDB == nil {
 		stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
 		if err != nil {
@@ -265,7 +254,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 
 	stateDB := st.StateDB
 
-	evm := st.newEVM(ctx, chainCtx, stateDB)
+	evm := st.newEVM(ctx, stateDB)
 
 	// commented by junying, 2019-08-22
 	// subtract GasWanted*gasprice from sender
@@ -278,7 +267,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	// default non-contract tx gas: 21000
 	// default contract tx gas: 53000 + f(tx.data)
 	logging().Debugf("in TransitionDb\n")
-	cost, err := IntrinsicGas(st.payload, st.ContractCreation, true, true)
+	cost, err := IntrinsicGas(st.payload, st.ContractCreation, true)
 	logging().Debugf("in TransitionDb:cost[%d]\n", cost)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "invalid intrinsic gas for transaction")
@@ -342,10 +331,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	if err != nil {
 		st.GasUsed = st.initialGas
 		// st.GasUsed = st.gasLimit //? this waste-all part is still necessary
-		reason, _ := abi.UnpackRevert(ret)
-		recipientLog = fmt.Sprintf("%s, err: %s, reason:%s", recipientLog, err, reason)
-		logger().Warnf("evm revert reason: %s", reason)
-
+		recipientLog = fmt.Sprintf("%s, err: %s", recipientLog, err)
 		// Consume gas before returning
 		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
 		// return nil, err
@@ -386,13 +372,8 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 		if _err != nil {
 			return nil, _err
 		}
-		// bloomInt = ethtypes.LogsBloom(logs)
-		var bloom ethtypes.Bloom
-		bzBloom := ethtypes.LogsBloom(logs)
-		bloom.SetBytes(bzBloom)
-		bloomInt = bloom.Big()
-
-		bloomFilter = ethtypes.BytesToBloom(bzBloom)
+		bloomInt = ethtypes.LogsBloom(logs)
+		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
 	// Encode all necessary data into slice of bytes to return in sdk result

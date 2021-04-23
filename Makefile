@@ -161,7 +161,7 @@ start.daemon:
 	@nohup hsd start >> ${HOME}/.hsd/app.log  2>&1  &
 
 start.rest:
-	@sleep 0.5
+	@sleep 0.2
 	@echo starting rest server...
 	@nohup hscli rest-server --chain-id=${CHAIN_ID} --trust-node=true --laddr=tcp://0.0.0.0:1317 >> ${HOME}/.hsd/restServer.log  2>&1  &
 

@@ -66,7 +66,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 // ----------------------------------------------------------------------------
 
 // GetBlockHash gets block height from block consensus hash
-func (k Keeper) GetBlockNumberByHash(ctx sdk.Context, hash []byte) (int64, bool) {
+func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), evmtypes.KeyPrefixBlockHash)
 	bz := store.Get(hash)
 	if len(bz) == 0 {
@@ -78,29 +78,10 @@ func (k Keeper) GetBlockNumberByHash(ctx sdk.Context, hash []byte) (int64, bool)
 }
 
 // SetBlockHash sets the mapping from block consensus hash to block height
-func (k Keeper) SetBlockHashToNumber(ctx sdk.Context, hash []byte, height int64) {
+func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), evmtypes.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
-}
-
-// SetBlockNumber sets the mapping from block height to block consensus hash
-func (k Keeper) SetBlockNumberToHash(ctx sdk.Context, height int64, hash []byte) {
-	db := ctx.KVStore(k.storeKey)
-	store := prefix.NewStore(db, evmtypes.KeyPrefixBlockNumber)
-	bz := sdk.Uint64ToBigEndian(uint64(height))
-	store.Set(bz, hash)
-}
-
-// GetBlockNumber  gets block hash by block height
-func (k Keeper) GetBlockHashByNumber(ctx sdk.Context, height int64) ([]byte, bool) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), evmtypes.KeyPrefixBlockNumber)
-	bzHeight := sdk.Uint64ToBigEndian(uint64(height))
-	bzHash := store.Get(bzHeight)
-	if len(bzHash) == 0 {
-		return []byte{}, false
-	}
-	return bzHash, true
 }
 
 // ----------------------------------------------------------------------------

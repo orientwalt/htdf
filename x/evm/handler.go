@@ -1,24 +1,17 @@
 package evm
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/big"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/evm/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/orientwalt/htdf/params"
 )
-
-const ZeroBlockHash = "0000000000000000000000000000000000000000000000000000000000000000"
 
 func init() {
 	// junying-todo,2020-01-17
@@ -74,50 +67,6 @@ func HandleUnknownMsg(msg sdk.Msg) sdk.Result {
 	return sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String()}
 }
 
-// BlockchainContext for evm opcodes, such as BLOCKTIME and BLOCKHASH
-type BlockchainContext struct {
-	blockTime  time.Time
-	parentHash common.Hash
-	keeper     Keeper // evm.Keeper to get blockhash by block number
-	ctx        sdk.Context
-	blockGasLimit   uint64 // block
-}
-
-func NewBlockchainContext(ctx sdk.Context, keeper Keeper, blockGasLimit uint64) *BlockchainContext {
-	return &BlockchainContext{
-		ctx:        ctx,
-		blockTime:  ctx.BlockHeader().Time,
-		parentHash: common.BytesToHash(ctx.BlockHeader().LastBlockId.Hash),
-		keeper:     keeper,
-		blockGasLimit:   blockGasLimit,
-	}
-}
-
-// GetHeader to compatible with ethereum.
-// In acutually, we could get blockhash by blocknumber directly, but we don't do that.
-func (self BlockchainContext) GetHeader(_ common.Hash, number uint64) *ethtypes.Header {
-
-	preBlockNumber := int64(number) - 1
-	bzParentHash, ok := self.keeper.GetBlockHashByNumber(self.ctx, preBlockNumber)
-	if !ok {
-		logger().Errorf("GetBlockHashByNumber(%d) error:", preBlockNumber)
-		bzParentHash = []byte{}
-	}
-
-	return &ethtypes.Header{
-		ParentHash: common.BytesToHash(bzParentHash),
-		Difficulty: big.NewInt(1),
-		Number:     big.NewInt(int64(number)),
-		GasLimit:   self.blockGasLimit,
-		GasUsed:    0,
-		Extra:      nil,
-
-		// NOTE: Time should be deterministic, and should only used by
-		//       opCode 'BLOCKTIME' which could only get current block time.
-		Time: uint64(self.blockTime.Unix()),
-	}
-}
-
 // junying-todo, 2019-08-26
 func HandleMsgEthereumTx(ctx sdk.Context,
 	k Keeper,
@@ -139,8 +88,7 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 	k.CommitStateDB.Prepare(*st.TxHash, common.Hash{}, k.TxCount)
 	k.TxCount++
 
-	chainCtx := NewBlockchainContext(ctx, k,  params.TxGasLimit)
-	evmResult, err := st.TransitionDb(ctx, chainCtx, k.AccountKeeper, k.FeeCollectionKeeper)
+	evmResult, err := st.TransitionDb(ctx, k.AccountKeeper, k.FeeCollectionKeeper)
 
 	//
 	if evmResult == nil {
@@ -197,28 +145,4 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 
 	// set the events to the result
 	return *evmResult.Result //sdk.Result{Code: sendTxResp.ErrCode, Log: sendTxResp.String(), GasUsed: st.GasUsed, Events: ctx.EventManager().Events().ToABCIEvents(), Data: evmResult.}
-}
-
-// do switch
-func BeginBlocker(ctx sdk.Context, evmk Keeper) {
-
-	ctx = ctx.WithLogger(ctx.Logger().With("handler", "endBlock").With("module", "htdf/x/evm"))
-	logger := ctx.Logger()
-
-	logger.Info("=========evm.BeginBlocker ==========")
-
-	var preBlockNumber int64
-	var preBlockHash []byte
-
-	// Block 1 is genesis block. Becasue we start from block 1, instead of block 0.
-	if ctx.BlockHeight() == 1 {
-		// compatible with core.vm.instructions.opBlockhash
-		preBlockNumber = 0
-		preBlockHash, _ = hex.DecodeString(ZeroBlockHash)
-	} else if ctx.BlockHeight() > 1 {
-		preBlockNumber = ctx.BlockHeight() - 1
-		preBlockHash = ctx.BlockHeader().LastBlockId.Hash
-	}
-	evmk.SetBlockNumberToHash(ctx, preBlockNumber, preBlockHash)
-	evmk.SetBlockHashToNumber(ctx, preBlockHash, preBlockNumber)
 }

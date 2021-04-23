@@ -10,7 +10,6 @@ ifeq ($(TESTTYPE), )
 	export TESTTYPE=regtest
 endif
 
-
 sendhtdf:
 	- hscli tx send $$(hscli  accounts list | head -1) htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml  1000000000000000satoshi --gas-price=100
 
@@ -26,36 +25,36 @@ clean:
 	-rm -f tests.log
 
 test_normal_tx:clean
-	@python3 -m pytest -v --disable-warnings -s ./test_normal_tx.py  --cache-clear
-	@$(MAKE) clean
+	pytest -v --disable-warnings -s ./test_normal_tx.py  --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 test_hrc20_contract_tx:clean
-	python3 -m pytest -v --disable-warnings -s ./test_hrc20_contract_tx.py --cache-clear
-	@$(MAKE) clean
+	pytest -v --disable-warnings -s ./test_hrc20_contract_tx.py --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 test_htdf_faucet_contract:clean
-	python3 -m pytest -v --disable-warnings -s ./test_htdf_faucet_contract.py  --cache-clear
-	@$(MAKE) clean
-
-
-test_dice2win_contract:clean
-	python3 -m pytest -v --disable-warnings -s ./test_dice2win_contract.py  --cache-clear
-	@$(MAKE) clean
-	
-
-test_ecrecover_contract:clean
-	python3 -m pytest -v --disable-warnings -s ./test_ecrecover_contract.py  --cache-clear
-	@$(MAKE) clean
-
+	pytest -v --disable-warnings -s ./test_htdf_faucet_contract.py  --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 test:clean
-	python3 -m pytest -v ./ --disable-warnings -s --cache-clear
-	@$(MAKE) clean
+	pytest -v ./ --disable-warnings -s --cache-clear
+	-rm -rf .pytest_cache
+	-rm -rf __pycache__
+	-rm -f *.pyc
+	-rm -f tests.log
 
 stop:
 	-pkill loop
-	-ps aux | grep pytest | grep -v grep |awk '{print $$2}' | xargs kill
-	@$(MAKE) clean
+	-ps aux | grep python3 | grep -v grep |awk '{print $$2}' | xargs kill
 
 startloop:
 	-nohup ./loop.sh > tests.log 2>&1 &

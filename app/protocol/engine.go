@@ -103,12 +103,7 @@ func (pe *ProtocolEngine) GetKVStoreKeys() []*sdk.KVStoreKey {
 		KeyService,
 		KeyGuardian,
 		KeyStorage,
-		KeyCode,
-
- 		//yqq, 2021-04-22
-		// to save blockhash blocknumber into evm.keeper
-		KeyEVM, 
-	}
+		KeyCode}
 }
 
 func (pe *ProtocolEngine) GetTransientStoreKeys() []*sdk.TransientStoreKey {

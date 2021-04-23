@@ -29,6 +29,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/log"
+
 	// v0staking "github.com/orientwalt/htdf/app/v0/staking"
 )
 
@@ -388,9 +389,6 @@ func (p *ProtocolV0) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 
 	// distribute rewards from previous block
 	distr.BeginBlocker(ctx, req, p.distrKeeper)
-
-	// save pre-block info into keeper
-	evm.BeginBlocker(ctx, p.evmKeeper)
 
 	// tags := slashing.BeginBlocker(ctx, req, p.slashingKeeper)
 	return abci.ResponseBeginBlock{

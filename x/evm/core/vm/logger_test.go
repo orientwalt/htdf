@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/holiman/uint256"
 )
 
 type dummyContractRef struct {
@@ -51,25 +50,21 @@ func (*dummyStatedb) GetRefund() uint64 { return 1337 }
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewEVM(BlockContext{}, TxContext{}, &dummyStatedb{}, params.TestChainConfig, Config{})
+		env      = NewEVM(Context{}, &dummyStatedb{}, params.TestChainConfig, Config{})
 		logger   = NewStructLogger(nil)
+		mem      = NewMemory()
+		stack    = newstack()
 		contract = NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
-		scope    = &ScopeContext{
-			Memory:   NewMemory(),
-			Stack:    newstack(),
-			Contract: contract,
-		}
 	)
-	scope.Stack.push(uint256.NewInt().SetUint64(1))
-	scope.Stack.push(uint256.NewInt())
+	stack.push(big.NewInt(1))
+	stack.push(big.NewInt(0))
 	var index common.Hash
-	logger.CaptureState(env, 0, SSTORE, 0, 0, scope, nil, 0, nil)
-	if len(logger.storage[contract.Address()]) == 0 {
-		t.Fatalf("expected exactly 1 changed value on address %x, got %d", contract.Address(),
-			len(logger.storage[contract.Address()]))
+	logger.CaptureState(env, 0, SSTORE, 0, 0, mem, stack, contract, 0, nil)
+	if len(logger.changedValues[contract.Address()]) == 0 {
+		t.Fatalf("expected exactly 1 changed value on address %x, got %d", contract.Address(), len(logger.changedValues[contract.Address()]))
 	}
 	exp := common.BigToHash(big.NewInt(1))
-	if logger.storage[contract.Address()][index] != exp {
-		t.Errorf("expected %x, got %x", exp, logger.storage[contract.Address()][index])
+	if logger.changedValues[contract.Address()][index] != exp {
+		t.Errorf("expected %x, got %x", exp, logger.changedValues[contract.Address()][index])
 	}
 }

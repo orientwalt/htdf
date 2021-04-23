@@ -30,8 +30,7 @@ PARAMETERS_TESTNET = {
 def conftest_args():
     test_type = os.getenv('TESTTYPE')
     if test_type is None:
-        # raise Exception('please set env variable TESTTYPE, (regtest, inner, testnet)')
-        return PARAMETERS_REGTEST
+        raise Exception('please set env variable TESTTYPE, (regtest, inner, testnet)')
     if test_type == 'regtest':
         return PARAMETERS_REGTEST
     elif test_type == 'inner':

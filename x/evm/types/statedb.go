@@ -776,10 +776,10 @@ func (csdb *CommitStateDB) Copy() *CommitStateDB {
 
 // ForEachStorage iterates over each storage items, all invokes the provided
 // callback on each key, value pair .
-func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) error {
+func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) {
 	so := csdb.getStateObject(addr)
 	if so == nil {
-		return fmt.Errorf("get state object failed")
+		return
 	}
 
 	store := csdb.ctx.KVStore(csdb.storageKey)
@@ -798,7 +798,6 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 	}
 
 	iter.Close()
-	return nil
 }
 
 // GetOrNewStateObject retrieves a state object or create a new state object if
@@ -867,24 +866,4 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
 	csdb.stateObjects[so.Address()] = so
-}
-
-// AddAddressToAccessList adds the given address to the access list. This operation is safe to perform
-// even if the feature/fork is not active yet
-func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
-
-}
-
-func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn.Address, precompiles []ethcmn.Address, txAccesses ethtypes.AccessList) {
-
-}
-func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
-	return true
-}
-func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Hash) (addressOk bool, slotOk bool) {
-	return true, true
-}
-
-func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.Hash) {
-
 }

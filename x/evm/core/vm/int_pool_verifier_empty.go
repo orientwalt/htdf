@@ -14,23 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+// +build !VERIFY_EVM_INTEGER_POOL
+
 package vm
 
-import "testing"
+const verifyPool = false
 
-func TestMemoryGasCost(t *testing.T) {
-	//size := uint64(math.MaxUint64 - 64)
-	size := uint64(0xffffffffe0)
-	v, err := memoryGasCost(&Memory{}, size)
-	if err != nil {
-		t.Error("didn't expect error:", err)
-	}
-	if v != 36028899963961341 {
-		t.Errorf("Expected: 36028899963961341, got %d", v)
-	}
-
-	_, err = memoryGasCost(&Memory{}, size+1)
-	if err == nil {
-		t.Error("expected error")
-	}
-}
+func verifyIntegerPool(ip *intPool) {}
