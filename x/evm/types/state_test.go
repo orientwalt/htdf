@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/magiconair/properties/assert"
@@ -68,7 +69,11 @@ func cleanup(dataDir string) {
 func TestStateDB(t *testing.T) {
 
 	//---------------------stateDB test--------------------------------------
-	dataPath := "/tmp/htdfStateDB"
+	// dataPath := "/tmp/htdfStateDB"
+	dbName := "htdfstatedb"
+	dataPath, err := ioutil.TempDir("", dbName)
+	fmt.Printf("dataPath is :%v\n", dataPath)
+	require.NoError(t, err)
 	db := dbm.NewDB("state", dbm.GoLevelDBBackend, dataPath)
 
 	cdc := newTestCodec1()
@@ -86,7 +91,7 @@ func TestStateDB(t *testing.T) {
 
 	cms.SetPruning(store.PruneNothing)
 
-	err := cms.LoadLatestVersion()
+	err = cms.LoadLatestVersion()
 	require.NoError(t, err)
 
 	ms := cms.CacheMultiStore()
