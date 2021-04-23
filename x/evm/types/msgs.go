@@ -109,7 +109,7 @@ func (msg MsgEthereumTx) ValidateBasic() sdk.Error {
 			return sdk.ErrTxDecode("decoding msg.data failed. you should check msg.data")
 		}
 		//Intrinsic gas calc
-		itrsGas, err := IntrinsicGas(inputCode, msg.To == nil, true)
+		itrsGas, err := IntrinsicGas(inputCode, msg.To == nil, true, true)
 		if err != nil {
 			return sdk.ErrOutOfGas("intrinsic out of gas")
 		}
@@ -145,6 +145,12 @@ func (msg MsgEthereumTx) GetSigners() []sdk.AccAddress {
 func (msg MsgEthereumTx) FromAddress() common.Address {
 	return sdk.ToEthAddress(msg.From)
 }
+
+// func (msg MsgEthereumTx) GetGasPrice() *big.Int {
+// 	var gasPrice big.Int
+// 	gasPrice.SetUint64(msg.GasPrice)
+// 	return &gasPrice
+// }
 
 func (msg MsgEthereumTx) ToAddress() common.Address {
 	return sdk.ToEthAddress(msg.To)

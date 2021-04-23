@@ -254,7 +254,12 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 			return
 		}
 
-		// blockInfo.BlockMeta = resultBlock.BlockMeta
+		blockInfo.BlockMeta = &tmTypes.BlockMeta{
+			BlockID:   resultBlock.BlockID,
+			BlockSize: resultBlock.Block.Size(),
+			Header:    resultBlock.Block.Header,
+			NumTxs:    len(resultBlock.Block.Txs),
+		}
 		blockInfo.Block.Evidence = resultBlock.Block.Evidence
 		blockInfo.Block.LastCommit = resultBlock.Block.LastCommit
 		blockInfo.Time = resultBlock.Block.Header.Time.Local().Format("2006-01-02 15:04:05")

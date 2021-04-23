@@ -240,14 +240,18 @@ func TestNewEvm(t *testing.T) {
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
 	// evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000)
-	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
+	// evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
+	// evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
 
-	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+	blockCtx := evmcore.NewEVMBlockContext(ctx.BlockHeader(), &evmcore.FakeChainContext{}, &fromAddress)
+	txCtx := evmcore.NewEVMTxContext(msg)
+	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
+
 	contractRef := vm.AccountRef(fromAddress)
 	contractCode, contractAddr, gasLeftover, vmerr := evm.Create(contractRef, data, stateDB.GetBalance(fromAddress).Uint64(), big.NewInt(0))
 	must(vmerr)
 
-	fmt.Printf("BlockNumber=%d|IsEIP158=%v\n", evm.BlockNumber.Uint64(), evm.ChainConfig().IsEIP158(evm.BlockNumber))
+	fmt.Printf("BlockNumber=%d|IsEIP158=%v\n", evm.Context.BlockNumber.Uint64(), evm.ChainConfig().IsEIP158(evm.Context.BlockNumber))
 	testChainConfig(t, evm)
 
 	fmt.Printf("Create|str_contractAddr=%s|gasLeftOver=%d|contractCode=%x\n", contractAddr.String(), gasLeftover, contractCode)
@@ -410,11 +414,16 @@ func reOpenDB(t *testing.T, lastContractCode []byte, strContractAddress string, 
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
 	msg := NewMessage(fromAddress, &toAddress, nonce, amount, gasLimit, big.NewInt(0), data, false)
-	evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
-	evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+	// evmCtx := evmcore.NewEVMContext(msg, &fromAddress, 1000, ctx.BlockHeader().Time)
+	// evm := vm.NewEVM(evmCtx, stateDB, config, vmConfig)
+
+	blockCtx := evmcore.NewEVMBlockContext(ctx.BlockHeader(), &evmcore.FakeChainContext{}, &fromAddress)
+	txCtx := evmcore.NewEVMTxContext(msg)
+	evm := vm.NewEVM(blockCtx, txCtx, stateDB, config, vmConfig)
+
 	contractRef := vm.AccountRef(fromAddress)
 
-	fmt.Printf("BlockNumber=%d|IsEIP158=%v\n", evm.BlockNumber.Uint64(), evm.ChainConfig().IsEIP158(evm.BlockNumber))
+	fmt.Printf("BlockNumber=%d|IsEIP158=%v\n", evm.Context.BlockNumber.Uint64(), evm.ChainConfig().IsEIP158(evm.Context.BlockNumber))
 	testChainConfig(t, evm)
 
 	abiObj := loadAbi(abiFileName)
