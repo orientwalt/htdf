@@ -11,6 +11,7 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/orientwalt/htdf/codec"
+
 	types "github.com/tendermint/tendermint/abci/types"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 	yaml "gopkg.in/yaml.v2"
@@ -318,36 +319,45 @@ type ResultData struct {
 	ContractAddress ethcmn.Address  `json:"contractAddress" gencodec:"required"`
 	Bloom           ethtypes.Bloom  `json:"logsBloom" gencodec:"required"`
 	Logs            []*ethtypes.Log `json:"logs" gencodec:"required"`
-	Ret             []byte          `json:"ret" gencodec:"required"`
+	Status          uint            `json:"status" gencodec:"required"`
+	Ret             []byte          `json:"ret,omitempty" `
 	TxHash          ethcmn.Hash     `json:"transactionHash" gencodec:"required"`
 }
 
 // String implements fmt.Stringer interface.
 func (rd ResultData) String() string {
+	if rd.Logs == nil {
+		rd.Logs = []*ethtypes.Log{}
+	}
+
 	return strings.TrimSpace(fmt.Sprintf(`ResultData:
 	ContractAddress: %s
 	Bloom: %0512x
 	Logs: %v
-	Ret: %s
+	Status: %s
 	TxHash: %s
-`, rd.ContractAddress.String(), fmt.Sprintf("0x%x", rd.Bloom.Big()), rd.Logs, fmt.Sprintf("0x%x", rd.Ret), rd.TxHash.String()))
+`, rd.ContractAddress.String(), fmt.Sprintf("0x%0512x", rd.Bloom.Big()), rd.Logs, fmt.Sprintf("0x%x", rd.Status), rd.TxHash.String()))
 }
 
 func (rd ResultData) StringEx() string {
+	if rd.Logs == nil {
+		rd.Logs = []*ethtypes.Log{}
+	}
 	return fmt.Sprintf(`ResultData:
 	ContractAddress: %s
 	Bloom: %0512x
 	Logs: %v
-	Ret: %s
+	Status: %s
 	TxHash: %s
-`, rd.ContractAddress.String(), fmt.Sprintf("0x%x", rd.Bloom.Big()), rd.Logs, fmt.Sprintf("0x%x", rd.Ret), rd.TxHash.String())
+`, rd.ContractAddress.String(), fmt.Sprintf("0x%0512x", rd.Bloom.Big()), rd.Logs, fmt.Sprintf("0x%x", rd.Status), rd.TxHash.String())
 }
 
 type ResultDataStr struct {
 	ContractAddress string          `json:"contractAddress"`
 	Bloom           string          `json:"logsBloom"`
 	Logs            []*ethtypes.Log `json:"logs" gencodec:"required"`
-	Ret             string          `json:"ret"`
+	Status          string          `json:"status"`
+	Ret             string          `json:"ret,omitempty"`
 	TxHash          string          `json:"transactionHash"`
 }
 
@@ -365,27 +375,31 @@ func NewResultDataStr(rd ResultData) ResultDataStr {
 	if !allZero(rd.ContractAddress.Bytes()) {
 		contractAddr = rd.ContractAddress.String()
 	}
-	// var ret bool = false
-	// if !allZero(rd.Ret) {
-	// 	ret = true
-	// }
+	if rd.Logs == nil {
+		rd.Logs = []*ethtypes.Log{}
+	}
+
 	return ResultDataStr{
 		ContractAddress: contractAddr,
-		Bloom:           fmt.Sprintf("0x%x", rd.Bloom.Big()),
+		Bloom:           fmt.Sprintf("0x%0512x", rd.Bloom.Big()),
+		Status:          fmt.Sprintf("0x%x", rd.Status),
 		Logs:            rd.Logs,
-		Ret:             fmt.Sprintf("0x%x", rd.Ret),
-		TxHash:          rd.TxHash.String(),
+		// Ret:             fmt.Sprintf("0x%x", rd.Ret),
+		TxHash: rd.TxHash.String(),
 	}
 }
 
 func (rd ResultDataStr) String() string {
+	if rd.Logs == nil {
+		rd.Logs = []*ethtypes.Log{}
+	}
 	return strings.TrimSpace(fmt.Sprintf(`ResultData:
 	ContractAddress: %s
 	Bloom: %s
+	Status: %s
 	Logs: %v
-	Ret: %s
 	TxHash: %s
-`, rd.ContractAddress, rd.Bloom, rd.Logs, rd.Ret, rd.TxHash))
+`, rd.ContractAddress, rd.Bloom, fmt.Sprintf("0x%x", rd.Status), rd.Logs, rd.TxHash))
 }
 
 type TxReceipt struct {
@@ -395,6 +409,8 @@ type TxReceipt struct {
 	GasWanted int64         `json:"gas_wanted,omitempty"`
 	GasUsed   int64         `json:"gas_used,omitempty"`
 	Timestamp string        `json:"timestamp,omitempty"`
+	From      string        `json:"from"`
+	To        string        `json:"to"`
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution
@@ -421,8 +437,8 @@ func NewResponseResultTxReceipt(res *ctypes.ResultTx, tx Tx, timestamp string) T
 	data, err := DecodeResultData(res.TxResult.Data)
 	if err != nil {
 		return TxReceipt{}
-
 	}
+
 	return TxReceipt{
 		TxHash:    res.Hash.String(),
 		Height:    res.Height,
