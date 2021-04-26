@@ -41,6 +41,7 @@ def test_normal_tx_send(conftest_args):
 
     new_to_addr = HtdfPrivateKey('').address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -126,6 +127,7 @@ def test_normal_tx_with_data(conftest_args):
     new_to_addr = HtdfPrivateKey('').address
     # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -223,6 +225,7 @@ def test_txsize_excess_100000bytes(conftest_args):
     new_to_addr = HtdfPrivateKey('').address
     # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -267,6 +270,7 @@ def test_normal_tx_gas_wanted_excess_7500000(conftest_args):
 
     new_to_addr = HtdfPrivateKey('').address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -301,10 +305,7 @@ def test_balance_less_than_fee_tx(conftest_args):
     """
     test for issue #6
 
-    In protocol v0 and v1 , if a account's balance less than fee( gas_wanted * gas_price)
-    its transactions still could be included into a block.
-
-    In protocol v2, if a account's balance less than fee(gas_wanted * gas_price), its transaction
+    if a account's balance less than fee(gas_wanted * gas_price), its transaction
     will be rejected when it be broadcasted.
     """
 
@@ -324,6 +325,7 @@ def test_balance_less_than_fee_tx(conftest_args):
     new_to_privkey = HtdfPrivateKey('')
     new_to_addr = new_to_privkey.address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -367,28 +369,25 @@ def test_balance_less_than_fee_tx(conftest_args):
     ).build_and_sign(private_key=new_to_privkey)
 
 
-    if True:
-        try:
-            tx_hash_back = htdfrpc.broadcast_tx(tx_hex=signed_tx_back)
-            print('tx_hash_back: {}'.format(tx_hash_back))
-            # error
-            assert False == True
-        except Exception as e:
-            # ok
-            print(e)
+    broadcast_succeed = None
+    try:
+        tx_hash_back = htdfrpc.broadcast_tx(tx_hex=signed_tx_back)
+        print('tx_hash_back: {}'.format(tx_hash_back))
+        broadcast_succeed = True
+    except Exception as e:
+        broadcast_succeed = False
+        # ok
+        print(e)
 
-            to_acc_new = htdfrpc.get_account_info(address=new_to_addr.address)
-            assert to_acc_new is not None
-            assert to_acc_new.address == to_acc.address
-            assert to_acc_new.balance_satoshi == to_acc.balance_satoshi  # balance not change
-            assert to_acc_new.sequence == to_acc.sequence  # sequence not change
-            assert to_acc_new.account_number == to_acc.account_number
-
-            pass
-    else:
-        raise Exception("invalid protocol version:{}".format(protocol_version))
-
+    assert broadcast_succeed == False
+    to_acc_new = htdfrpc.get_account_info(address=new_to_addr.address)
+    assert to_acc_new is not None
+    assert to_acc_new.address == to_acc.address
+    assert to_acc_new.balance_satoshi == to_acc.balance_satoshi  # balance not change
+    assert to_acc_new.sequence == to_acc.sequence  # sequence not change
+    assert to_acc_new.account_number == to_acc.account_number
     pass
+
 
 
 def test_5000_normal_send_txs(conftest_args):
@@ -411,6 +410,7 @@ def test_5000_normal_send_txs(conftest_args):
 
     new_to_addr = HtdfPrivateKey('').address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None

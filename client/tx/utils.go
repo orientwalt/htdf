@@ -13,6 +13,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	evmtypes "github.com/orientwalt/htdf/x/evm/types"
 )
 
 // SearchTxs performs a search for transactions for a given set of tags via
@@ -136,7 +137,14 @@ func formatTxReceipt(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.
 		return sdk.TxReceipt{}, err
 	}
 
-	return sdk.NewResponseResultTxReceipt(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
+	receipt, err := sdk.NewResponseResultTxReceipt(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
+	if err != nil {
+		return receipt, err
+	}
+	receipt.From = tx.GetMsgs()[0].(evmtypes.MsgEthereumTx).From.String()
+	receipt.To = tx.GetMsgs()[0].(evmtypes.MsgEthereumTx).To.String()
+
+	return receipt, nil
 }
 
 func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {

@@ -42,6 +42,7 @@ def deploy_htdf_faucet(conftest_args):
 
     # new_to_addr = HtdfPrivateKey('').address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
     print('from_acc balance: {}'.format(from_acc.balance_satoshi))
 
@@ -92,7 +93,7 @@ def deploy_htdf_faucet(conftest_args):
 
     pprint(tx)
 
-    time.sleep(8)  # wait for chain state update
+    time.sleep(10)  # wait for chain state update
 
     # to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     # assert to_acc is not None
@@ -174,6 +175,7 @@ def test_contract_htdf_faucet_deposit(conftest_args):
 
     from_addr = Address(conftest_args['ADDRESS'])
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
     signed_tx = HtdfTxBuilder(
         from_address=from_addr,
@@ -196,7 +198,7 @@ def test_contract_htdf_faucet_deposit(conftest_args):
 
     assert tx['logs'][0]['success'] == True
 
-    time.sleep(8)  # wait for chain state update
+    time.sleep(10)  # wait for chain state update
 
     contract_acc = htdfrpc.get_account_info(address=contract_address.address)
     assert contract_acc is not None
@@ -238,6 +240,7 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
 
         from_addr = Address(conftest_args['ADDRESS'])
         private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+        time.sleep(10)
         from_acc = htdfrpc.get_account_info(address=from_addr.address)
         signed_tx = HtdfTxBuilder(
             from_address=from_addr,
@@ -264,7 +267,7 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
 
         assert tx['logs'][0]['success'] == expected_result[n]
 
-        time.sleep(8)  # wait for chain state update
+        time.sleep(10)  # wait for chain state update
         if expected_result[n] == True:
             assert int(tx['gas_wanted']) > int(tx['gas_used'])
             once_htdf_satoshi = hc.call(hc.functions.onceAmount())
@@ -303,6 +306,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     ################## test for  non-owner , it will be failed
     from_addr = Address('htdf188tzdtuka7yc6xnkm20pv84f3kgthz05650au5')
     private_key = HtdfPrivateKey('f3024714bb950cfbd2461b48ef4d3a9aea854309c4ab843fda57be34cdaf856e')
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
     if from_acc is None or from_acc.balance_satoshi < 100 * 200000:
         gas_wanted = 30000
@@ -370,7 +374,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     assert tx['logs'][0]['success'] == False
     assert int(tx['gas_wanted']) == int(tx['gas_used'])    # if evm reverted, all gas be consumed
 
-    time.sleep(8)  # wait for chain state update
+    time.sleep(10)  # wait for chain state update
     once_amount_satoshi_end = hc.call(cfn=hc.functions.onceAmount())
     assert once_amount_satoshi_end == once_htdf_satoshi_begin
     from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
@@ -402,7 +406,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     assert int(tx['gas_wanted']) > int(tx['gas_used'])
 
 
-    time.sleep(8)  # wait for chain state update
+    time.sleep(10)  # wait for chain state update
     once_amount_satoshi_end = hc.call(cfn=hc.functions.onceAmount())
     assert once_amount_satoshi_end == once_htdf_to_set
     from_acc_new = htdfrpc.get_account_info(address=from_addr.address)

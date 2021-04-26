@@ -42,6 +42,7 @@ def test_create_hrc20_token_contract(conftest_args):
 
     # new_to_addr = HtdfPrivateKey('').address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    time.sleep(10)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -91,7 +92,7 @@ def test_create_hrc20_token_contract(conftest_args):
 
     pprint(tx)
 
-    time.sleep(8)  # wait for chain state update
+    time.sleep(10)  # wait for chain state update
 
     # to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     # assert to_acc is not None

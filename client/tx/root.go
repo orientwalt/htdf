@@ -9,6 +9,7 @@ import (
 
 // register REST routes
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, cdc *codec.Codec) {
+	r.HandleFunc("/v2/tx-receipt/{hash}", QueryTxReceiptRequestHandlerFn(cdc, cliCtx)).Methods("GET")
 	r.HandleFunc("/txs/{hash}", QueryTxRequestHandlerFn(cdc, cliCtx)).Methods("GET")
 	r.HandleFunc("/txs", QueryTxsByTagsRequestHandlerFn(cliCtx, cdc)).Methods("GET")
 	r.HandleFunc("/txs", BroadcastTxRequest(cliCtx, cdc)).Methods("POST")

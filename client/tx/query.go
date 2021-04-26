@@ -232,6 +232,32 @@ func QueryTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.H
 	}
 }
 
+// QueryTxReceiptRequestHandlerFn implements a REST handler that queries a transaction receipt
+// by hash in a committed block.
+func QueryTxReceiptRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		hashHexStr := vars["hash"]
+
+		output, err := queryTxReceipt(cdc, cliCtx, hashHexStr)
+		if err != nil {
+			if strings.Contains(err.Error(), hashHexStr) {
+				rest.WriteErrorResponse(w, http.StatusNotFound, err.Error())
+				return
+			}
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if output.Empty() {
+			rest.WriteErrorResponse(w, http.StatusNotFound, fmt.Sprintf("no transaction found with hash %s", hashHexStr))
+		}
+
+		rest.PostProcessResponse(w, cdc, output, cliCtx.Indent)
+	}
+}
+
+
 // Mempool tx queries REST, do not supply CLI implements.
 // If needed , using Tendermint API `localhost:26657/unconfirmed_txs` or
 // `localhost:26657/num_unconfirmed_txs` as an alternative.

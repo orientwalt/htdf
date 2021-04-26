@@ -317,6 +317,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	case true:
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.payload, gasLimit, st.amount)
 		recipientLog = fmt.Sprintf("contract address: %s", contractAddress.String())
+		logger().Infof("NEW CREATED CONTRACT ADDRESS:%s", contractAddress.String())
 	default:
 		if code := evm.StateDB.GetCode(st.GetRecipient()); len(st.payload) > 0 && len(code) == 0 {
 			// copy from v1.3.0 2021-04-07
@@ -339,12 +340,14 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	// logging().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
 	// logging().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
 
+	txReceiptStatus := uint(0)
 	if err != nil {
 		st.GasUsed = st.initialGas
 		// st.GasUsed = st.gasLimit //? this waste-all part is still necessary
 		reason, _ := abi.UnpackRevert(ret)
 		recipientLog = fmt.Sprintf("%s, err: %s, reason:%s", recipientLog, err, reason)
 		logger().Warnf("evm revert reason: %s", reason)
+		txReceiptStatus = 0
 
 		// Consume gas before returning
 		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
@@ -355,6 +358,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 		st.GasUsed = st.gasUsed()
 		st.ContractAddress = &contractAddress
 		logger().Debugf("in TransitionDb:contractAddress[%s]\n", contractAddress.String())
+		txReceiptStatus = 1
 	}
 
 	// Resets nonce to value pre state transition
@@ -395,11 +399,11 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 		bloomFilter = ethtypes.BytesToBloom(bzBloom)
 	}
 
-	// Encode all necessary data into slice of bytes to return in sdk result
 	resultData := sdk.ResultData{
 		Bloom:  bloomFilter,
 		Logs:   logs,
 		Ret:    ret,
+		Status: txReceiptStatus,
 		TxHash: *st.TxHash,
 	}
 
