@@ -41,7 +41,7 @@ def test_normal_tx_send(conftest_args):
 
     new_to_addr = HtdfPrivateKey('').address
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
-    time.sleep(10)
+    time.sleep(20)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -95,7 +95,7 @@ def test_normal_tx_send(conftest_args):
 
     pprint(tx)
 
-    time.sleep(8)  # wait for chain state update
+    time.sleep(20)  # wait for chain state update
 
     to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     assert to_acc is not None
@@ -190,7 +190,7 @@ def test_normal_tx_with_data(conftest_args):
 
     pprint(tx)
 
-    time.sleep(5)  # wait for chain state update
+    time.sleep(20)  # wait for chain state update
 
     to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     assert to_acc is None
@@ -225,7 +225,7 @@ def test_txsize_excess_100000bytes(conftest_args):
     new_to_addr = HtdfPrivateKey('').address
     # to_addr = Address('htdf1jrh6kxrcr0fd8gfgdwna8yyr9tkt99ggmz9ja2')
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
-    time.sleep(10)
+    time.sleep(20)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -244,14 +244,15 @@ def test_txsize_excess_100000bytes(conftest_args):
         memo=memo
     ).build_and_sign(private_key=private_key)
 
+    expected = False
     try:
         tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
         print('tx_hash: {}'.format(tx_hash))
-        assert True == False
+        expected = True
     except Exception as e:
         errmsg = '{}'.format(e)
         print(e)
-        pass
+    assert expected == False
 
 
 
@@ -318,7 +319,7 @@ def test_balance_less_than_fee_tx(conftest_args):
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
     upgrade_info = htdfrpc.get_upgrade_info()
-    protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
+    # protocol_version = int(upgrade_info['current_version']['UpgradeInfo']['Protocol']['version'])
 
     from_addr = Address(conftest_args['ADDRESS'])
 
@@ -350,7 +351,7 @@ def test_balance_less_than_fee_tx(conftest_args):
     tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
     assert tx['logs'][0]['success'] == True
 
-    time.sleep(5)  # wait for chain state update
+    time.sleep(20)  # wait for chain state update
     to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     assert to_acc is not None
     assert to_acc.balance_satoshi == tx_amount
@@ -369,14 +370,12 @@ def test_balance_less_than_fee_tx(conftest_args):
     ).build_and_sign(private_key=new_to_privkey)
 
 
-    broadcast_succeed = None
+    broadcast_succeed = True
     try:
         tx_hash_back = htdfrpc.broadcast_tx(tx_hex=signed_tx_back)
         print('tx_hash_back: {}'.format(tx_hash_back))
-        broadcast_succeed = True
     except Exception as e:
         broadcast_succeed = False
-        # ok
         print(e)
 
     assert broadcast_succeed == False
@@ -444,7 +443,7 @@ def test_5000_normal_send_txs(conftest_args):
     print('=========> {}'.format(tx))
     assert tx['logs'][0]['success'] == True 
 
-    time.sleep(5)  # wait for chain state update
+    time.sleep(20)  # wait for chain state update
 
     to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     assert to_acc is not None

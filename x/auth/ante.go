@@ -180,14 +180,27 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
 		}
 
 		// junying-todo, 2019-11-19
-		// Deduct(DefaultMsgGas * len(Msgs)) for non-htdfservice msgs
-		if !stdTx.Fee.Amount().IsZero() && !ExistsMsgEthereumTx(tx) {
+		fExistsMsgSend := ExistsMsgEthereumTx(tx)
+		if !stdTx.Fee.Amount().IsZero() && !fExistsMsgSend {
 			estimatedFee := EstimateFee(stdTx)
-			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], estimatedFee)
+			fOnlyCheckBalanceEnoughForFee := false // so we will deduct account's balance
+			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], estimatedFee, fOnlyCheckBalanceEnoughForFee)
 			if !res.IsOK() {
 				return newCtx, res, true
 			}
 			fck.AddCollectedFees(newCtx, estimatedFee.Amount())
+		} else if fExistsMsgSend && !isGenesis {
+			// only for htdfservice/MsgSend
+			// by yqq 2021-04-26
+			// to fix issue #6 for htdf2.0
+			// only check account's balance whether is enough for fee, NOT modify account's balance
+			fOnlyCheckBalanceEnoughForFee := true
+			maxFee := NewStdFee(stdTx.Fee.GasWanted, stdTx.Fee.GasPrice)
+			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], maxFee, fOnlyCheckBalanceEnoughForFee)
+			if !res.IsOK() {
+				logger().Error("================NewAnteHandler refused=================")
+				return newCtx, res, true
+			}
 		}
 
 		// stdSigs contains the sequence number, account number, and signatures.
@@ -384,7 +397,7 @@ func consumeMultisignatureVerificationGas(meter sdk.GasMeter,
 //
 // NOTE: We could use the CoinKeeper (in addition to the AccountKeeper, because
 // the CoinKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Result) {
+func DeductFees(blockTime time.Time, acc Account, fee StdFee, fOnlyCheckBalanceEnoughForFee bool) (Account, sdk.Result) {
 	coins := acc.GetCoins()
 	feeAmount := fee.Amount()
 
@@ -396,7 +409,7 @@ func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Resu
 	newCoins, ok := coins.SafeSub(feeAmount)
 	if ok {
 		return nil, sdk.ErrInsufficientFunds(
-			fmt.Sprintf("insufficient funds to pay for fees; %s < %s", coins, feeAmount),
+			fmt.Sprintf("insufficient funds to pay for fees; %s less than %s", coins, feeAmount),
 		).Result()
 	}
 
@@ -405,12 +418,17 @@ func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Resu
 	spendableCoins := acc.SpendableCoins(blockTime)
 	if _, hasNeg := spendableCoins.SafeSub(feeAmount); hasNeg {
 		return nil, sdk.ErrInsufficientFunds(
-			fmt.Sprintf("insufficient funds to pay for fees; %s < %s", spendableCoins, feeAmount),
+			fmt.Sprintf("insufficient funds to pay for fees; %s less than %s", spendableCoins, feeAmount),
 		).Result()
 	}
 
-	if err := acc.SetCoins(newCoins); err != nil {
-		return nil, sdk.ErrInternal(err.Error()).Result()
+	// fOnlyCheckBalanceEnoughForFee , by yqq 2021-04-26
+	// for issue #6:
+	// prevent account which has not enough balance for paying fee sending tx unlimitedly,
+	if !fOnlyCheckBalanceEnoughForFee {
+		if err := acc.SetCoins(newCoins); err != nil {
+			return nil, sdk.ErrInternal(err.Error()).Result()
+		}
 	}
 
 	return acc, sdk.Result{}

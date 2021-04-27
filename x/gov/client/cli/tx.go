@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/context"
 	"github.com/orientwalt/htdf/client/utils"
 	"github.com/orientwalt/htdf/codec"
@@ -67,6 +68,7 @@ $ hscli gov submit-proposal --title="Test Proposal" --description="My awesome pr
 
 			txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
+			cliCtx.BroadcastMode = client.BroadcastSync
 
 			// Get from address
 			from, err := sdk.AccAddressFromBech32(args[0])

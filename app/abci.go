@@ -257,11 +257,16 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 
 	gInfo, result, err := app.runTx(mode, req.Tx, tx)
 	if err != nil {
-		return sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed)
+		rsp := sdkerrors.ResponseCheckTx(err, gInfo.GasWanted, gInfo.GasUsed)
+		if result.Code != 0 {
+			rsp.Log = result.Log
+			rsp.Code = uint32(result.Code)
+			rsp.Data = result.Data
+			rsp.Codespace = string(result.Codespace)
+		}
+		return rsp
 	}
-	if result == nil {
-		result = &sdk.Result{}
-	}
+	
 	return abci.ResponseCheckTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
@@ -283,7 +288,12 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 	gInfo, result, err := app.runTx(runTxModeDeliver, req.Tx, tx)
 	if err != nil {
-		return sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed)
+		rsp := sdkerrors.ResponseDeliverTx(err, gInfo.GasWanted, gInfo.GasUsed)
+		rsp.Log = result.Log
+		rsp.Code = uint32(result.Code)
+		rsp.Data = result.Data
+		rsp.Codespace = string(result.Codespace)
+		return rsp
 	}
 	// logger().Traceln(gInfo, result)
 	return abci.ResponseDeliverTx{
@@ -410,7 +420,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 
 			simRes := &sdk.SimulationResponse{
 				GasInfo: gInfo,
-				Result:  res,
+				Result:  &res,
 			}
 
 			bz, err := codec.ProtoMarshalJSON(simRes)
