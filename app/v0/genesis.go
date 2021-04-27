@@ -314,7 +314,7 @@ func CollectStdTxs(cdc *codec.Codec, moniker string, genTxsDir string, genDoc tm
 
 		if delAcc.Coins.AmountOf(msg.Value.Denom).LT(msg.Value.Amount) {
 			return appGenTxs, persistentPeers, fmt.Errorf(
-				"insufficient fund for delegation %v: %v < %v",
+				"insufficient fund for delegation %v: %v less than %v",
 				delAcc.Address, delAcc.Coins.AmountOf(msg.Value.Denom), msg.Value.Amount)
 		}
 
@@ -405,7 +405,7 @@ func CollectStdTxsEx(cdc *codec.Codec, moniker string, genTxsDir string, genDoc 
 
 		if delAcc.Coins.AmountOf(msg.Value.Denom).LT(msg.Value.Amount) {
 			return appGenTxs, persistentPeers, fmt.Errorf(
-				"insufficient fund for delegation %v: %v < %v",
+				"insufficient fund for delegation %v: %v less than %v",
 				delAcc.Address, delAcc.Coins.AmountOf(msg.Value.Denom), msg.Value.Amount,
 			)
 		}

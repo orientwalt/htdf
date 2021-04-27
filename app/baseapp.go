@@ -937,10 +937,11 @@ func (app *BaseApp) ValidateTx(ctx sdk.Context, txBytes []byte, tx sdk.Tx) sdk.E
 // anteHandler. The provided txBytes may be nil in some cases, eg. in tests. For
 // further details on transaction execution, reference the BaseApp SDK
 // documentation.
-func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.GasInfo, result *sdk.Result, err error) {
+func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.GasInfo, result sdk.Result, err error) {
 	// NOTE: GasWanted should be returned by the AnteHandler. GasUsed is
 	// determined by the GasMeter. We need access to the context to get the gas
 	// meter so we initialize upfront.
+	result = sdk.Result{}
 
 	var gasWanted uint64
 	ctx := app.getContextForTx(mode, txBytes)
@@ -949,11 +950,14 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	gInfo = sdk.NewGasInfo()
 	// only run the tx if there is block gas remaining
 	if mode == runTxModeDeliver && ctx.BlockGasMeter().IsOutOfGas() {
-		return gInfo, nil, sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx") //sdk.ErrOutOfGas("no block gas left to run tx")
+		return gInfo, result, sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx") //sdk.ErrOutOfGas("no block gas left to run tx")
 	}
 
 	if err := app.ValidateTx(ctx, txBytes, tx); err != nil {
-		return gInfo, nil, err //err.Result()
+		result.Code = err.Code()
+		result.Codespace = err.Codespace()
+		result.Log = err.ABCILog()
+		return gInfo, result,  err  //err.Result()
 	}
 
 	var startingGas uint64
@@ -990,7 +994,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
 	}()
-	if result != nil {
+	if result.Code != 0 {
 		logger().Traceln("runTx:result.GasUsed", result.GasUsed)
 	}
 	// Add cache in fee refund. If an error is returned or panic happes during refund,
@@ -1007,7 +1011,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 
 		// Refund unspent fee
 		if (mode == runTxModeDeliver || mode == runTxModeSimulate) && feeRefundHandler != nil {
-			_, err := feeRefundHandler(refundCtx, tx, *result)
+			_, err := feeRefundHandler(refundCtx, tx, result)
 			if err != nil {
 				return
 			}
@@ -1076,8 +1080,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		gasWanted = result.GasWanted
 
 		if abort {
-
-			return gInfo, nil, err
+			return gInfo, result, fmt.Errorf("%s", result.String() )
 		}
 
 		msCache.Write()
@@ -1092,14 +1095,15 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 	// multi-store in case message processing fails.
 	runMsgCtx, msCache := app.cacheTxContext(ctx, txBytes)
 	logger().Traceln("8runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs(), mode)
-	result, err = app.runMsgs(runMsgCtx, tx.GetMsgs(), mode)
+	res, err := app.runMsgs(runMsgCtx, tx.GetMsgs(), mode)
 	logger().Traceln("9runTx!!!!!!!!!!!!!!!!!", tx.GetMsgs())
 
 	// 1. simulating
 	// 2. fail to find routekey, resulted in nil returned from runMsg
-	if mode == runTxModeSimulate || result == nil {
+	if mode == runTxModeSimulate || res == nil {
 		return
 	}
+	result = *res
 	result.GasWanted = gasWanted
 	logger().Traceln("10runTx!!!!!!!!!!!!!!!!!", result.IsOK(), result.Code, result.GasUsed, result.GasWanted)
 	// only update state if all messages pass

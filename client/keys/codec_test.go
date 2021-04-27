@@ -19,10 +19,10 @@ type testCases struct {
 func getTestCases() testCases {
 	return testCases{
 		[]keys.KeyOutput{
-			{"A", "B", "C", "D", "E", 0, nil},
-			{"A", "B", "C", "D", "", 0, nil},
-			{"", "B", "C", "D", "", 0, nil},
-			{"", "", "", "", "", 0, nil},
+			{Name:"A", Type:"B", Address: "C", PubKey:"D", Mnemonic:"E", Threshold: 0, PubKeys: nil},
+			{Name:"A", Type:"B", Address: "C", PubKey:"D", Mnemonic:"", Threshold: 0, PubKeys: nil},
+			{Name:"", Type:"B", Address: "C", PubKey:"D", Mnemonic:"", Threshold: 0, PubKeys: nil},
+			{Name:"", Type:"", Address: "", PubKey:"", Mnemonic:"", Threshold: 0, PubKeys: nil},
 		},
 		make([]keys.KeyOutput, 4),
 		[][]byte{
