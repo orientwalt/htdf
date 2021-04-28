@@ -84,13 +84,27 @@ type BlockchainContext struct {
 }
 
 func NewBlockchainContext(ctx sdk.Context, keeper Keeper, blockGasLimit uint64) *BlockchainContext {
+	// !!!!!!!!!!!!!!!!!!!! MAKE CRASH !!!!!!!!!!!!!!!!!!!
+	// blockTime := time.Now()
+	// blockTime = blockTime.Add(time.Minute * 10)
+	blockTime := ctx.BlockHeader().Time
+	blockTime = blockTime.Add(time.Second * 60)
 	return &BlockchainContext{
 		ctx:        ctx,
-		blockTime:  ctx.BlockHeader().Time,
+		blockTime:  blockTime,
 		parentHash: common.BytesToHash(ctx.BlockHeader().LastBlockId.Hash),
 		keeper:     keeper,
 		blockGasLimit:   blockGasLimit,
 	}
+	// !!!!!!!!!!!!!!!!!!!! MAKE CRASH !!!!!!!!!!!!!!!!!!!
+
+	// return &BlockchainContext{
+	// 	ctx:        ctx,
+	// 	blockTime:  ctx.BlockHeader().Time,
+	// 	parentHash: common.BytesToHash(ctx.BlockHeader().LastBlockId.Hash),
+	// 	keeper:     keeper,
+	// 	blockGasLimit:   blockGasLimit,
+	// }
 }
 
 // GetHeader to compatible with ethereum.

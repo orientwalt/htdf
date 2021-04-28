@@ -16,6 +16,7 @@ import (
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/auth"
 	authtx "github.com/orientwalt/htdf/x/auth/client/txbuilder"
+	"github.com/orientwalt/htdf/x/guardian"
 	"github.com/orientwalt/htdf/x/staking"
 
 	"github.com/spf13/cobra"
@@ -261,7 +262,9 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 		srvconfig.WriteConfigFile(hsConfigFilePath, hsConfig)
 	}
 
-	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators); err != nil {
+	// yqq, 2021-04-27 , we set accs[0] as default guardian
+	defaultGuardian := accs[0].Address
+	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators, defaultGuardian); err != nil {
 		return err
 	}
 
@@ -280,11 +283,14 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 //
 func initGenFiles(
 	cdc *codec.Codec, chainID string, accs []v0.GenesisAccount,
-	genFiles []string, numValidators int,
+	genFiles []string, numValidators int, guadianAddr sdk.AccAddress,
 ) error {
 
 	appGenState := v0.NewDefaultGenesisState()
 	appGenState.Accounts = accs
+	gd := guardian.NewGuardian("genesis", guardian.Genesis, guadianAddr, guadianAddr)
+	appGenState.GuardianData.Profilers[0] = gd
+	appGenState.GuardianData.Trustees[0] = gd
 
 	appGenStateJSON, err := codec.MarshalJSONIndent(cdc, appGenState)
 	if err != nil {
@@ -404,3 +410,27 @@ func calculateIP(ip string, i int) (string, error) {
 
 	return ipv4.String(), nil
 }
+
+// func addGenesisAccount(
+// 	cdc *codec.Codec, appState v0.GenesisState, addr sdk.AccAddress,
+// ) (v0.GenesisState, error) {
+// 	var genAcc sdk.AccAddress
+// 	for _, stateAcc := range appState.GuardianData.Profilers {
+// 		if stateAcc.Address.Equals(addr) {
+// 			return appState, fmt.Errorf("the application state already contains account %v", addr)
+// 		}
+// 		genAcc = stateAcc.Address
+// 	}
+
+// 	guardian := guardian.NewGuardian("genesis", guardian.Genesis, addr, addr)
+
+// 	if genAcc.Empty() {
+// 		appState.GuardianData.Profilers[0] = guardian
+// 		appState.GuardianData.Trustees[0] = guardian
+// 	} else {
+// 		appState.GuardianData.Profilers = append(appState.GuardianData.Profilers, guardian)
+// 		appState.GuardianData.Trustees = append(appState.GuardianData.Trustees, guardian)
+// 	}
+
+// 	return appState, nil
+// }

@@ -334,7 +334,9 @@ func initLiveNet(config *tmconfig.Config, cdc *codec.Codec) error {
 		srvconfig.WriteConfigFile(hsConfigFilePath, hsConfig)
 	}
 
-	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators); err != nil {
+	// yqq, 2021-04-27 , we set accs[0] as default guardian
+	defaultGuardian := accs[0].Address
+	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators, defaultGuardian); err != nil {
 		return err
 	}
 
