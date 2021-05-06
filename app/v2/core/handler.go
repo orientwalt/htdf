@@ -107,7 +107,7 @@ func HandleOpenContract(ctx sdk.Context,
 	log.Debugf("toAddress|appFormat=%s|ethFormat=%s|\n", msg.To.String(), toAddress.String())
 
 	log.Debugf("fromAddress|testBalance=%v\n", stateDB.GetBalance(fromAddress))
-	log.Debugf("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
+	log.Infof("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
 
 	config := appParams.MainnetChainConfig
 	logConfig := vm.LogConfig{}
