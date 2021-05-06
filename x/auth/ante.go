@@ -288,9 +288,13 @@ func processSig(
 		return nil, sdk.ErrUnauthorized("signature verification failed; verify correct account number, account sequence and/or chain-id").Result()
 	}
 
+	seqA := acc.GetSequence()
+	logger().Infof("=seqA=====>%d", seqA)
 	if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
 		panic(err)
 	}
+	seqB := acc.GetSequence()
+	logger().Infof("=seqB=====>%d", seqB)
 
 	return acc, res
 }

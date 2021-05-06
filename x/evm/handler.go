@@ -88,7 +88,7 @@ func NewBlockchainContext(ctx sdk.Context, keeper Keeper, blockGasLimit uint64) 
 	// blockTime := time.Now()
 	// blockTime = blockTime.Add(time.Minute * 10)
 	blockTime := ctx.BlockHeader().Time
-	blockTime = blockTime.Add(time.Second * 60)
+	// blockTime = blockTime.Add(time.Second * 50)
 	return &BlockchainContext{
 		ctx:        ctx,
 		blockTime:  blockTime,

@@ -306,7 +306,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	// st.StateDB.SetNonce(st.sender, st.AccountNonce)
 
-	logging().Debugf("in TransitionDb:currentNonce[%d]\n", currentNonce)
+	logging().Infof("in TransitionDb:currentNonce[%d]\n", currentNonce)
 
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
 	// logging().Debugln(st.ContractCreation)
