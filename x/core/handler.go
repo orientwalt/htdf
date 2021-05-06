@@ -245,7 +245,7 @@ func HandleCreateContract(ctx sdk.Context,
 	structLogger := vm.NewStructLogger(&logConfig)
 	vmConfig := vm.Config{Debug: true, Tracer: structLogger /*, JumpTable: vm.NewByzantiumInstructionSet()*/}
 
-	log.Debugf("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
+	log.Infof("fromAddress|nonce=%d\n", stateDB.GetNonce(fromAddress))
 
 	blockTime := ctx.BlockHeader().Time
 	log.Infof("blockHeaderTime: %s", blockTime.Format(time.RFC3339Nano))
