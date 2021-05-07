@@ -274,11 +274,11 @@ func processSig(
 	if !simulate && !pubKey.VerifyBytes(signBytes, sig.Signature) {
 		return nil, sdk.ErrUnauthorized("signature verification failed; verify correct account number, account sequence and/or chain-id").Result()
 	}
-
+	logrus.Debugln("acc.GetSequence", acc.GetSequence())
 	if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
 		panic(err)
 	}
-
+	logrus.Debugln("acc.GetSequence", acc.GetSequence())
 	return acc, res
 }
 

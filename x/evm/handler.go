@@ -79,7 +79,7 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 		return sdk.Result{Code: sdk.ErrCodeParsing, Log: fmt.Sprintf("%s\n", err)}
 	}
 
-	st.StateDB = k.CommitStateDB.WithContext(ctx)
+	// st.StateDB = k.CommitStateDB.WithContext(ctx)
 
 	logger().Debugf("handler:*st.TxHash[%s]\n", (*st.TxHash).String())
 	// Prepare db for logs
