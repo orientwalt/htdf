@@ -112,7 +112,8 @@ config.toml:
 	@cp $(VALDIR)/node0/.hsd/config/config.toml ${CONFIG_TOML_FILE}
 	@replconfkey persistent_peers ${CONFIG_TOML_FILE} ${PERSISTENT_PEERS_CONF_FILE}
 	@for index in $(VALS_INDEX); do \
-	 replconfkey persistent_peers $(VALDIR)/node$$index/.hsd/config/config.toml ${PERSISTENT_PEERS_CONF_FILE} ; done
+	 replconfkey persistent_peers $(VALDIR)/node$$index/.hsd/config/config.toml ${PERSISTENT_PEERS_CONF_FILE} ; \
+	 replconfkey persistent_peers_max_dial_period $(VALDIR)/node$$index/.hsd/config/config.toml "0s" ; done
 	@for index in $(VALS_INDEX); do \
 	 itself=$$(row $$(($$index+1)) ${PERSISTENT_PEERS_CONF_FILE}); \
 	 replconfval $(VALDIR)/node$$index/.hsd/config/config.toml persistent_peers $$itself; \

@@ -255,6 +255,7 @@ func (st *StateTransition) newEVM(ctx sdk.Context, chainCtx vmcore.ChainContext,
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainContext, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
 	if st.StateDB == nil {
+		logging().Debugln("Creating CommitStateDB")
 		stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
 		if err != nil {
 			panic(err)
@@ -362,7 +363,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	}
 
 	// Resets nonce to value pre state transition
-	stateDB.SetNonce(st.sender, currentNonce+1)
+	// stateDB.SetNonce(st.sender, currentNonce+1)
 
 	if !st.simulate {
 		// logging().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
@@ -375,7 +376,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 			panic(_err)
 		}
 	}
-
+	logging().Debugf("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
 
