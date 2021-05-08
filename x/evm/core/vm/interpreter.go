@@ -97,29 +97,32 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// we'll set the default jump table.
 	if cfg.JumpTable[STOP] == nil {
 		var jt JumpTable
-		// switch {
-		// case evm.chainRules.IsBerlin:
-		// 	jt = berlinInstructionSet
-		// case evm.chainRules.IsIstanbul:
-		// 	jt = istanbulInstructionSet
-		// case evm.chainRules.IsConstantinople:
-		// 	jt = constantinopleInstructionSet
-		// case evm.chainRules.IsByzantium:
-		// 	jt = byzantiumInstructionSet
-		// case evm.chainRules.IsEIP158:
-		// 	jt = spuriousDragonInstructionSet
-		// case evm.chainRules.IsEIP150:
-		// 	jt = tangerineWhistleInstructionSet
-		// case evm.chainRules.IsHomestead:
-		// 	jt = homesteadInstructionSet
-		// default:
-		// 	jt = frontierInstructionSet
-		// }
+		switch {
+		case evm.chainRules.IsBerlin:
+			jt = berlinInstructionSet
+		case evm.chainRules.IsIstanbul:
+			jt = istanbulInstructionSet
+		case evm.chainRules.IsConstantinople:
+			jt = constantinopleInstructionSet
+		case evm.chainRules.IsByzantium:
+			jt = byzantiumInstructionSet
+		case evm.chainRules.IsEIP158:
+			jt = spuriousDragonInstructionSet
+		case evm.chainRules.IsEIP150:
+			jt = tangerineWhistleInstructionSet
+		case evm.chainRules.IsHomestead:
+			jt = homesteadInstructionSet
+		default:
+			jt = frontierInstructionSet
+		}
 
 		// yqq , 2021-04-13 , we use berlin as default instruction set
 		jt = berlinInstructionSet
 
 		for i, eip := range cfg.ExtraEips {
+			if eip == 2929 {
+				continue
+			}
 			if err := EnableEIP(eip, &jt); err != nil {
 				// Disable it, so caller can check if it's activated or not
 				cfg.ExtraEips = append(cfg.ExtraEips[:i], cfg.ExtraEips[i+1:]...)

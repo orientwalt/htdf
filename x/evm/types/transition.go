@@ -303,11 +303,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	)
 
 	// Get nonce of account outside of the EVM
-	currentNonce := st.StateDB.GetNonce(st.sender)
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	// st.StateDB.SetNonce(st.sender, st.AccountNonce)
 
-	logging().Infof("in TransitionDb:currentNonce[%d]\n", currentNonce)
+	logging().Infof("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
 
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
 	// logging().Debugln(st.ContractCreation)
@@ -333,6 +332,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 			recipientLog = fmt.Sprintf("recipient address: %s", st.recipient.String())
 		}
 	}
+	logging().Infof("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
 
 	recipientLog = fmt.Sprintf("%s, output: %s", recipientLog, hex.EncodeToString(ret))
 	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
@@ -364,6 +364,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 
 	// Resets nonce to value pre state transition
 	// stateDB.SetNonce(st.sender, currentNonce+1)
+	logging().Infof("=======> simulate is %v", st.simulate)
 
 	if !st.simulate {
 		// logging().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)

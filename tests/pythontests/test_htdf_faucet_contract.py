@@ -231,7 +231,7 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
     # because of the limitions in contract, a address could only get 1 htdf every minute.
     # so the second loop of this for-loop should be failed as expected.
     expected_result = [True, False]
-    for n in range(100):
+    for n in range(2):
         contract_acc_begin = htdfrpc.get_account_info(address=contract_address.address)
         assert contract_acc_begin is not None
 
@@ -257,28 +257,27 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
 
         tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
         print('tx_hash: {}'.format(tx_hash))
-        # self.assertTrue( len(tx_hash) == 64)
 
-        # tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
-        # pprint(tx)
+        tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+        pprint(tx)
 
-        # tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
-        # pprint(tx)
+        tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
+        pprint(tx)
 
-        # assert tx['logs'][0]['success'] == expected_result[n]
+        assert tx['logs'][0]['success'] == expected_result[n]
 
-        # time.sleep(10)  # wait for chain state update
-        # if expected_result[n] == True:
-        #     assert int(tx['gas_wanted']) > int(tx['gas_used'])
-        #     once_htdf_satoshi = hc.call(hc.functions.onceAmount())
-        #     contract_acc_end = htdfrpc.get_account_info(address=contract_address.address)
-        #     assert contract_acc_end is not None
-        #     assert contract_acc_end.balance_satoshi == contract_acc_begin.balance_satoshi - once_htdf_satoshi
-        # elif expected_result[n] == False:
-        #     assert int(tx['gas_wanted']) == int(tx['gas_used'])  # all gas be consumed
-        #     contract_acc_end = htdfrpc.get_account_info(address=contract_address.address)
-        #     assert contract_acc_end is not None
-        #     assert contract_acc_end.balance_satoshi == contract_acc_begin.balance_satoshi  # contract's balance doesn't changes
+        time.sleep(10)  # wait for chain state update
+        if expected_result[n] == True:
+            assert int(tx['gas_wanted']) > int(tx['gas_used'])
+            once_htdf_satoshi = hc.call(hc.functions.onceAmount())
+            contract_acc_end = htdfrpc.get_account_info(address=contract_address.address)
+            assert contract_acc_end is not None
+            assert contract_acc_end.balance_satoshi == contract_acc_begin.balance_satoshi - once_htdf_satoshi
+        elif expected_result[n] == False:
+            assert int(tx['gas_wanted']) == int(tx['gas_used'])  # all gas be consumed
+            contract_acc_end = htdfrpc.get_account_info(address=contract_address.address)
+            assert contract_acc_end is not None
+            assert contract_acc_end.balance_satoshi == contract_acc_begin.balance_satoshi  # contract's balance doesn't changes
 
     pass
 
