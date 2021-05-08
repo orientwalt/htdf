@@ -114,11 +114,13 @@ func NewCLIContext() CLIContext {
 func createVerifier() tmlite.Verifier {
 	trustNodeDefined := viper.IsSet(client.FlagTrustNode)
 	if !trustNodeDefined {
+		fmt.Println("trust-node is not set, please set trust-node by `hscli config trust-node true`")
 		return nil
 	}
 
 	trustNode := viper.GetBool(client.FlagTrustNode)
 	if trustNode {
+		// fmt.Println("trust-noce is true")
 		return nil
 	}
 
@@ -312,7 +314,7 @@ func (ctx CLIContext) PrintOutput(toPrint fmt.Stringer) (err error) {
 	return
 }
 
-// GetNewHttpClient  get http client to connection node for quering mempool txs 
+// GetNewHttpClient  get http client to connection node for quering mempool txs
 func (ctx CLIContext) GetNewHttpClient() (httpcli *rpchttp.HTTP, err error) {
 	nodeURI := viper.GetString(client.FlagNode)
 	if nodeURI != "" {

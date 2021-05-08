@@ -8,6 +8,9 @@
 # IdeaIDE
 vendor
 build/bin/*
+build/build/*
+build/testnet/*
+build/livenet/*
 .idea/
 
 utils/keystores

@@ -257,13 +257,12 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
 
         tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
         print('tx_hash: {}'.format(tx_hash))
-        # self.assertTrue( len(tx_hash) == 64)
 
         tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
         pprint(tx)
 
-        # tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
-        # pprint(tx)
+        tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
+        pprint(tx)
 
         assert tx['logs'][0]['success'] == expected_result[n]
 
