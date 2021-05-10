@@ -427,9 +427,17 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, ErrInsufficientBalance
 	}
-	// yqq, 2021-05-08, we have update nonce of caller at anteHandler.proccessSig
-	// nonce := evm.StateDB.GetNonce(caller.Address())
-	// evm.StateDB.SetNonce(caller.Address(), nonce+1)
+
+	// yqq, 2021-05-10, 
+	// According to issue #69.
+	// We have increased the nonce of msg.sender at anteHandler.proccessSig.
+	// If createing a contract via a contract recursively, evm.depth will be greather than 0. 
+	// The caller is a contract account.
+	// We should increase the nonce of caller-contract account.
+	if evm.depth > 0 {
+		nonce := evm.StateDB.GetNonce(caller.Address())
+		evm.StateDB.SetNonce(caller.Address(), nonce+1)
+	}
 
 	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
 	// the access-list change should not be rolled back
