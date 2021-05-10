@@ -129,66 +129,21 @@ func newTestCodec1() *codec.Codec {
 func testChainConfig(t *testing.T, evm *vm.EVM) {
 	height := big.NewInt(1)
 
-	assert.Equal(t, evm.ChainConfig().IsHomestead(height), true)
-	assert.Equal(t, evm.ChainConfig().IsDAOFork(height), false)
-	assert.Equal(t, evm.ChainConfig().IsEIP150(height), false)
-	assert.Equal(t, evm.ChainConfig().IsEIP155(height), false)
-	assert.Equal(t, evm.ChainConfig().IsEIP158(height), false)
-	assert.Equal(t, evm.ChainConfig().IsByzantium(height), false)
-
-	height = big.NewInt(2)
-
-	assert.Equal(t, evm.ChainConfig().IsHomestead(height), true)
-	assert.Equal(t, evm.ChainConfig().IsDAOFork(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP150(height), false)
-	assert.Equal(t, evm.ChainConfig().IsEIP155(height), false)
-	assert.Equal(t, evm.ChainConfig().IsEIP158(height), false)
-	assert.Equal(t, evm.ChainConfig().IsByzantium(height), false)
-
-	height = big.NewInt(3)
-
-	assert.Equal(t, evm.ChainConfig().IsHomestead(height), true)
-	assert.Equal(t, evm.ChainConfig().IsDAOFork(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP150(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP155(height), false)
-	assert.Equal(t, evm.ChainConfig().IsEIP158(height), false)
-	assert.Equal(t, evm.ChainConfig().IsByzantium(height), false)
-
-	height = big.NewInt(4)
-
-	assert.Equal(t, evm.ChainConfig().IsHomestead(height), true)
-	assert.Equal(t, evm.ChainConfig().IsDAOFork(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP150(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP155(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP158(height), false)
-	assert.Equal(t, evm.ChainConfig().IsByzantium(height), false)
-
-	height = big.NewInt(5)
-
-	assert.Equal(t, evm.ChainConfig().IsHomestead(height), true)
-	assert.Equal(t, evm.ChainConfig().IsDAOFork(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP150(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP155(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP158(height), true)
-	assert.Equal(t, evm.ChainConfig().IsByzantium(height), false)
-
-	height = big.NewInt(6)
-
+	// yqq , 2021-05-10
+	// I had make Berlin fork as default chainconfig in orientwalt/go-ethereum.
+	// So, all forks before Berlin always be true.
 	assert.Equal(t, evm.ChainConfig().IsHomestead(height), true)
 	assert.Equal(t, evm.ChainConfig().IsDAOFork(height), true)
 	assert.Equal(t, evm.ChainConfig().IsEIP150(height), true)
 	assert.Equal(t, evm.ChainConfig().IsEIP155(height), true)
 	assert.Equal(t, evm.ChainConfig().IsEIP158(height), true)
 	assert.Equal(t, evm.ChainConfig().IsByzantium(height), true)
-
-	height = big.NewInt(100)
-
-	assert.Equal(t, evm.ChainConfig().IsHomestead(height), true)
-	assert.Equal(t, evm.ChainConfig().IsDAOFork(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP150(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP155(height), true)
-	assert.Equal(t, evm.ChainConfig().IsEIP158(height), true)
-	assert.Equal(t, evm.ChainConfig().IsByzantium(height), true)
+	assert.Equal(t, evm.ChainConfig().IsConstantinople(height), true)
+	assert.Equal(t, evm.ChainConfig().IsMuirGlacier(height), true)
+	assert.Equal(t, evm.ChainConfig().IsPetersburg(height), true)
+	assert.Equal(t, evm.ChainConfig().IsIstanbul(height), true)
+	assert.Equal(t, evm.ChainConfig().IsBerlin(height), true)
+	assert.Equal(t, evm.ChainConfig().IsEWASM(height), false)
 
 }
 
