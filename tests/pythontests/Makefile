@@ -47,6 +47,14 @@ test_ecrecover_contract:clean
 	python3 -m pytest -v --disable-warnings -s ./test_ecrecover_contract.py  --cache-clear
 	@$(MAKE) clean
 
+test_contract_create_contract:clean
+	python3 -m pytest -v --disable-warnings -s ./test_contract_create_contract.py  --cache-clear
+	@$(MAKE) clean
+
+test_contract_suicide:clean
+	python3 -m pytest -v --disable-warnings -s ./test_contract_suicide.py  --cache-clear
+	@$(MAKE) clean
+
 
 test:clean
 	python3 -m pytest -v ./ --disable-warnings -s --cache-clear
