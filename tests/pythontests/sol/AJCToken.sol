@@ -1,34 +1,12 @@
-pragma solidity ^0.4.18;
+// SPDX-License-Identifier: GPL-3.0
+// upgrade to solidity 0.8.0
+pragma solidity ^0.8.0;
 
-library SafeMath {
-  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-	if (a == 0) {
-		return 0;
-	}
-	uint256 c = a * b;
-	assert(c / a == b);
-	return c;
-  }
-
-  function div(uint256 a, uint256 b) internal pure returns (uint256) {
-	uint256 c = a / b;
-	return c;
-  }
-
-  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-	assert(b <= a);
-	return a - b;
-  }
-
-  function add(uint256 a, uint256 b) internal pure returns (uint256) {
-	uint256 c = a + b;
-	assert(c >= a);
-	return c;
-  }
-}
 
 contract AJCToken {
-  using SafeMath for uint256;
+
+  //  no need use safemath in solidity v0.8.x
+  //using SafeMath for uint256;
   
   event Transfer(address indexed from, address indexed to, uint256 value);
   event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -39,9 +17,8 @@ contract AJCToken {
   string public constant name = "AJC chain";
   string public constant symbol = "AJC";
   uint8 public constant decimals = 18;
-  address public founder = address(0);  
 
-  function AJCToken() public {
+  constructor() {
     totalSupply = 199000000 * 10**18;
     balances[msg.sender] = totalSupply;
   }
@@ -55,29 +32,28 @@ contract AJCToken {
   function transfer(address _to, uint256 _value) public returns (bool) {
     require(_to != address(0));
 
-    balances[msg.sender] = balances[msg.sender].sub(_value);
-    balances[_to] = balances[_to].add(_value);
-    Transfer(msg.sender, _to, _value);
+    balances[msg.sender] = balances[msg.sender] - _value;
+    balances[_to] = balances[_to] + _value;
+    emit Transfer(msg.sender, _to, _value);
     return true;
   }
 
 
   function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
-    var _allowance = allowed[_from][msg.sender];
+    uint256 _allowance = allowed[_from][msg.sender];
     require(_to != address(0));
     require (_value <= _allowance);
-    balances[_from] = balances[_from].sub(_value);
-    balances[_to] = balances[_to].add(_value);
-    allowed[_from][msg.sender] = _allowance.sub(_value);
-    Transfer(_from, _to, _value);
+    balances[_from] = balances[_from] - _value;
+    balances[_to] = balances[_to] + _value;
+    allowed[_from][msg.sender] = _allowance - _value;
+    emit Transfer(_from, _to, _value);
     return true;
   }
-
 
   function approve(address _spender, uint256 _value) public returns (bool) {
     require((_value == 0) || (allowed[msg.sender][_spender] == 0));
     allowed[msg.sender][_spender] = _value;
-    Approval(msg.sender, _spender, _value);
+    emit Approval(msg.sender, _spender, _value);
     return true;
   }
 
@@ -85,10 +61,5 @@ contract AJCToken {
   function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
     return allowed[_owner][_spender];
   }  
-  
-  function changeFounder(address newFounder) public {
-	require(msg.sender == founder);
 
-	founder = newFounder;
-  }  
 }

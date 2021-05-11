@@ -10,6 +10,21 @@ from pprint import pprint
 from eth_utils import remove_0x_prefix
 from htdfsdk import HtdfRPC, Address, HtdfPrivateKey, HtdfTxBuilder, HtdfContract, htdf_to_satoshi
 
+
+
+
+def parse_truffe_compile_outputs(json_path: str):
+    abi, bytecode = None, None
+    with open(json_path, 'r') as infile:
+        compile_outputs = json.loads(infile.read())
+        abi = compile_outputs['abi']
+        bytecode = compile_outputs['bytecode']
+        bytecode = bytecode.replace('0x', '')
+        return abi, bytecode
+
+
+ABI, BYTECODES = parse_truffe_compile_outputs('./sol/HtdfFaucet.json')
+
 htdf_faucet_contract_address = []
 
 
@@ -33,7 +48,7 @@ def deploy_htdf_faucet(conftest_args):
     gas_wanted = 3000000
     gas_price = 100
     tx_amount = 0
-    data = '60606040526305f5e10060008190555033600160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506104558061005f6000396000f30060606040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680638da5cb5b14610072578063bb3ded46146100c7578063c15a96bb146100dc578063d0e30db0146100ff578063ff8dd6bf14610109575b600080fd5b341561007d57600080fd5b610085610132565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34156100d257600080fd5b6100da610158565b005b34156100e757600080fd5b6100fd6004808035906020019091905050610333565b005b6101076103dd565b005b341561011457600080fd5b61011c610423565b6040518082815260200191505060405180910390f35b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b6000600260003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054148061023257506000600260003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020541180156102315750603c600260003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020544203115b5b151561023d57600080fd5b6000543073ffffffffffffffffffffffffffffffffffffffff16311015151561026557600080fd5b42600260003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055503373ffffffffffffffffffffffffffffffffffffffff166108fc6000549081150290604051600060405180830381858888f1935050505015156102eb57600080fd5b6000543373ffffffffffffffffffffffffffffffffffffffff167f5c73cf3606811df094e3c59bfbf3fd8fdf855b621938753f7604486280d4ca7860405160405180910390a3565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614151561038f57600080fd5b80600081905550803373ffffffffffffffffffffffffffffffffffffffff167f242a21804f833c63c9cb0bec112566c96b004760f7733cc0e6daf72f4b27e70660405160405180910390a350565b343373ffffffffffffffffffffffffffffffffffffffff167fe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c60405160405180910390a3565b600054815600a165627a7a72305820a702de9668441382f4cf69e1418ba683a8463dc6aa3d6fa121d4a02e07d20c2b0029'
+    data = BYTECODES
     memo = 'test_deploy_htdf_faucet'
 
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
@@ -120,16 +135,12 @@ def test_deploy_htdf_faucet(conftest_args):
     pass
 
 def test_contract_htdf_faucet_owner(conftest_args):
-    with open('sol/htdf_faucet_sol_HtdfFaucet.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
+
 
     assert len(htdf_faucet_contract_address) > 0
     contract_address = Address(htdf_faucet_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
     owner = hc.call(hc.functions.owner())
     print(type(owner)) # str
     print(owner)
@@ -140,16 +151,10 @@ def test_contract_htdf_faucet_owner(conftest_args):
 
 
 def test_contract_htdf_faucet_onceAmount(conftest_args):
-    with open('sol/htdf_faucet_sol_HtdfFaucet.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
-
     assert len(htdf_faucet_contract_address) > 0
     contract_address = Address(htdf_faucet_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
     once_htdf_satoshi = hc.call(hc.functions.onceAmount())
     assert isinstance(once_htdf_satoshi, int)
     assert once_htdf_satoshi == 100000000  # 10*8 satoshi = 1 HTDF
@@ -157,17 +162,11 @@ def test_contract_htdf_faucet_onceAmount(conftest_args):
 
 @pytest.fixture(scope="function")
 def test_contract_htdf_faucet_deposit(conftest_args):
-    with open('sol/htdf_faucet_sol_HtdfFaucet.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
-
     assert len(htdf_faucet_contract_address) > 0
     contract_address = Address(htdf_faucet_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     deposit_amount = htdf_to_satoshi(10)
     deposit_tx = hc.functions.deposit().buildTransaction_htdf()
@@ -215,18 +214,11 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
     to ensure the faucet contract has enough HTDF balance.
     """
 
-    with open('sol/htdf_faucet_sol_HtdfFaucet.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
-
     assert len(htdf_faucet_contract_address) > 0
     contract_address = Address(htdf_faucet_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
-
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     # because of the limitions in contract, a address could only get 1 htdf every minute.
     # so the second loop of this for-loop should be failed as expected.
@@ -283,17 +275,12 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
 
 
 def test_contract_htdf_faucet_setOnceAmount(conftest_args):
-    with open('sol/htdf_faucet_sol_HtdfFaucet.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
 
     assert len(htdf_faucet_contract_address) > 0
     contract_address = Address(htdf_faucet_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     once_htdf_satoshi_begin = hc.call(hc.functions.onceAmount())
     once_htdf_to_set = int(3.5 * 10 ** 8)

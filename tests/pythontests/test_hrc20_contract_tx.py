@@ -10,8 +10,19 @@ from pprint import pprint
 from eth_utils import remove_0x_prefix, to_checksum_address
 from htdfsdk import HtdfRPC, Address, HtdfPrivateKey, HtdfTxBuilder, HtdfContract, htdf_to_satoshi
 
-hrc20_contract_address = []
 
+def parse_truffe_compile_outputs(json_path: str):
+    abi, bytecode = None, None
+    with open(json_path, 'r') as infile:
+        compile_outputs = json.loads(infile.read())
+        abi = compile_outputs['abi']
+        bytecode = compile_outputs['bytecode']
+        bytecode = bytecode.replace('0x', '')
+        return abi, bytecode
+
+ABI, BYTECODES = parse_truffe_compile_outputs('./sol/AJCToken.json')
+
+hrc20_contract_address = []
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -27,13 +38,13 @@ def check_balance(conftest_args):
 def test_create_hrc20_token_contract(conftest_args):
     """
     test create hrc20 token contract which implement HRC20.
-    # test contract AJC.sol
+    # test contract AJCToken.sol
     """
 
     gas_wanted = 2000000
     gas_price = 100
     tx_amount = 0
-    data = '60606040526000600260006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550341561005157600080fd5b6aa49be39dc14cb8270000006003819055506003546000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002081905550610d61806100b76000396000f3006060604052600436106100af576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806306fdde03146100b4578063095ea7b31461014257806318160ddd1461019c57806323b872dd146101c5578063313ce5671461023e5780634d853ee51461026d57806370a08231146102c257806393c32e061461030f57806395d89b4114610348578063a9059cbb146103d6578063dd62ed3e14610430575b600080fd5b34156100bf57600080fd5b6100c761049c565b6040518080602001828103825283818151815260200191508051906020019080838360005b838110156101075780820151818401526020810190506100ec565b50505050905090810190601f1680156101345780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b341561014d57600080fd5b610182600480803573ffffffffffffffffffffffffffffffffffffffff169060200190919080359060200190919050506104d5565b604051808215151515815260200191505060405180910390f35b34156101a757600080fd5b6101af61065c565b6040518082815260200191505060405180910390f35b34156101d057600080fd5b610224600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803573ffffffffffffffffffffffffffffffffffffffff16906020019091908035906020019091905050610662565b604051808215151515815260200191505060405180910390f35b341561024957600080fd5b610251610959565b604051808260ff1660ff16815260200191505060405180910390f35b341561027857600080fd5b61028061095e565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34156102cd57600080fd5b6102f9600480803573ffffffffffffffffffffffffffffffffffffffff16906020019091905050610984565b6040518082815260200191505060405180910390f35b341561031a57600080fd5b610346600480803573ffffffffffffffffffffffffffffffffffffffff169060200190919050506109cc565b005b341561035357600080fd5b61035b610a6c565b6040518080602001828103825283818151815260200191508051906020019080838360005b8381101561039b578082015181840152602081019050610380565b50505050905090810190601f1680156103c85780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34156103e157600080fd5b610416600480803573ffffffffffffffffffffffffffffffffffffffff16906020019091908035906020019091905050610aa5565b604051808215151515815260200191505060405180910390f35b341561043b57600080fd5b610486600480803573ffffffffffffffffffffffffffffffffffffffff1690602001909190803573ffffffffffffffffffffffffffffffffffffffff16906020019091905050610c77565b6040518082815260200191505060405180910390f35b6040805190810160405280600981526020017f414a4320636861696e000000000000000000000000000000000000000000000081525081565b60008082148061056157506000600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054145b151561056c57600080fd5b81600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508273ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff167f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925846040518082815260200191505060405180910390a36001905092915050565b60035481565b600080600160008673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020549050600073ffffffffffffffffffffffffffffffffffffffff168473ffffffffffffffffffffffffffffffffffffffff161415151561072057600080fd5b80831115151561072f57600080fd5b610780836000808873ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054610cfe90919063ffffffff16565b6000808773ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002081905550610813836000808773ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054610d1790919063ffffffff16565b6000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055506108688382610cfe90919063ffffffff16565b600160008773ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508373ffffffffffffffffffffffffffffffffffffffff168573ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef856040518082815260200191505060405180910390a360019150509392505050565b601281565b600260009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008060008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020549050919050565b600260009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16141515610a2857600080fd5b80600260006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050565b6040805190810160405280600381526020017f414a43000000000000000000000000000000000000000000000000000000000081525081565b60008073ffffffffffffffffffffffffffffffffffffffff168373ffffffffffffffffffffffffffffffffffffffff1614151515610ae257600080fd5b610b33826000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054610cfe90919063ffffffff16565b6000803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002081905550610bc6826000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054610d1790919063ffffffff16565b6000808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055508273ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040518082815260200191505060405180910390a36001905092915050565b6000600160008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054905092915050565b6000828211151515610d0c57fe5b818303905092915050565b6000808284019050838110151515610d2b57fe5b80915050929150505600a165627a7a7230582043a3cd97586e182885676a8c6e6413be040c6f728b9763d794ecdbfff9a4b7c90029'
+    data = BYTECODES
     memo = 'test_create_hrc20_token_contract'
 
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
@@ -115,17 +126,12 @@ def test_create_hrc20_token_contract(conftest_args):
 
 
 def test_hrc20_name(conftest_args):
-    with open('sol/AJC_sol_AJCToken.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
 
     assert len(hrc20_contract_address) > 0
     contract_address = Address(hrc20_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     name = hc.call(hc.functions.name())
     print(name)
@@ -134,17 +140,13 @@ def test_hrc20_name(conftest_args):
 
 
 def test_hrc20_symbol(conftest_args):
-    with open('sol/AJC_sol_AJCToken.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
+
 
     assert len(hrc20_contract_address) > 0
     contract_address = Address(hrc20_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     symbol = hc.call(hc.functions.symbol())
     print(symbol)
@@ -154,17 +156,12 @@ def test_hrc20_symbol(conftest_args):
 
 
 def test_hrc20_totalSupply(conftest_args):
-    with open('sol/AJC_sol_AJCToken.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
 
     assert len(hrc20_contract_address) > 0
     contract_address = Address(hrc20_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     totalSupply = hc.call(hc.functions.totalSupply())
     print(totalSupply)
@@ -173,17 +170,12 @@ def test_hrc20_totalSupply(conftest_args):
 
 
 def test_hrc20_decimals(conftest_args):
-    with open('sol/AJC_sol_AJCToken.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
 
     assert len(hrc20_contract_address) > 0
     contract_address = Address(hrc20_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     decimals = hc.call(hc.functions.decimals())
     print(decimals)
@@ -192,17 +184,12 @@ def test_hrc20_decimals(conftest_args):
 
 
 def test_hrc20_balanceOf(conftest_args):
-    with open('sol/AJC_sol_AJCToken.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
 
     assert len(hrc20_contract_address) > 0
     contract_address = Address(hrc20_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     from_addr = Address(conftest_args['ADDRESS'])
     cfnBalanceOf = hc.functions.balanceOf(_owner=to_checksum_address(from_addr.hex_address))
@@ -214,17 +201,12 @@ def test_hrc20_balanceOf(conftest_args):
 
 
 def test_hrc20_transfer(conftest_args):
-    with open('sol/AJC_sol_AJCToken.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
 
     assert len(hrc20_contract_address) > 0
     contract_address = Address(hrc20_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     new_to_addr = HtdfPrivateKey('').address
 
@@ -276,18 +258,140 @@ def test_hrc20_transfer(conftest_args):
     pass
 
 
-def test_hrc20_approve_transferFrom(conftest_args):
-    with open('sol/AJC_sol_AJCToken.abi', 'r') as abifile:
-        # abi = abifile.readlines()
-        abijson = abifile.read()
-        # print(abijson)
-        abi = json.loads(abijson)
+
+def test_hrc20_transfer_integer_overflow_attack(conftest_args):
 
     assert len(hrc20_contract_address) > 0
     contract_address = Address(hrc20_contract_address[0])
     htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
 
-    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=abi)
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
+
+    tmp_privkey = HtdfPrivateKey('')
+    new_to_addr = tmp_privkey.address
+
+    from_addr = Address(conftest_args['ADDRESS'])
+    private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
+    from_acc = htdfrpc.get_account_info(address=from_addr.address)
+
+    cfnBalanceOf = hc.functions.balanceOf(_owner=to_checksum_address(from_addr.hex_address))
+    balanceFrom_begin = hc.call(cfn=cfnBalanceOf)
+    print(balanceFrom_begin)
+
+    transfer_token_amount = int(10001 * 10 ** 18)
+    transfer_tx = hc.functions.transfer(
+        _to=to_checksum_address(new_to_addr.hex_address),
+        _value=transfer_token_amount).buildTransaction_htdf()
+    data = remove_0x_prefix(transfer_tx['data'])
+    signed_tx = HtdfTxBuilder(
+        from_address=from_addr,
+        to_address=contract_address,
+        amount_satoshi=0,
+        sequence=from_acc.sequence,
+        account_number=from_acc.account_number,
+        chain_id=htdfrpc.chain_id,
+        gas_price=100,
+        gas_wanted=200000,
+        data=data,
+        memo='test_hrc20_transfer_integer_overflow_attack_1'
+    ).build_and_sign(private_key=private_key)
+
+    tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
+    print('tx_hash: {}'.format(tx_hash))
+
+    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    pprint(tx)
+
+    time.sleep(8)
+
+    # check  balance of token
+    cfnBalanceOf = hc.functions.balanceOf(_owner=to_checksum_address(from_addr.hex_address))
+    balanceFrom_end = hc.call(cfn=cfnBalanceOf)
+    print(balanceFrom_end)
+    assert balanceFrom_end == balanceFrom_begin - transfer_token_amount
+
+    cfnBalanceOf = hc.functions.balanceOf(_owner=to_checksum_address(new_to_addr.hex_address))
+    balance = hc.call(cfn=cfnBalanceOf)
+    print(balance)
+    assert balance == transfer_token_amount
+
+    #########  integer_overflow_attack #####
+    time.sleep(10)
+    some_htdf_for_test = 10*10**8
+    signed_tx = HtdfTxBuilder(
+        from_address=from_addr,
+        to_address=new_to_addr,
+        amount_satoshi=some_htdf_for_test,
+        sequence=from_acc.sequence + 1,
+        account_number=from_acc.account_number,
+        chain_id=htdfrpc.chain_id,
+        gas_price=100,
+        gas_wanted=30000,
+        data='',
+        memo='send 10HTDF to tmp address'
+    ).build_and_sign(private_key=private_key)
+
+    tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
+    print('tx_hash: {}'.format(tx_hash))
+
+    time.sleep(10)
+
+    # we make result as -1, it's max value of uint256
+    attack_transfer_token_amount = transfer_token_amount + 1
+    to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
+    assert to_acc is not None
+    assert to_acc.balance_satoshi == some_htdf_for_test
+
+    transfer_tx = hc.functions.transfer(
+        _to=to_checksum_address(from_addr.hex_address),
+        _value=attack_transfer_token_amount).buildTransaction_htdf()
+    data = remove_0x_prefix(transfer_tx['data'])
+
+    gas_wanted = 200000
+    signed_tx = HtdfTxBuilder(
+        from_address=new_to_addr,
+        to_address=contract_address,
+        amount_satoshi=0,
+        sequence=to_acc.sequence,
+        account_number=to_acc.account_number,
+        chain_id=htdfrpc.chain_id,
+        gas_price=100,
+        gas_wanted=gas_wanted,
+        data=data,
+        memo='test_hrc20_transfer_integer_overflow_attack_2'
+    ).build_and_sign(private_key=tmp_privkey)
+
+    tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
+    print('tx_hash: {}'.format(tx_hash))
+
+    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    pprint(tx)
+
+    # solidity v0.8.0 will prevent integer overflow attack, we expect tx be failed.
+    assert tx['logs'][0]['success'] == False
+    assert int(tx['gas_used']) == gas_wanted  # all gas be consumed
+
+    new_to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
+    assert  new_to_acc.sequence == to_acc.sequence + 1
+
+    cfnBalanceOf = hc.functions.balanceOf(_owner=to_checksum_address(new_to_addr.hex_address))
+    balance = hc.call(cfn=cfnBalanceOf)
+    assert balance == transfer_token_amount
+
+    cfnBalanceOf = hc.functions.balanceOf(_owner=to_checksum_address(from_addr.hex_address))
+    new_balanceFrom_end = hc.call(cfn=cfnBalanceOf)
+    assert new_balanceFrom_end == balanceFrom_end
+
+    pass
+
+
+def test_hrc20_approve_transferFrom(conftest_args):
+
+    assert len(hrc20_contract_address) > 0
+    contract_address = Address(hrc20_contract_address[0])
+    htdfrpc = HtdfRPC(chaid_id=conftest_args['CHAINID'], rpc_host=conftest_args['RPC_HOST'], rpc_port=conftest_args['RPC_PORT'])
+
+    hc = HtdfContract(rpc=htdfrpc, address=contract_address, abi=ABI)
 
     new_to_priv_key = HtdfPrivateKey('')
     new_to_addr = new_to_priv_key.address

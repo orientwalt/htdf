@@ -1,8 +1,6 @@
-/**
- *Submitted for verification at Etherscan.io on 2018-09-07
-*/
+// SPDX-License-Identifier: GPL-3.0
 
-pragma solidity >=0.4.24 <0.9.0;
+pragma solidity ^0.8.0;
 
 // * dice2.win - fair games that pay Ether. Version 5.
 //

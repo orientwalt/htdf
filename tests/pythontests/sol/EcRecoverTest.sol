@@ -1,4 +1,5 @@
-pragma solidity >=0.4.24 <0.9.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
 
 
 
@@ -8,7 +9,7 @@ contract  EcRecoverTest {
         
     }
     
-    function testecrecover() public  returns( address ){
+    function testecrecover() public  pure returns( address ){
         address  secretSigner =  address(0x954d1a58c7abd4ac8ebe05f59191Cf718eb0cB89);
         bytes32 R = "\xfa\x30\x4f\x48\x5e\x11\xdd\xa8\x2b\x63\x48\xfa\x0e\xa3\x73\x93\xb0\x78\x8a\x29\xce\xf0\xff\x72\xb2\x0f\x8c\x82\x35\x60\x91\xdb";
         bytes32 S = "\x39\x17\x3b\xce\xaa\x4b\xb9\x2e\xa7\x96\x54\x60\xe8\xe9\x37\x07\xf3\x3b\x81\xb7\xae\x9c\x64\x34\x5c\x03\xff\xee\x46\x50\xb7\x01";

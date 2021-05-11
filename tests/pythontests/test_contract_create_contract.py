@@ -38,7 +38,7 @@ def parse_truffe_compile_outputs(json_path: str):
         return abi, bytecode
 
 
-ABI, BYTECODES = parse_truffe_compile_outputs('./sol/Parent.json')
+ABI, BYTECODES = parse_truffe_compile_outputs('./sol/Create.json')
 #
 #
 # @pytest.fixture(scope='module', autouse=True)

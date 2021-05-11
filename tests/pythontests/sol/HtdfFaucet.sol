@@ -1,7 +1,9 @@
-// yqq 2020-12-11  
+// SPDX-License-Identifier: GPL-3.0
+// yqq 2020-12-11
 // test contract 
 
-pragma solidity ^0.4.20;
+// upgrade to v0.8.0 , yqq,2021-05-11
+pragma solidity ^0.8.0;
 
 
 contract HtdfFaucet {
@@ -14,8 +16,8 @@ contract HtdfFaucet {
     event SetOnceAmount(address indexed fromAddress, uint256 indexed amount);
     mapping (address => uint256) sendRecords;
     
-    function HtdfFaucet() public payable{
-        onceAmount = 100000000;
+    constructor() payable {
+        onceAmount = 100000000; // once 1 HTDF
         owner = msg.sender;
     }
     
@@ -26,30 +28,45 @@ contract HtdfFaucet {
     
     function setOnceAmount(uint256 amount) public onlyOwner {
         onceAmount = amount;
-        SetOnceAmount(msg.sender, amount);
+        emit SetOnceAmount(msg.sender, amount);
     }
     
     function getOneHtdf() public {
         require( sendRecords[msg.sender] == 0 || 
-            (sendRecords[msg.sender] > 0 &&  now - sendRecords[msg.sender] > 1 minutes ));
+            (sendRecords[msg.sender] > 0 &&  block.timestamp - sendRecords[msg.sender] > 1 minutes ));
             
         require(address(this).balance >= onceAmount);
 
         //  update time before transfer to against re-entrancy attack
-        sendRecords[msg.sender] = now;  
+        sendRecords[msg.sender] = block.timestamp;
 
         // transfer only use 2300 gas, safe against re-entrancy attack
-        msg.sender.transfer( onceAmount ); 
+        payable(msg.sender).transfer( onceAmount );
 
-        SendHtdf(msg.sender, onceAmount);
+        emit SendHtdf(msg.sender, onceAmount);
     }
     
     function deposit() public payable {
-        Deposit(msg.sender, msg.value);
+        emit Deposit(msg.sender, msg.value);
     }
-    
-    // function() public payable{
-        
-    // }
+
+
+    // fallback fucnction
+    fallback() external payable {
+        if(msg.value > 0) {
+            emit Deposit(msg.sender, msg.value);
+        }
+    }
+
+    receive() external payable{
+        if(msg.value > 0) {
+            emit Deposit(msg.sender, msg.value);
+        }
+    }
+
+    // desctruct the contract, send all left coins to owner
+    function kill() public onlyOwner {
+         selfdestruct( payable(owner));
+    }
     
 }

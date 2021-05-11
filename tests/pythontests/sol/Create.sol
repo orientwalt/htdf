@@ -1,8 +1,9 @@
-pragma solidity >0.4.99 <0.9.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
 
 contract Son {
     uint public x;
-    constructor(uint a) public payable {
+    constructor(uint a) payable {
         x = a;
     }
 }
