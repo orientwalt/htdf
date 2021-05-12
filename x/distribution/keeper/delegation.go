@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/orientwalt/htdf/types"
 
-	"github.com/orientwalt/htdf/x/distribution/tags"
 	"github.com/orientwalt/htdf/x/distribution/types"
 )
 
@@ -161,13 +160,27 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val sdk.Validator, de
 		// add by yqq 2020-11-09
 		// use `withdrawAddr` for the situation where a delegator set withdrawAddr
 		// with other address by `MsgSetWithdrawAddress`
-		ctx.CoinFlowTags().AppendCoinFlowTag(ctx, 
-			del.GetValidatorAddr().String(),
-			del.GetDelegatorAddr().String(),
-			withdrawAddr.String(), 
-			coins.String(), 
-			tags.Rewards)
-		ctx.CoinFlowTags().TagWrite()
+		// ctx.CoinFlowTags().AppendCoinFlowTag(ctx,
+		// 	del.GetValidatorAddr().String(),
+		// 	del.GetDelegatorAddr().String(),
+		// 	withdrawAddr.String(),
+		// 	coins.String(),
+		// 	tags.Rewards)
+		// ctx.CoinFlowTags().TagWrite()
+
+		// yqq 2021-05-12
+		// replace tags with events
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeWithdrawRewards,
+				sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+				sdk.NewAttribute(sdk.AttributeKeyDelegator, del.GetDelegatorAddr().String()),
+				sdk.NewAttribute(types.AttributeKeyValidator, del.GetValidatorAddr().String()),
+				sdk.NewAttribute(types.AttributeKeyWithdrawAddress, withdrawAddr.String()),
+
+				sdk.NewAttribute(sdk.AttributeKeyAmount, coins.String()),
+			),
+		)
 	}
 
 	// remove delegator starting info

@@ -401,6 +401,11 @@ func (p *ProtocolV0) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 
 // application updates every end block
 func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
+
+	//2021-05-12, yqq
+	// we should keep all Events in EventManager and return to Tendermint 
+	ctx = ctx.WithEventManager(sdk.NewEventManager())
+
 	gov.EndBlocker(ctx, p.govKeeper)
 	// slashing.EndBlocker(ctx, req, p.slashingKeeper)
 	service.EndBlocker(ctx, p.serviceKeeper)
@@ -411,10 +416,13 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 		p.assertRuntimeInvariants(ctx)
 	}
 
+	evs := ctx.EventManager().ABCIEvents()
+	logrus.Infof("%v", evs)
+
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
 		// Tags:             tags,
-		Events: ctx.EventManager().ABCIEvents(),
+		Events: evs,//ctx.EventManager().ABCIEvents(),
 	}
 }
 

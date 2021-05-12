@@ -20,8 +20,8 @@
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/hscli/",
             "env": {},
-            // "args": ["rest-server", "--chain-id=testchain", "--trust-node=true", "tcp://127.0.0.1:26657" ,"--laddr=tcp://0.0.0.0:1317"]
-            "args": ["query", "tx", "DDA5B5298788E2C87EFCCC58B7FB3896D804285E991F9B9EC8BC6D8F111F6092" ]
+            "args": ["rest-server", "--chain-id=testchain", "--trust-node=true", "tcp://127.0.0.1:26657" ,"--laddr=tcp://0.0.0.0:1317"]
+            // "args": ["query", "tx", "4A0185ADE89739348B79AC3DB84FF90127DF87F552F9DABFED2651AED93793E1" ]
         }
     ]
 }
