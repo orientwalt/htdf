@@ -1,2 +1,2 @@
 pytest
-htdfsdk==1.0.0
+htdfsdk==1.0.3

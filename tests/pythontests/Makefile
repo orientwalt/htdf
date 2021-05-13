@@ -11,6 +11,7 @@ ifeq ($(TESTTYPE), )
 endif
 
 
+
 sendhtdf:
 	- hscli tx send $$(hscli  accounts list | head -1) htdf1xwpsq6yqx0zy6grygy7s395e2646wggufqndml  1000000000000000satoshi --gas-price=100
 
@@ -55,8 +56,16 @@ test_contract_suicide:clean
 	python3 -m pytest -v --disable-warnings -s ./test_contract_suicide.py  --cache-clear
 	@$(MAKE) clean
 
+test_construct:clean
+	python3 -m pytest -v --disable-warnings -s ./test_construct.py  --cache-clear
+	@$(MAKE) clean
+
+test_staking_tx:clean
+	python3 -m pytest -v --disable-warnings -s ./test_staking_tx.py  --cache-clear
+	@$(MAKE) clean
 
 test:clean
+
 	python3 -m pytest -v ./ --disable-warnings -s --cache-clear
 	@$(MAKE) clean
 
