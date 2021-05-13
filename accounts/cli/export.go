@@ -13,6 +13,7 @@ import (
 func GetExportPivKeyCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "export",
+		Example: "hscli accounts export [addr] [password]",
 		Short: "Export all private key list",
 		Long:  "export private key from .hscli/keystores",
 		Args:  cobra.ExactArgs(2),

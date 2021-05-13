@@ -75,7 +75,10 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 // Called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
-	ctx = ctx.WithEventManager(sdk.NewEventManager())
+
+	// move to ProtocolV0.EndBlocker , yqq, 2021-05-12,
+	// ctx = ctx.WithEventManager(sdk.NewEventManager())
+
 	// Calculate validator set changes.
 	//
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
@@ -98,15 +101,19 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			continue
 		}
 
+		// 2021-05-12, yqq
+		// we emit events to log unbonding records for application layer, such as block explorer.
+		logger().Infof("===================Unbonding Compiled ================")
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeCompleteUnbonding,
+				// yqq, 2021-05-12,
+				// whther balances contains the rewards of delegation after begin-unbonding?
 				sdk.NewAttribute(sdk.AttributeKeyAmount, balances.String()),
 				sdk.NewAttribute(types.AttributeKeyValidator, dvPair.ValidatorAddress.String()),
 				sdk.NewAttribute(types.AttributeKeyDelegator, dvPair.DelegatorAddress.String()),
 			),
 		)
-
 	}
 
 	// Remove all mature redelegations from the red queue.
@@ -197,6 +204,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeCreateValidator,
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Value.Amount.String()),
 		),
@@ -262,6 +270,7 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeEditValidator,
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddress.String()),
 			sdk.NewAttribute(types.AttributeKeyCommissionRate, validator.Commission.String()),
 			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
 		),
@@ -296,26 +305,32 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 	// )
 	// by yqq 2020-11-10
 	// log `delegation/withdrawDelegationRewards` rewards informations for application layers
-	var rewardsLog string
-	ts := ctx.CoinFlowTags().GetTags()
-	if ts != nil {
-		ctx.Logger().Debug("handleMsgDelegate ", "module", types.ModuleName, "len(ctx.CoinFlowTags().GetTags())", len(ts))
-		for _, tg := range ts {
-			tg.Key = []byte(sdk.DelegatorRewardFlow)
-			strTag := tg.String()
-			if strings.Contains(strTag, msg.DelegatorAddress.String()) &&
-				strings.Contains(strTag, msg.ValidatorAddress.String()) {
-				rewardsLog += strTag
-			}
-		}
-	}
+	//
+	// DONE, yqq, 2021-05-12,  replay tags with Events
+	// var rewardsLog string
+	// ts := ctx.CoinFlowTags().GetTags()
+	// if ts != nil {
+	// 	ctx.Logger().Debug("handleMsgDelegate ", "module", types.ModuleName, "len(ctx.CoinFlowTags().GetTags())", len(ts))
+	// 	for _, tg := range ts {
+	// 		tg.Key = []byte(sdk.DelegatorRewardFlow)
+	// 		strTag := tg.String()
+	// 		if strings.Contains(strTag, msg.DelegatorAddress.String()) &&
+	// 			strings.Contains(strTag, msg.ValidatorAddress.String()) {
+	// 			rewardsLog += strTag
+	// 		}
+	// 	}
+	// }
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDelegate,
+			sdk.NewAttribute(sdk.AttributeKeyDelegator, msg.DelegatorAddress.String()),
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.Amount.String()),
 		),
+		//
+		// We should make event more readable and concise.
+		//
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
@@ -325,7 +340,7 @@ func handleMsgDelegate(ctx sdk.Context, msg types.MsgDelegate, k keeper.Keeper) 
 
 	return sdk.Result{
 		Events: ctx.EventManager().ABCIEvents(),
-		Log:    rewardsLog,
+		// Log:    rewardsLog,
 	}
 }
 
@@ -354,6 +369,7 @@ func handleMsgUndelegate(ctx sdk.Context, msg types.MsgUndelegate, k keeper.Keep
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeUnbond,
+			sdk.NewAttribute(types.AttributeKeyDelegator, msg.DelegatorAddress.String()),
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.Amount.String()),
 			sdk.NewAttribute(types.AttributeKeyCompletionTime, completionTime.Format(time.RFC3339)),
@@ -395,6 +411,7 @@ func handleMsgBeginRedelegate(ctx sdk.Context, msg types.MsgBeginRedelegate, k k
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeRedelegate,
+			sdk.NewAttribute(sdk.AttributeKeyDelegator, msg.DelegatorAddress.String()),
 			sdk.NewAttribute(types.AttributeKeySrcValidator, msg.ValidatorSrcAddress.String()),
 			sdk.NewAttribute(types.AttributeKeyDstValidator, msg.ValidatorDstAddress.String()),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Amount.Amount.String()),
@@ -422,7 +439,8 @@ func handleMsgSetDelegatorStatus(ctx sdk.Context, msg types.MsgSetUndelegateStat
 		return types.ErrNoDelegation(k.Codespace()).Result()
 	}
 
-	//upgarede delegator status
+	// upgarede delegator status
+	// Always set true?
 	del.Status = true
 	k.UpgradeDelegation(ctx, del)
 
@@ -437,8 +455,8 @@ func handleMsgSetDelegatorStatus(ctx sdk.Context, msg types.MsgSetUndelegateStat
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeSetDelegatorStatus,
+			sdk.NewAttribute(types.AttributeKeyValidator, msg.DelegatorAddress.String()),
 			sdk.NewAttribute(types.AttributeKeyDelegator, msg.DelegatorAddress.String()),
-			sdk.NewAttribute(types.AttributeKeyDstValidator, msg.ValidatorAddress.String()),
 			sdk.NewAttribute(sdk.AttributeKeyStatus, "true"), //msg.Status),
 		),
 		sdk.NewEvent(

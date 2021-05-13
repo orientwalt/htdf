@@ -69,7 +69,7 @@ def test_normal_tx_send(conftest_args):
     # memtx = htdfrpc.get_mempool_transaction(transaction_hash=tx_hash)
     # pprint(memtx)
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
 
     tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
@@ -156,7 +156,7 @@ def test_normal_tx_with_data(conftest_args):
     memtx = htdfrpc.get_mempool_transaction(transaction_hash=tx_hash)
     pprint(memtx)
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
 
     tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
@@ -348,7 +348,7 @@ def test_balance_less_than_fee_tx(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     assert tx['logs'][0]['success'] == True
 
     time.sleep(20)  # wait for chain state update
@@ -439,7 +439,7 @@ def test_5000_normal_send_txs(conftest_args):
         # print('tx_hash: {}'.format(tx_hash))
         tx_hash_list.append(tx_hash)
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash_list[-1], timeout_secs=(txs_count / 500.0 * 10.0))
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash_list[-1], timeout_secs=(txs_count / 500.0 * 10.0))
     print('=========> {}'.format(tx))
     assert tx['logs'][0]['success'] == True 
 

@@ -7,9 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
-	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
-
 	"github.com/gorilla/mux"
 	"github.com/orientwalt/htdf/client"
 	"github.com/orientwalt/htdf/client/context"
@@ -19,7 +16,9 @@ import (
 	sdkRest "github.com/orientwalt/htdf/types/rest"
 	"github.com/orientwalt/htdf/utils/unit_convert"
 	"github.com/orientwalt/htdf/x/auth"
+	distrTypes "github.com/orientwalt/htdf/x/distribution/types"
 	evmtypes "github.com/orientwalt/htdf/x/evm/types"
+	stakingTypes "github.com/orientwalt/htdf/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
@@ -40,6 +39,13 @@ func BlockCommand() *cobra.Command {
 	cmd.Flags().Bool(client.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 	viper.BindPFlag(client.FlagTrustNode, cmd.Flags().Lookup(client.FlagTrustNode))
 	return cmd
+}
+
+// Single block (with meta)
+type ResultBlockEx struct {
+	BlockID tmTypes.BlockID  `json:"block_id"`
+	Block   *tmTypes.Block   `json:"block"`
+	Events  sdk.StringEvents `json:"events"`
 }
 
 func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
@@ -73,10 +79,20 @@ func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
 		}
 	}
 
-	if cliCtx.Indent {
-		return cdc.MarshalJSONIndent(res, "", "  ")
+	blockResults, err := node.BlockResults(height)
+	if err != nil {
+		return nil, err
 	}
-	return cdc.MarshalJSON(res)
+
+	var resEx ResultBlockEx
+	resEx.BlockID = res.BlockID
+	resEx.Block = res.Block
+	resEx.Events = sdk.StringifyEvents(blockResults.EndBlockEvents)
+
+	if cliCtx.Indent {
+		return cdc.MarshalJSONIndent(resEx, "", "  ")
+	}
+	return cdc.MarshalJSON(resEx)
 }
 
 // get the current blockchain height
@@ -188,6 +204,7 @@ type DisplayBlock struct {
 type BlockInfo struct {
 	BlockMeta *tmTypes.BlockMeta `json:"block_meta"`
 	Block     DisplayBlock       `json:"block"`
+	Events    sdk.StringEvents   `json:"events"`
 	Time      string             `json:"time"`
 }
 
@@ -262,7 +279,16 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 		}
 		blockInfo.Block.Evidence = resultBlock.Block.Evidence
 		blockInfo.Block.LastCommit = resultBlock.Block.LastCommit
+
 		blockInfo.Time = resultBlock.Block.Header.Time.Local().Format("2006-01-02 15:04:05")
+
+		blockResults, err := node.BlockResults(&height)
+		if err != nil {
+			fmt.Printf("get blockResults error|err=%s\n", err)
+			sdkRest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		blockInfo.Events = sdk.StringifyEvents(blockResults.EndBlockEvents)
 
 		for _, tx := range resultBlock.Block.Data.Txs {
 			sdkTx, err := parseTx(cdc, tx)

@@ -139,15 +139,16 @@ func toBytes(i interface{}) []byte {
 var (
 	EventTypeMessage = "message"
 
-	AttributeKeyAction   = "action"
-	AttributeKeyModule   = "module"
-	AttributeKeySender   = "sender"
-	AttributeKeyProvider = "provider"
-	AttributeKeyConsumer = "consumer"
-	AttributeKeyAmount   = "amount"
-	AttributeKeyFee      = "fee"
-	AttributeKeyStatus   = "status"
-	AttributeKeyIndex    = "index"
+	AttributeKeyAction    = "action"
+	AttributeKeyModule    = "module"
+	AttributeKeySender    = "sender"
+	AttributeKeyProvider  = "provider"
+	AttributeKeyConsumer  = "consumer"
+	AttributeKeyAmount    = "amount"
+	AttributeKeyFee       = "fee"
+	AttributeKeyStatus    = "status"
+	AttributeKeyIndex     = "index"
+	AttributeKeyDelegator = "delegator"
 )
 
 type (

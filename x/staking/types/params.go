@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -18,7 +19,7 @@ const (
 	// unbonding time.
 
 	// 2021-04-08 yqq, modify 14 days to 3 days
-	DefaultUnbondingTime time.Duration = time.Second * 60 * 60 * 24 * 3 
+	DefaultUnbondingTime time.Duration = time.Second * 60 * 60 * 24 * 3
 
 	// Default maximum number of bonded validators
 	DefaultMaxValidators uint16 = 50
@@ -183,9 +184,20 @@ func (p *Params) StringFromBytes(cdc *codec.Codec, key string, bytes []byte) (st
 func validateUnbondingTime(v time.Duration) sdk.Error {
 	// planed to be modified by junying, 2019-11-20
 	// because two-week unbond time may be too long
-	// if v < 2*sdk.Week {
-	if v < 3*sdk.Day {
-		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidUnbondingTime, fmt.Sprintf("Invalid UnbondingTime [%s] should be greater than or equal to 2 weeks", v.String()))
+	// if v < 2*sdk.Week
+
+	// 2021-05-12, yqq
+	// We make a flag for test environment.
+	// In test environment, we don't check unboding time.
+	flagTest := false
+	_, ok := os.LookupEnv("HTDF_TEST_ENV")
+	if !ok {
+		flagTest = true
+	}
+
+	if !flagTest && v < 3*sdk.Day {
+		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidUnbondingTime,
+			fmt.Sprintf("Invalid UnbondingTime [%s] should be greater than or equal to 3 days", v.String()))
 	}
 	return nil
 }

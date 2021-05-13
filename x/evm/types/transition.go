@@ -364,7 +364,6 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 
 	// Resets nonce to value pre state transition
 	// stateDB.SetNonce(st.sender, currentNonce+1)
-	logging().Infof("=======> simulate is %v", st.simulate)
 
 	if !st.simulate {
 		// logging().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)

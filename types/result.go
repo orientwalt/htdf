@@ -518,6 +518,7 @@ func NewResponseResultTx(res *ctypes.ResultTx, tx Tx, timestamp string) TxRespon
 		GasWanted: res.TxResult.GasWanted,
 		GasUsed:   res.TxResult.GasUsed,
 		// Tags:      TagsToStringTags(res.TxResult.Tags),
+		Events: 	StringifyEvents(res.TxResult.Events),
 		Tx:        tx,
 		Timestamp: timestamp,
 	}
