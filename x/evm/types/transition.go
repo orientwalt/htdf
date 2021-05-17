@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
-	"github.com/orientwalt/htdf/app/protocol"
 	"github.com/orientwalt/htdf/params"
 	"github.com/orientwalt/htdf/x/evm/core/vm"
 
@@ -254,15 +253,19 @@ func (st *StateTransition) newEVM(ctx sdk.Context, chainCtx vmcore.ChainContext,
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainContext, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
-	if st.StateDB == nil {
-		logging().Debugln("Creating CommitStateDB")
-		stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
-		if err != nil {
-			panic(err)
-			// return nil, sdkerrors.Wrapf(err, "newStateDB error")
-		}
-		st.StateDB = stateDB
-	}
+
+	// if st.StateDB == nil {
+	// 	logging().Debugln("Creating CommitStateDB")
+	// 	stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
+	// 	if err != nil {
+	// 		panic(err)
+	// 		// return nil, sdkerrors.Wrapf(err, "newStateDB error")
+	// 	}
+	// 	// TODO: txindex
+	// 	stateDB.thash = *st.TxHash
+	// 	stateDB.bhash = common.Hash{}
+	// 	st.StateDB = stateDB
+	// }
 
 	stateDB := st.StateDB
 
@@ -391,6 +394,12 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 		if _err != nil {
 			return nil, _err
 		}
+
+		if len(logs) > 0 {
+			// yqq, FOR DEBUG
+			logging().Debugf("====== yqq DEBUG===========len(logs) = %d ", len(logs))
+		}
+
 		// bloomInt = ethtypes.LogsBloom(logs)
 		var bloom ethtypes.Bloom
 		bzBloom := ethtypes.LogsBloom(logs)

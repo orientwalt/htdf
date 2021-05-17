@@ -64,8 +64,11 @@ test_staking_tx:clean
 	python3 -m pytest -v --disable-warnings -s ./test_staking_tx.py  --cache-clear
 	@$(MAKE) clean
 
-test:clean
 
+# NOTE: test_staking_tx must be the last one in tests order, 
+#       because undelegate will refunds some tokens to test address 
+#       when unboding compeleting.
+test:clean
 	python3 -m pytest -v ./ --disable-warnings -s --cache-clear
 	@$(MAKE) clean
 

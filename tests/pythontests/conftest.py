@@ -69,9 +69,9 @@ def conftest_args():
     test_type = os.getenv('TESTTYPE')
     if test_type is None or  test_type == 'regtest':
         val_addr,  privkey = get_regtest_validator_privatekey()
-        print(val_addr)
-        print(privkey)
-        print('====================')
+        # print(val_addr)
+        # print(privkey)
+        # print('====================')
         PARAMETERS_REGTEST['VALIDATOR_ADDRESS'] = val_addr
         PARAMETERS_REGTEST['VALIDATOR_PRIVATE_KEY'] = privkey
         return PARAMETERS_REGTEST
