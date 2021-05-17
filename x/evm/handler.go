@@ -12,10 +12,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/orientwalt/htdf/app/protocol"
+	"github.com/orientwalt/htdf/params"
 	sdk "github.com/orientwalt/htdf/types"
 	"github.com/orientwalt/htdf/x/evm/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/orientwalt/htdf/params"
 )
 
 const ZeroBlockHash = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -76,20 +77,20 @@ func HandleUnknownMsg(msg sdk.Msg) sdk.Result {
 
 // BlockchainContext for evm opcodes, such as BLOCKTIME and BLOCKHASH
 type BlockchainContext struct {
-	blockTime  time.Time
-	parentHash common.Hash
-	keeper     Keeper // evm.Keeper to get blockhash by block number
-	ctx        sdk.Context
-	blockGasLimit   uint64 // block
+	blockTime     time.Time
+	parentHash    common.Hash
+	keeper        Keeper // evm.Keeper to get blockhash by block number
+	ctx           sdk.Context
+	blockGasLimit uint64 // block
 }
 
 func NewBlockchainContext(ctx sdk.Context, keeper Keeper, blockGasLimit uint64) *BlockchainContext {
 	return &BlockchainContext{
-		ctx:        ctx,
-		blockTime:  ctx.BlockHeader().Time,
-		parentHash: common.BytesToHash(ctx.BlockHeader().LastBlockId.Hash),
-		keeper:     keeper,
-		blockGasLimit:   blockGasLimit,
+		ctx:           ctx,
+		blockTime:     ctx.BlockHeader().Time,
+		parentHash:    common.BytesToHash(ctx.BlockHeader().LastBlockId.Hash),
+		keeper:        keeper,
+		blockGasLimit: blockGasLimit,
 	}
 }
 
@@ -135,11 +136,23 @@ func HandleMsgEthereumTx(ctx sdk.Context,
 	logger().Infof("==========HandleMsgEthereumTx: %s\n", (*st.TxHash).String())
 	logger().Debugf("handler:*st.TxHash[%s]\n", (*st.TxHash).String())
 	// Prepare db for logs
-	// TODO: block hash
+	// TODO: block hash,
+	// ? yqq,  BlockHash is belong to current block or previous block ?
+	// Current blockhash hasn't generated until all transactions be packaged into block.
 	k.CommitStateDB.Prepare(*st.TxHash, common.Hash{}, k.TxCount)
 	k.TxCount++
 
-	chainCtx := NewBlockchainContext(ctx, k,  params.TxGasLimit)
+	// yqq, 2021-05-17, fix issue #70
+	if st.StateDB == nil {
+		logger().Debugln("Creating CommitStateDB")
+		st.StateDB, err = types.NewCommitStateDB(ctx, &k.AccountKeeper, protocol.KeyStorage, protocol.KeyCode)
+		if err != nil {
+			panic(err)
+		}
+		st.StateDB.Prepare(*st.TxHash, common.Hash{}, k.TxCount)
+	}
+
+	chainCtx := NewBlockchainContext(ctx, k, params.TxGasLimit)
 	evmResult, err := st.TransitionDb(ctx, chainCtx, k.AccountKeeper, k.FeeCollectionKeeper)
 
 	//
