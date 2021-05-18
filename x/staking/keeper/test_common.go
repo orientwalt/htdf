@@ -12,9 +12,9 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	dbm "github.com/tendermint/tm-db"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
 
 	"github.com/orientwalt/htdf/codec"
 	"github.com/orientwalt/htdf/store"
@@ -132,7 +132,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 		err := error(nil)
 		if !initCoins.IsZero() {
 			_, _, err = ck.AddCoins(ctx, addr, sdk.Coins{
-				{keeper.BondDenom(ctx), initCoins},
+				{Denom: keeper.BondDenom(ctx), Amount: initCoins},
 			})
 		}
 		require.Nil(t, err)

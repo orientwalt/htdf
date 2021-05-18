@@ -84,7 +84,15 @@ func (p Params) Equal(p2 Params) bool {
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
-	return NewParams(DefaultUnbondingTime, DefaultMaxValidators, DefaultMaxEntries, sdk.DefaultBondDenom)
+
+	// 2021-05-18, yqq
+	// In test environment, set unbondingTime as 2 minutes
+	unbondingTime := DefaultUnbondingTime
+	if _, ok := os.LookupEnv("HTDF_TEST_ENV"); ok {
+		unbondingTime = time.Minute * 2
+	}
+
+	return NewParams(unbondingTime, DefaultMaxValidators, DefaultMaxEntries, sdk.DefaultBondDenom)
 }
 
 // String returns a human readable string representation of the parameters.

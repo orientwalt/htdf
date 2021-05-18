@@ -76,8 +76,12 @@ def conftest_args():
         PARAMETERS_REGTEST['VALIDATOR_PRIVATE_KEY'] = privkey
         return PARAMETERS_REGTEST
     elif test_type == 'inner':
+        PARAMETERS_INNER['VALIDATOR_ADDRESS'] = os.getenv('VALIDATOR_ADDRESS')
+        PARAMETERS_INNER['VALIDATOR_PRIVATE_KEY'] = os.getenv('VALIDATOR_PRIVATE_KEY')
         return PARAMETERS_INNER
     elif test_type == 'testnet':
+        PARAMETERS_TESTNET['VALIDATOR_ADDRESS'] = os.getenv('VALIDATOR_ADDRESS')
+        PARAMETERS_TESTNET['VALIDATOR_PRIVATE_KEY'] = os.getenv('VALIDATOR_PRIVATE_KEY')
         return  PARAMETERS_TESTNET
     raise Exception("invalid test_type {}".format(test_type))
 

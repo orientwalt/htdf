@@ -224,13 +224,22 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 			},
 		})
 
+		// commission rate change
+		rate, _ := sdk.NewDecFromStr("0.1")
+		maxRate, _  := sdk.NewDecFromStr("0.2")
+		maxChangeRrate, _ := sdk.NewDecFromStr("0.01")
+
 		valTokens := sdk.TokensFromTendermintPower(1)
 		msg := staking.NewMsgCreateValidator(
 			sdk.ValAddress(accaddr),
 			valPubKeys[i],
 			sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
 			staking.NewDescription(nodeDirName, "", "", ""),
-			staking.NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
+
+			// 2021-05-18, yqq, 
+			// keep same commission configuration as mainnet
+			// staking.NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
+			staking.NewCommissionMsg(rate, maxRate, maxChangeRrate),
 			sdk.OneInt(),
 		)
 		// make unsigned transaction
