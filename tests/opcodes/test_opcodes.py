@@ -83,7 +83,7 @@ def test_deploy_contract(conftest_args ):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
 
     assert tx['logs'][0]['success'] == True
@@ -168,7 +168,7 @@ def test_opcodes_test(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
 
     assert tx['logs'][0]['success'] == True
@@ -213,7 +213,7 @@ def test_opcodes_test_invalid(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
     assert tx['logs'][0]['success'] == False
     pass
@@ -254,7 +254,7 @@ def test_opcodes_test_revert(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
     assert tx['logs'][0]['success'] == False
     pass
@@ -298,7 +298,7 @@ def test_opcodes_test_stop(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
     pass
@@ -343,7 +343,7 @@ def test_opcodes_test_ecrecover(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_tranaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
     pass

@@ -27,41 +27,41 @@ clean:
 	-rm -f tests.log
 
 test_normal_tx:clean
-	@python3 -m pytest -v --disable-warnings -s ./test_normal_tx.py  --cache-clear
+	@python3 -m pytest -v --disable-warnings -s ./test_1_normal_tx.py  --cache-clear
 	@$(MAKE) clean
 
 test_hrc20_contract_tx:clean
-	python3 -m pytest -v --disable-warnings -s ./test_hrc20_contract_tx.py --cache-clear
+	python3 -m pytest -v --disable-warnings -s ./test_2_hrc20_contract_tx.py --cache-clear
 	@$(MAKE) clean
 
 test_htdf_faucet_contract:clean
-	python3 -m pytest -v --disable-warnings -s ./test_htdf_faucet_contract.py  --cache-clear
+	python3 -m pytest -v --disable-warnings -s ./test_3_htdf_faucet_contract.py  --cache-clear
 	@$(MAKE) clean
-
-
-test_dice2win_contract:clean
-	python3 -m pytest -v --disable-warnings -s ./test_dice2win_contract.py  --cache-clear
-	@$(MAKE) clean
-	
 
 test_ecrecover_contract:clean
-	python3 -m pytest -v --disable-warnings -s ./test_ecrecover_contract.py  --cache-clear
+	python3 -m pytest -v --disable-warnings -s ./test_4_ecrecover_contract.py  --cache-clear
+	@$(MAKE) clean
+
+test_dice2win_contract:clean
+	python3 -m pytest -v --disable-warnings -s ./test_5_dice2win_contract.py  --cache-clear
+	@$(MAKE) clean
+	
+test_construct:clean
+	python3 -m pytest -v --disable-warnings -s ./test_6_constructor.py  --cache-clear
 	@$(MAKE) clean
 
 test_contract_create_contract:clean
-	python3 -m pytest -v --disable-warnings -s ./test_contract_create_contract.py  --cache-clear
+	python3 -m pytest -v --disable-warnings -s ./test_7_contract_create_contract.py  --cache-clear
 	@$(MAKE) clean
+
 
 test_contract_suicide:clean
-	python3 -m pytest -v --disable-warnings -s ./test_contract_suicide.py  --cache-clear
+	python3 -m pytest -v --disable-warnings -s ./test_8_contract_suicide.py  --cache-clear
 	@$(MAKE) clean
 
-test_construct:clean
-	python3 -m pytest -v --disable-warnings -s ./test_construct.py  --cache-clear
-	@$(MAKE) clean
 
 test_staking_tx:clean
-	python3 -m pytest -v --disable-warnings -s ./test_staking_tx.py  --cache-clear
+	python3 -m pytest -v --disable-warnings -s ./test_99_staking_tx.py  --cache-clear
 	@$(MAKE) clean
 
 
