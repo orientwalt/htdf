@@ -145,7 +145,7 @@ def test_send_htdf_to_contract(conftest_args):
     from_addr = Address(conftest_args['ADDRESS'])
 
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
-    time.sleep(10)
+    time.sleep(20)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     assert from_acc is not None
@@ -231,7 +231,7 @@ def test_placeBet_and_settleBet(conftest_args):
 
     from_addr = Address(conftest_args['ADDRESS'])
     private_key = HtdfPrivateKey(conftest_args['PRIVATE_KEY'])
-    time.sleep(10)
+    time.sleep(20)
     from_acc = htdfrpc.get_account_info(address=from_addr.address)
 
     contract_acc = htdfrpc.get_account_info(address=contract_address.address)
