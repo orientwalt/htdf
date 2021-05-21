@@ -80,7 +80,7 @@ def deploy_htdf_faucet(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     assert tx['logs'][0]['success'] == True
@@ -192,7 +192,7 @@ def test_contract_htdf_faucet_deposit(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     assert tx['logs'][0]['success'] == True
@@ -250,11 +250,11 @@ def test_contract_htdf_faucet_getOneHtdf(conftest_args):
         tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
         print('tx_hash: {}'.format(tx_hash))
 
-        tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+        tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
         pprint(tx)
 
-        tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
-        pprint(tx)
+        # tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
+        # pprint(tx)
 
         assert tx['logs'][0]['success'] == expected_result[n]
 
@@ -329,7 +329,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
         tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
         print('tx_hash: {}'.format(tx_hash))
 
-        tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+        tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
         pprint(tx)
 
         time.sleep(10)
@@ -355,7 +355,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
     assert tx['logs'][0]['success'] == False
     assert int(tx['gas_wanted']) == int(tx['gas_used'])    # if evm reverted, all gas be consumed
@@ -386,7 +386,7 @@ def test_contract_htdf_faucet_setOnceAmount(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
     assert int(tx['gas_wanted']) > int(tx['gas_used'])

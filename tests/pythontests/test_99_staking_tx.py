@@ -67,7 +67,7 @@ def test_delegate_tx(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
@@ -109,7 +109,7 @@ def test_withdraw_delegate_rewards_tx(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
@@ -145,7 +145,7 @@ def test_set_undelegate_status_tx(conftest_args):
     print('tx_hash: {}'.format(tx_hash))
 
     time.sleep(5 * 2)
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
@@ -185,7 +185,7 @@ def test_undelegate_tx(conftest_args):
     print('tx_hash: {}'.format(tx_hash))
 
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
@@ -242,7 +242,7 @@ def test_edit_validator_info_tx(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     # only edit once per 24 hours

@@ -69,10 +69,10 @@ def test_normal_tx_send(conftest_args):
     # memtx = htdfrpc.get_mempool_transaction(transaction_hash=tx_hash)
     # pprint(memtx)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash, timeout_secs=5000/5)
     pprint(tx)
 
-    tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
+    # tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
     assert tx['logs'][0]['success'] == True
     assert tx['gas_wanted'] == str(gas_wanted)
     assert tx['gas_used'] == str(gas_wanted)
@@ -150,16 +150,16 @@ def test_normal_tx_with_data(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    mempool = htdfrpc.get_mempool_trasactions()
-    pprint(mempool)
+    # mempool = htdfrpc.get_mempool_trasactions()
+    # pprint(mempool)
 
-    memtx = htdfrpc.get_mempool_transaction(transaction_hash=tx_hash)
-    pprint(memtx)
+    # memtx = htdfrpc.get_mempool_transaction(transaction_hash=tx_hash)
+    # pprint(memtx)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
-    tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
+    # tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
 
     # because of `data` isn't empty. `to` must be correct contract address, if not,
     # this transaction be failed in V2 handler
@@ -348,7 +348,7 @@ def test_balance_less_than_fee_tx(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     assert tx['logs'][0]['success'] == True
 
     time.sleep(20)  # wait for chain state update

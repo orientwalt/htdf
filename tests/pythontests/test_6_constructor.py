@@ -55,7 +55,7 @@ def test_deploy_contract(conftest_args):
     print('tx_hash: {}'.format(tx_hash))
     # self.assertTrue( len(tx_hash) == 64)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     assert tx['logs'][0]['success'] == True

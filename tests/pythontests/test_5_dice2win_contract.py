@@ -80,7 +80,7 @@ def test_deploy_contract(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     assert tx['logs'][0]['success'] == True
@@ -177,7 +177,7 @@ def test_send_htdf_to_contract(conftest_args):
     memtx = htdfrpc.get_mempool_transaction(transaction_hash=tx_hash)
     pprint(memtx)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     tx = htdfrpc.get_transaction(transaction_hash=tx_hash)
@@ -297,7 +297,7 @@ def test_placeBet_and_settleBet(conftest_args):
         tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
         print('tx_hash: {}'.format(tx_hash))
 
-        tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+        tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
         assert tx['logs'][0]['success'] == True
         pprint(tx)
         print('reveal={}'.format(reveal))
@@ -340,7 +340,7 @@ def test_placeBet_and_settleBet(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 

@@ -75,7 +75,7 @@ def test_create_hrc20_token_contract(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     assert tx['logs'][0]['success'] == True
@@ -239,7 +239,7 @@ def test_hrc20_transfer(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     time.sleep(8)
@@ -299,7 +299,7 @@ def test_hrc20_transfer_integer_overflow_attack(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     time.sleep(8)
@@ -364,7 +364,7 @@ def test_hrc20_transfer_integer_overflow_attack(conftest_args):
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     # solidity v0.8.0 will prevent integer overflow attack, we expect tx be failed.
@@ -429,7 +429,7 @@ def test_hrc20_approve_transferFrom(conftest_args):
     print('tx_hash: {}'.format(tx_hash))
     # self.assertTrue( len(tx_hash) == 64)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     ################## transfer some htdf  for fee
@@ -450,7 +450,7 @@ def test_hrc20_approve_transferFrom(conftest_args):
     print('tx_hash: {}'.format(tx_hash))
     # self.assertTrue( len(tx_hash) == 64)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     time.sleep(8)
@@ -482,7 +482,7 @@ def test_hrc20_approve_transferFrom(conftest_args):
     print('tx_hash: {}'.format(tx_hash))
     # self.assertTrue( len(tx_hash) == 64)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
     pprint(tx)
 
     ###########  balanceOf
