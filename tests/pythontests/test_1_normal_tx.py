@@ -439,7 +439,7 @@ def test_5000_normal_send_txs(conftest_args):
         # print('tx_hash: {}'.format(tx_hash))
         tx_hash_list.append(tx_hash)
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash_list[-1], timeout_secs=(txs_count / 500.0 * 10.0))
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash_list[-1], timeout_secs=(txs_count / 10.0))
     print('=========> {}'.format(tx))
     assert tx['logs'][0]['success'] == True 
 
