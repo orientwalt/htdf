@@ -190,7 +190,7 @@ func (p *ProtocolV0) ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg)
 		}
 		// logrus.Traceln("33333333333@@@@@@@@@@@@@!!!!!!!!!")
 
-		logrus.Info(fmt.Sprintf("currTxSize=%d", len(txBytes)))
+		logrus.Debug(fmt.Sprintf("currTxSize=%d", len(txBytes)))
 		if uint64(len(txBytes)) > TxSizeLimit { 
 			return sdk.ErrExceedsTxSize(fmt.Sprintf("the tx size [%d] exceeds the limitation [%d]", len(txBytes), TxSizeLimit))
 		}

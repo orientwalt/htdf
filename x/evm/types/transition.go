@@ -309,7 +309,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	// st.StateDB.SetNonce(st.sender, st.AccountNonce)
 
-	logging().Infof("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
+	// logging().Debugf("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
 
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
 	// logging().Debugln(st.ContractCreation)
@@ -320,7 +320,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 	case true:
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.payload, gasLimit, st.amount)
 		recipientLog = fmt.Sprintf("contract address: %s", contractAddress.String())
-		logger().Infof("NEW CREATED CONTRACT ADDRESS:%s", contractAddress.String())
+		logger().Debugf("NEW CREATED CONTRACT ADDRESS:%s", contractAddress.String())
 	default:
 		if code := evm.StateDB.GetCode(st.GetRecipient()); len(st.payload) > 0 && len(code) == 0 {
 			// copy from v1.3.0 2021-04-07
@@ -335,7 +335,7 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 			recipientLog = fmt.Sprintf("recipient address: %s", st.recipient.String())
 		}
 	}
-	logging().Infof("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
+	// logging().Debugf("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
 
 	recipientLog = fmt.Sprintf("%s, output: %s", recipientLog, hex.EncodeToString(ret))
 	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
@@ -395,10 +395,10 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 			return nil, _err
 		}
 
-		if len(logs) > 0 {
-			// yqq, FOR DEBUG
-			logging().Debugf("====== yqq DEBUG===========len(logs) = %d ", len(logs))
-		}
+		// if len(logs) > 0 {
+		// 	// yqq, FOR DEBUG
+		// 	logging().Debugf("====== yqq DEBUG===========len(logs) = %d ", len(logs))
+		// }
 
 		// bloomInt = ethtypes.LogsBloom(logs)
 		var bloom ethtypes.Bloom
