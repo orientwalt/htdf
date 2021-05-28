@@ -178,7 +178,7 @@ def test_create_new_contract(conftest_args):
         gas_price=gas_price,
         gas_wanted=5000000,
         data=data,
-        memo='test_dice2win_settleBet'
+        memo='test_create_new_contract'
     ).build_and_sign(private_key=private_key)
 
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
@@ -234,13 +234,13 @@ def test_create_new_contract_100(conftest_args):
         gas_price=gas_price,
         gas_wanted=5000000,
         data=data,
-        memo='test_dice2win_settleBet'
+        memo='test_create_new_contract_100'
     ).build_and_sign(private_key=private_key)
 
     tx_hash = htdfrpc.broadcast_tx(tx_hex=signed_tx)
     print('tx_hash: {}'.format(tx_hash))
 
-    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=5000/5)
+    tx = htdfrpc.get_transaction_until_timeout(transaction_hash=tx_hash,  timeout_secs=100)
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
@@ -249,5 +249,20 @@ def test_create_new_contract_100(conftest_args):
     assert  from_acc_new.balance_satoshi == from_acc.balance_satoshi - gas_price * int(tx['gas_used'])
     contract_acc_new = htdfrpc.get_account_info(address=contract_address.address)
     assert contract_acc_new.sequence == contract_acc.sequence + create_count
+
+
+    # get transaction receipt
+    time.sleep(15)
+    tx_receipts = htdfrpc.get_transaction_receipt_until_timeout(transaction_hash=tx_hash,  timeout_secs=100)
+
+    assert tx_receipts is not None
+    assert 'results' in tx_receipts
+    assert 'logs' in tx_receipts['results']
+    assert tx_receipts['results']['logs']  is not None
+    assert len(tx_receipts['results']['logs']) == create_count
+
+    last_log = tx_receipts['results']['logs'][-1]
+    log_index = int(str(last_log['data']), 16)  # index start in range [0, create_count)
+    assert log_index == create_count-1
 
     pass

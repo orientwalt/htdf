@@ -13,6 +13,9 @@ const (
 	FlagEncode = "encode"
 	//
 	FlagOffline = "offline"
+
+	TxReceiptStatusSuccess = uint(1)
+	TxReceiptStatusFail    = uint(0)
 )
 
 //

@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+
 // * dice2.win - fair games that pay Ether. Version 5.
 //
 // * Ethereum smart contract, deployed at 0xD1CEeeeee83F8bCF3BEDad437202b6154E9F5405.
@@ -16,31 +17,39 @@ contract Dice2Win {
 
     // Constants section
 
+
+    // This are some constants making O(1) population count in placeBet possible.
+    // See whitepaper for intuition and proofs behind it.
+    uint constant POPCNT_MULT = 0x0000000000002000000000100000000008000000000400000000020000000001;
+    uint constant POPCNT_MASK = 0x0001041041041041041041041041041041041041041041041041041041041041;
+    uint constant POPCNT_MODULO = 0x3F;
+
    // Each bet is deducted 1% in favour of the house, but no less than some minimum.
     // The lower bound is dictated by gas costs of the settleBet transaction, providing
     // headroom for up to 10 Gwei prices.
     // 每次赌博抽取 1%用于支持游戏, 但是不小于最小金额
     uint constant HOUSE_EDGE_PERCENT = 1;
     // uint constant HOUSE_EDGE_MINIMUM_AMOUNT = 0.0003 ether;
-    uint constant HOUSE_EDGE_MINIMUM_AMOUNT = 3 ;
+    uint constant HOUSE_EDGE_MINIMUM_AMOUNT =  0.0003*10**8; // 0.0003 HTDF
 
     // Bets lower than this amount do not participate in jackpot rolls (and are
     // not deducted JACKPOT_FEE).
     // 参与奖池的最小金额
     // uint constant MIN_JACKPOT_BET = 0.1 ether;
-    uint constant MIN_JACKPOT_BET = 10**8 ; // 兼容HTDF
+    uint constant MIN_JACKPOT_BET = 0.1*10**8; // 兼容HTDF
 
     // Chance to win jackpot (currently 0.1%) and fee deducted into jackpot fund.
-    // 赢得奖池的机率, 手续费从奖金中扣除
-    uint constant JACKPOT_MODULO = 1000;
+    // 赢得大奖池的机率, 默认是0.1%, 我们加大10倍
+    // 大奖的奖金是从每笔下注的金额中抽取很小一部分加入大奖奖池
+    uint constant JACKPOT_MODULO = 100;  // 原来是1000, 我们将中大奖的概率加大10倍
     // uint constant JACKPOT_FEE = 0.001 ether;
-    uint constant JACKPOT_FEE = 10 ;
+    uint constant JACKPOT_FEE = 0.01*10**8 ; // 加大 10倍
 
     // There is minimum and maximum bets.
     // 最小最大金额
     // uint constant MIN_BET = 0.01 ether;
-    uint constant MIN_BET = 100; //需要兼容HTDF, 100000000 是1HTDF
-    uint constant MAX_AMOUNT = 300000 ether;
+    uint constant MIN_BET = 0.1*10**8; // 加大10倍
+    uint constant MAX_AMOUNT = 1000000*10**8 + 1; // 最大1000000HTDF
 
     // Modulo is a number of equiprobable outcomes in a game:
     //  - 2 for coin flip
@@ -134,7 +143,7 @@ contract Dice2Win {
         // secretSigner = msg.sender;
          secretSigner = payable(0x954d1a58c7abd4ac8ebe05f59191Cf718eb0cB89);
          croupier = msg.sender;
-         maxProfit = 100 ether;
+         maxProfit = MAX_AMOUNT - 1; // 默认是 1000000 HTDF, 可调节
     }
 
     // Standard modifier on methods invokable only by contract owner.
@@ -313,33 +322,6 @@ contract Dice2Win {
         settleBetCommon(bet, reveal, blockHash);
     }
 
-    // This method is used to settle a bet that was mined into an uncle block. At this
-    // point the player was shown some bet outcome, but the blockhash at placeBet height
-    // is different because of Ethereum chain reorg. We supply a full merkle proof of the
-    // placeBet transaction receipt to provide untamperable evidence that uncle block hash
-    // indeed was present on-chain at some point.
-    function settleBetUncleMerkleProof(uint reveal, uint40 canonicalBlockNumber) external onlyCroupier {
-        // "commit" for bet settlement can only be obtained by hashing a "reveal".
-        uint commit = uint(keccak256(abi.encodePacked(reveal)));
-
-        Bet storage bet = bets[commit];
-
-        // Check that canonical block hash can still be verified.
-        require (block.number <= canonicalBlockNumber + BET_EXPIRATION_BLOCKS, "Blockhash can't be queried by EVM.");
-
-        // Verify placeBet receipt.
-        requireCorrectReceipt(4 + 32 + 32 + 4);
-
-        // Reconstruct canonical & uncle block hashes from a receipt merkle proof, verify them.
-        bytes32 canonicalHash;
-        bytes32 uncleHash;
-        (canonicalHash, uncleHash) = verifyMerkleProof(commit, 4 + 32 + 32);
-        require (blockhash(canonicalBlockNumber) == canonicalHash);
-
-        // Settle bet using reveal and uncleHash as entropy sources.
-        settleBetCommon(bet, reveal, uncleHash);
-    }
-
     // Common settlement code for settleBet & settleBetUncleMerkleProof.
     function settleBetCommon(Bet storage bet, uint reveal, bytes32 entropyBlockHash) private {
         // Fetch bet parameters into local variables (to save gas).
@@ -464,170 +446,4 @@ contract Dice2Win {
         }
     }
 
-    // This are some constants making O(1) population count in placeBet possible.
-    // See whitepaper for intuition and proofs behind it.
-    uint constant POPCNT_MULT = 0x0000000000002000000000100000000008000000000400000000020000000001;
-    uint constant POPCNT_MASK = 0x0001041041041041041041041041041041041041041041041041041041041041;
-    uint constant POPCNT_MODULO = 0x3F;
-
-    // *** Merkle proofs.
-
-    // This helpers are used to verify cryptographic proofs of placeBet inclusion into
-    // uncle blocks. They are used to prevent bet outcome changing on Ethereum reorgs without
-    // compromising the security of the smart contract. Proof data is appended to the input data
-    // in a simple prefix length format and does not adhere to the ABI.
-    // Invariants checked:
-    //  - receipt trie entry contains a (1) successful transaction (2) directed at this smart
-    //    contract (3) containing commit as a payload.
-    //  - receipt trie entry is a part of a valid merkle proof of a block header
-    //  - the block header is a part of uncle list of some block on canonical chain
-    // The implementation is optimized for gas cost and relies on the specifics of Ethereum internal data structures.
-    // Read the whitepaper for details.
-
-    // Helper to verify a full merkle proof starting from some seedHash (usually commit). "offset" is the location of the proof
-    // beginning in the calldata.
-    function verifyMerkleProof(uint seedHash, uint offset) pure private returns (bytes32 blockHash, bytes32 uncleHash) {
-        // (Safe) assumption - nobody will write into RAM during this method invocation.
-        uint scratchBuf1;  assembly { scratchBuf1 := mload(0x40) }
-
-        uint uncleHeaderLength; uint blobLength; uint shift; uint hashSlot;
-
-        // Verify merkle proofs up to uncle block header. Calldata layout is:
-        //  - 2 byte big-endian slice length
-        //  - 2 byte big-endian offset to the beginning of previous slice hash within the current slice (should be zeroed)
-        //  - followed by the current slice verbatim
-        for (;; offset += blobLength) {
-            assembly { blobLength := and(calldataload(sub(offset, 30)), 0xffff) }
-            if (blobLength == 0) {
-                // Zero slice length marks the end of uncle proof.
-                break;
-            }
-
-            assembly { shift := and(calldataload(sub(offset, 28)), 0xffff) }
-            require (shift + 32 <= blobLength, "Shift bounds check.");
-
-            offset += 4;
-            assembly { hashSlot := calldataload(add(offset, shift)) }
-            require (hashSlot == 0, "Non-empty hash slot.");
-
-            assembly {
-                calldatacopy(scratchBuf1, offset, blobLength)
-                mstore(add(scratchBuf1, shift), seedHash)
-                seedHash := keccak256(scratchBuf1, blobLength)
-                uncleHeaderLength := blobLength
-            }
-        }
-
-        // At this moment the uncle hash is known.
-        uncleHash = bytes32(seedHash);
-
-        // Construct the uncle list of a canonical block.
-        uint scratchBuf2 = scratchBuf1 + uncleHeaderLength;
-        uint unclesLength; assembly { unclesLength := and(calldataload(sub(offset, 28)), 0xffff) }
-        uint unclesShift;  assembly { unclesShift := and(calldataload(sub(offset, 26)), 0xffff) }
-        require (unclesShift + uncleHeaderLength <= unclesLength, "Shift bounds check.");
-
-        offset += 6;
-        assembly { calldatacopy(scratchBuf2, offset, unclesLength) }
-        memcpy(scratchBuf2 + unclesShift, scratchBuf1, uncleHeaderLength);
-
-        assembly { seedHash := keccak256(scratchBuf2, unclesLength) }
-
-        offset += unclesLength;
-
-        // Verify the canonical block header using the computed sha3Uncles.
-        assembly {
-            blobLength := and(calldataload(sub(offset, 30)), 0xffff)
-            shift := and(calldataload(sub(offset, 28)), 0xffff)
-        }
-        require (shift + 32 <= blobLength, "Shift bounds check.");
-
-        offset += 4;
-        assembly { hashSlot := calldataload(add(offset, shift)) }
-        require (hashSlot == 0, "Non-empty hash slot.");
-
-        assembly {
-            calldatacopy(scratchBuf1, offset, blobLength)
-            mstore(add(scratchBuf1, shift), seedHash)
-
-            // At this moment the canonical block hash is known.
-            blockHash := keccak256(scratchBuf1, blobLength)
-        }
-    }
-
-    // Helper to check the placeBet receipt. "offset" is the location of the proof beginning in the calldata.
-    // RLP layout: [triePath, str([status, cumGasUsed, bloomFilter, [[address, [topics], data]])]
-    function requireCorrectReceipt(uint offset) view private {
-        uint leafHeaderByte; assembly { leafHeaderByte := byte(0, calldataload(offset)) }
-
-        require (leafHeaderByte >= 0xf7, "Receipt leaf longer than 55 bytes.");
-        offset += leafHeaderByte - 0xf6;
-
-        uint pathHeaderByte; assembly { pathHeaderByte := byte(0, calldataload(offset)) }
-
-        if (pathHeaderByte <= 0x7f) {
-            offset += 1;
-
-        } else {
-            require (pathHeaderByte >= 0x80 && pathHeaderByte <= 0xb7, "Path is an RLP string.");
-            offset += pathHeaderByte - 0x7f;
-        }
-
-        uint receiptStringHeaderByte; assembly { receiptStringHeaderByte := byte(0, calldataload(offset)) }
-        require (receiptStringHeaderByte == 0xb9, "Receipt string is always at least 256 bytes long, but less than 64k.");
-        offset += 3;
-
-        uint receiptHeaderByte; assembly { receiptHeaderByte := byte(0, calldataload(offset)) }
-        require (receiptHeaderByte == 0xf9, "Receipt is always at least 256 bytes long, but less than 64k.");
-        offset += 3;
-
-        uint statusByte; assembly { statusByte := byte(0, calldataload(offset)) }
-        require (statusByte == 0x1, "Status should be success.");
-        offset += 1;
-
-        uint cumGasHeaderByte; assembly { cumGasHeaderByte := byte(0, calldataload(offset)) }
-        if (cumGasHeaderByte <= 0x7f) {
-            offset += 1;
-
-        } else {
-            require (cumGasHeaderByte >= 0x80 && cumGasHeaderByte <= 0xb7, "Cumulative gas is an RLP string.");
-            offset += cumGasHeaderByte - 0x7f;
-        }
-
-        uint bloomHeaderByte; assembly { bloomHeaderByte := byte(0, calldataload(offset)) }
-        require (bloomHeaderByte == 0xb9, "Bloom filter is always 256 bytes long.");
-        offset += 256 + 3;
-
-        uint logsListHeaderByte; assembly { logsListHeaderByte := byte(0, calldataload(offset)) }
-        require (logsListHeaderByte == 0xf8, "Logs list is less than 256 bytes long.");
-        offset += 2;
-
-        uint logEntryHeaderByte; assembly { logEntryHeaderByte := byte(0, calldataload(offset)) }
-        require (logEntryHeaderByte == 0xf8, "Log entry is less than 256 bytes long.");
-        offset += 2;
-
-        uint addressHeaderByte; assembly { addressHeaderByte := byte(0, calldataload(offset)) }
-        require (addressHeaderByte == 0x94, "Address is 20 bytes long.");
-
-        uint logAddress; assembly { logAddress := and(calldataload(sub(offset, 11)), 0xffffffffffffffffffffffffffffffffffffffff) }
-        // require (logAddress == uint(address(this)));
-        require (logAddress == uint(uint160(address(this)))); // to adapt with solidity v0.8.0
-    }
-
-    // Memory copy.
-    function memcpy(uint dest, uint src, uint len) pure private {
-        // Full 32 byte words
-        for(; len >= 32; len -= 32) {
-            assembly { mstore(dest, mload(src)) }
-            dest += 32; src += 32;
-        }
-
-        // Remaining bytes
-        uint mask = 256 ** (32 - len) - 1;
-        assembly {
-            let srcpart := and(mload(src), not(mask))
-            let destpart := and(mload(dest), mask)
-            mstore(dest, or(destpart, srcpart))
-        }
-    }
 }
