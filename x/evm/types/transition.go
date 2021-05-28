@@ -254,19 +254,6 @@ func (st *StateTransition) newEVM(ctx sdk.Context, chainCtx vmcore.ChainContext,
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainContext, ak auth.AccountKeeper, fck FeeCollectionKeeper) (*ExecutionResult, error) {
 
-	// if st.StateDB == nil {
-	// 	logger().Debugln("Creating CommitStateDB")
-	// 	stateDB, err := NewCommitStateDB(ctx, &ak, protocol.KeyStorage, protocol.KeyCode)
-	// 	if err != nil {
-	// 		panic(err)
-	// 		// return nil, sdkerrors.Wrapf(err, "newStateDB error")
-	// 	}
-	// 	// TODO: txindex
-	// 	stateDB.thash = *st.TxHash
-	// 	stateDB.bhash = common.Hash{}
-	// 	st.StateDB = stateDB
-	// }
-
 	stateDB := st.StateDB
 
 	evm := st.newEVM(ctx, chainCtx, stateDB)
@@ -305,24 +292,24 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 		senderRef       = vm.AccountRef(st.sender)
 	)
 
-	// Get nonce of account outside of the EVM
-	// Set nonce of sender account before evm state transition for usage in generating Create address
-	// st.StateDB.SetNonce(st.sender, st.AccountNonce)
-
-	// logger().Debugf("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
-
+	// logger().Tracef("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
 	// logger().Debugf("in TransitionDb:st[%v]\n", st)
 	// logger().Debugln(st.ContractCreation)
 
-	// stateDB.SetNonce(st.sender, currentNonce+1)
 	// create contract or execute call
+	flagIsNormalTx := false
 	switch st.ContractCreation {
 	case true:
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.payload, gasLimit, st.amount)
 		recipientLog = fmt.Sprintf("contract address: %s", contractAddress.String())
 		logger().Debugf("NEW CREATED CONTRACT ADDRESS:%s", contractAddress.String())
 	default:
-		if code := evm.StateDB.GetCode(st.GetRecipient()); len(st.payload) > 0 && len(code) == 0 {
+		code := evm.StateDB.GetCode(st.GetRecipient())
+		if len(code) == 0 && len(st.payload) == 0 {
+			flagIsNormalTx = true
+		}
+
+		if len(st.payload) > 0 && len(code) == 0 {
 			// copy from v1.3.0 2021-04-07
 			// added by yqq 2020-12-07
 			// To fix issue #14, we disable transaction which has a not empty `MsgSend.Data`
@@ -335,54 +322,45 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 			recipientLog = fmt.Sprintf("recipient address: %s", st.recipient.String())
 		}
 	}
-	// logger().Debugf("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
 
 	recipientLog = fmt.Sprintf("%s, output: %s", recipientLog, hex.EncodeToString(ret))
 	logger().Debugf("in TransitionDb:recipientLog[%s]\n", recipientLog)
 	logger().Debugf("in TransitionDb:leftOverGas[%d]\n", leftOverGas)
-	// st.GasUsed = gasLimit - leftOverGas
-	// logger().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
-	// logger().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
+	logger().Debugf("in TransitionDb:st.gasLimit[%d]\n", gasLimit)
+	logger().Debugf("in TransitionDb:st.GasUsed[%d]\n", st.GasUsed)
 
-	txReceiptStatus := uint(0)
+	txReceiptStatus := TxReceiptStatusFail
 	if err != nil {
 		st.GasUsed = st.initialGas
-		// st.GasUsed = st.gasLimit //? this waste-all part is still necessary
 		reason, _ := abi.UnpackRevert(ret)
 		recipientLog = fmt.Sprintf("%s, err: %s, reason:%s", recipientLog, err, reason)
 		logger().Warnf("evm revert reason: %s", reason)
-		txReceiptStatus = 0
-
-		// Consume gas before returning
-		// ctx.GasMeter().ConsumeGas(st.GasUsed, "evm execution consumption")
-		// return nil, err
 	} else {
 		st.gasLimit = leftOverGas
 		st.refundGas()
 		st.GasUsed = st.gasUsed()
 		st.ContractAddress = &contractAddress
 		logger().Debugf("in TransitionDb:contractAddress[%s]\n", contractAddress.String())
-		txReceiptStatus = 1
+
+		txReceiptStatus = TxReceiptStatusSuccess
 	}
 
-	// Resets nonce to value pre state transition
-	// stateDB.SetNonce(st.sender, currentNonce+1)
-
 	if !st.simulate {
-		// logger().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
+		logger().Debugf("in TransitionDb:st.gasPrice[%d]\n", st.gasPrice)
 		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(st.GasUsed), st.gasPrice)
 		fck.AddCollectedFees(ctx, sdk.Coins{sdk.NewCoin(sdk.DefaultDenom, sdk.NewIntFromBigInt(gasUsed))})
 		logger().Debugf("in TransitionDb:feeCollectionKeeper.gasUsed[%v]\n", gasUsed)
+
 		// Finalise state if not a simulated transaction
 		// TODO: change to depend on config
 		if _, _err := stateDB.Commit(false); _err != nil {
 			panic(_err)
 		}
 	}
-	logger().Debugf("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
+	// logger().Tracef("in TransitionDb:currentNonce[%d]\n", st.StateDB.GetNonce(st.sender))
+
 	// Generate bloom filter to be saved in tx receipt data
 	bloomInt := big.NewInt(0)
-
 	var (
 		bloomFilter ethtypes.Bloom
 		logs        []*ethtypes.Log
@@ -390,17 +368,19 @@ func (st *StateTransition) TransitionDb(ctx sdk.Context, chainCtx vmcore.ChainCo
 
 	if st.TxHash != nil && !st.simulate {
 		var _err error
-		logs, _err = stateDB.GetLogs(*st.TxHash)
-		if _err != nil {
-			return nil, _err
+		// yqq 2021-05-27
+		// normal transaction doesn't has logs
+		// After this optimistion, when processing normal transactions
+		// runMsgs average consumed time deducted from 44.51ms to 2.18ms.
+		if flagIsNormalTx {
+			logs = []*ethtypes.Log{}
+		} else {
+			logs, _err = stateDB.GetLogs(*st.TxHash)
+			if _err != nil {
+				return nil, _err
+			}
 		}
 
-		// if len(logs) > 0 {
-		// 	// yqq, FOR DEBUG
-		// 	logger().Debugf("====== yqq DEBUG===========len(logs) = %d ", len(logs))
-		// }
-
-		// bloomInt = ethtypes.LogsBloom(logs)
 		var bloom ethtypes.Bloom
 		bzBloom := ethtypes.LogsBloom(logs)
 		bloom.SetBytes(bzBloom)

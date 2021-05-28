@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"errors"
 
@@ -799,6 +800,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	// var gasUsed uint64
 
 	logger().Traceln("runMsgs	begin~~~~~~~~~~~~~~~~~~~~~~~~")
+	start := time.Now()
 	for msgIdx, msg := range msgs {
 		// match message route
 		msgRoute := msg.Route()
@@ -864,6 +866,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		Events:    events.ToABCIEvents(),
 	}
 	logger().Traceln("runMsgs	end~~~~~~~~~~~~~~~~~~~~~~~~")
+	logger().Debugf("=======>>>>> runMsgs elapsed time: %v", time.Since(start))
 	return result, nil
 }
 
@@ -957,7 +960,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		result.Code = err.Code()
 		result.Codespace = err.Codespace()
 		result.Log = err.ABCILog()
-		return gInfo, result,  err  //err.Result()
+		return gInfo, result, err //err.Result()
 	}
 
 	var startingGas uint64
@@ -1080,7 +1083,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		gasWanted = result.GasWanted
 
 		if abort {
-			return gInfo, result, fmt.Errorf("%s", result.String() )
+			return gInfo, result, fmt.Errorf("%s", result.String())
 		}
 
 		msCache.Write()

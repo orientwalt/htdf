@@ -2,11 +2,15 @@ package server
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/abci/server"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cmn "github.com/tendermint/tendermint/libs/os"
@@ -40,6 +44,16 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 			}
 
 			ctx.Logger.Info("Starting ABCI with Tendermint")
+
+			// yqq, 2021-05-26
+			// we start a pprof at test environment for profiling
+			if _, ok := os.LookupEnv("HTDF_TEST_ENV"); ok {
+				go func() {
+					if err := http.ListenAndServe(":9999", nil); err != nil {
+						ctx.Logger.Info("pprof=====>" + err.Error())
+					}
+				}()
+			}
 
 			_, err := startInProcess(ctx, appCreator)
 			return err
