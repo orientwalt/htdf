@@ -79,7 +79,7 @@ func AddGenesisAccountCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command 
 				return err
 			}
 
-			return ExportGenesisFile(genFile, genDoc.ChainID, nil, appStateJSON)
+			return ExportGenesisFile(genFile, genDoc.ChainID, genDoc.InitialHeight, nil, appStateJSON)
 		},
 	}
 

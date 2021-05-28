@@ -122,6 +122,10 @@ type BaseApp struct {
 
 	// application's version string
 	appVersion string
+	// genesis block's initial height
+	initialHeight int64
+	//
+	lastblkheight int64
 }
 
 // var _ abci.Application = (*BaseApp)(nil)
@@ -253,7 +257,11 @@ func (app *BaseApp) LastCommitID() sdk.CommitID {
 
 // LastBlockHeight returns the last committed block height.
 func (app *BaseApp) LastBlockHeight() int64 {
-	return app.cms.LastCommitID().Version
+	lastcommit := app.cms.LastCommitID().Version
+	if lastcommit < app.initialHeight {
+		lastcommit = app.initialHeight
+	}
+	return lastcommit
 }
 
 // initializes the remaining logic from app.cms
@@ -957,7 +965,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		result.Code = err.Code()
 		result.Codespace = err.Codespace()
 		result.Log = err.ABCILog()
-		return gInfo, result,  err  //err.Result()
+		return gInfo, result, err //err.Result()
 	}
 
 	var startingGas uint64
@@ -1080,7 +1088,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		gasWanted = result.GasWanted
 
 		if abort {
-			return gInfo, result, fmt.Errorf("%s", result.String() )
+			return gInfo, result, fmt.Errorf("%s", result.String())
 		}
 
 		msCache.Write()

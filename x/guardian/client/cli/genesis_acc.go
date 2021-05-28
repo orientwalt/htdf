@@ -73,7 +73,7 @@ func AddGuardianAccountCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command
 				return err
 			}
 
-			return i.ExportGenesisFile(genFile, genDoc.ChainID, nil, appStateJSON)
+			return i.ExportGenesisFile(genFile, genDoc.ChainID, genDoc.InitialHeight, nil, appStateJSON)
 		},
 	}
 

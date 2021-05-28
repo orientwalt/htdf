@@ -54,6 +54,9 @@ Example:
 	cmd.Flags().Int(flagNumValidators, 4,
 		"Number of validators to initialize the testnet with",
 	)
+	cmd.Flags().Int64(flagInitialHeight, 0,
+		"Genesis Block's Initial Height",
+	)
 	cmd.Flags().StringP(flagOutputDir, "o", "./mytestnet",
 		"Directory to store initialization data for the testnet",
 	)
@@ -93,7 +96,11 @@ func initRealNet(config *tmconfig.Config, cdc *codec.Codec) error {
 	if chainID == "" {
 		chainID = "chain-" + cmn.Str(6)
 	}
-
+	// junying-added, initial-height
+	initialHeight := viper.GetInt64(flagInitialHeight)
+	if initialHeight < 0 {
+		initialHeight = 0
+	}
 	monikers := make([]string, numValidators)
 	nodeIDs := make([]string, numValidators)
 	valPubKeys := make([]crypto.PubKey, numValidators)
@@ -299,12 +306,12 @@ func initRealNet(config *tmconfig.Config, cdc *codec.Codec) error {
 
 	// yqq, 2021-04-27 , we set accs[0] as default guardian
 	defaultGuardian := accs[0].Address
-	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators, defaultGuardian); err != nil {
+	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators, initialHeight, defaultGuardian); err != nil {
 		return err
 	}
 
 	err = collectGenFilesEx(
-		cdc, config, chainID, monikers, nodeIDs, valPubKeys, numValidators,
+		cdc, config, chainID, initialHeight, monikers, nodeIDs, valPubKeys, numValidators,
 		outDir, viper.GetString(flagNodeDirPrefix), viper.GetString(flagNodeDaemonHome),
 	)
 	if err != nil {

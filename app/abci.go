@@ -50,6 +50,8 @@ func logger() *logrus.Entry {
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
 	// stash the consensus params in the cms main store and memoize
 	logger().Traceln("ConsensusParams", req.ConsensusParams)
+	logger().Traceln("req.GetInitialHeight():", req.GetInitialHeight())
+	app.initialHeight = req.GetInitialHeight()
 	if req.ConsensusParams != nil {
 		app.setConsensusParams(req.ConsensusParams)
 		app.StoreConsensusParams(req.ConsensusParams)
@@ -266,7 +268,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		}
 		return rsp
 	}
-	
+
 	return abci.ResponseCheckTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
