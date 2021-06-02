@@ -48,10 +48,15 @@ func logger() *logrus.Entry {
 // InitChain implements the ABCI interface. It runs the initialization logic
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	app.initialHeight = req.GetInitialHeight()
+	if app.LastBlockHeight() == 0 {
+		app.cms.SetLastCommitID(req.GetInitialHeight() - 1)
+	}
 	// stash the consensus params in the cms main store and memoize
 	logger().Traceln("ConsensusParams", req.ConsensusParams)
 	logger().Traceln("req.GetInitialHeight():", req.GetInitialHeight())
-	app.initialHeight = req.GetInitialHeight()
+
+	// app.cms.Set
 	if req.ConsensusParams != nil {
 		app.setConsensusParams(req.ConsensusParams)
 		app.StoreConsensusParams(req.ConsensusParams)
@@ -206,7 +211,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx = app.deliverState.ctx.
+		WithBlockGasMeter(gasMeter).
+		WithInitialHeight(app.initialHeight)
 
 	app.beginBlocker = app.Engine.GetCurrentProtocol().GetBeginBlocker()
 	if app.beginBlocker != nil {

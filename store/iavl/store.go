@@ -162,6 +162,10 @@ func (st *Store) LastCommitID() types.CommitID {
 	}
 }
 
+func (st *Store) SetLastCommitID(int64) {
+
+}
+
 // SetPruning panics as pruning options should be provided at initialization
 // since IAVl accepts pruning options directly.
 func (st *Store) SetPruning(_ types.PruningOptions) {
