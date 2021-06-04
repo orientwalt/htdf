@@ -55,6 +55,8 @@ const (
 
 	FlagReplay = "replay-last-block"
 
+	FlagInitialHeight = "initial-height"
+
 	DefaultCacheSize = 100 // Multistore saves last 100 blocks
 
 	DefaultSyncableHeight = 10000 // Multistore saves a snapshot every 10000 blocks
@@ -103,6 +105,14 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
+	//
+	initialHeight := viper.GetInt64(FlagInitialHeight)
+	if initialHeight < 1 {
+		app.initialHeight = 1
+	} else {
+		app.initialHeight = initialHeight
+	}
+
 	//Duplicate prometheus config
 	appPrometheusConfig := *config
 	//Change namespace to appName
