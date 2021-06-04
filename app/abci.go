@@ -532,9 +532,11 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "no custom querier found for route %s", path[1]))
 	}
 	// when a client did not provide a query height, manually inject the latest
+	logger().Debugln("req.Height:", req.Height)
 	if req.Height == 0 {
 		req.Height = app.LastBlockHeight()
 	}
+	logger().Debugln("req.Height:", req.Height)
 	if req.Height <= 1 && req.Prove {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrap(
@@ -543,7 +545,8 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 			),
 		)
 	}
-	cacheMS, err := app.cms.CacheMultiStoreWithVersion(req.Height)
+	logger().Debugln("app.initialHeight:", app.initialHeight)
+	cacheMS, err := app.cms.CacheMultiStoreWithVersion(req.Height - app.initialHeight + 1)
 	if err != nil {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrapf(
