@@ -210,6 +210,13 @@ hsinit-test:
 				 -o ${TESTNETDIR} \
 				 --starting-ip-address 192.168.0.171 \
 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
+hsinit-test-ex: 
+	@hsd testnet --chain-id ${CHAIN_ID} \
+				 --v ${VALIDATOR_COUNT} \
+				 -o ${TESTNETDIR} \
+				 --validator-ip-addresses $(CURDIR)/ip.txt\
+				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
+
 hsinit-o1:
 	@mkdir -p ${TESTNETDIR}/node4/.hsd ${TESTNETDIR}/node4/.hscli
 	@hsd init node4 --home ${TESTNETDIR}/node4/.hsd

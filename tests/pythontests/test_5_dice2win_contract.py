@@ -305,6 +305,7 @@ def test_placeBet_and_settleBet(conftest_args):
         palceBet_gas_used = int(tx['gas_used']) 
 
 
+        tx_receipts = htdfrpc.get_transaction_receipt_until_timeout(transaction_hash=tx_hash,  timeout_secs=100)
         assert tx_receipts is not None
         assert 'results' in tx_receipts
         assert 'logs' in tx_receipts['results']
