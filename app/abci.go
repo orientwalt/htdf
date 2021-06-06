@@ -471,12 +471,13 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) abci.R
 	}
 
 	req.Path = "/" + strings.Join(path[1:], "/")
-
+	logger().Debugln("req.Path: ", req.Path)
+	logger().Debugln("req.Height: ", req.Height)
 	// when a client did not provide a query height, manually inject the latest
 	if req.Height == 0 {
-		req.Height = app.LastBlockHeight()
+		req.Height = app.LastBlockHeight() - app.initialHeight
 	}
-
+	logger().Debugln("req.Height: ", req.Height)
 	if req.Height <= 1 && req.Prove {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrap(
@@ -488,7 +489,7 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) abci.R
 
 	resp := queryable.Query(req)
 	resp.Height = req.Height
-
+	logger().Debugln("req.Height: ", req.Height)
 	return resp
 }
 
@@ -528,6 +529,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no route for custom query specified"))
 	}
 	querier := app.Engine.GetCurrentProtocol().GetQueryRouter().Route(path[1])
+	logger().Debugln("path:", path)
 	if querier == nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "no custom querier found for route %s", path[1]))
 	}
