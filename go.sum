@@ -504,8 +504,8 @@ github.com/openzipkin/zipkin-go v0.2.1/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnh
 github.com/openzipkin/zipkin-go v0.2.2/go.mod h1:NaW6tEwdmWMaCDZzg8sh+IBNOxHMPnhQw8ySjnjRyN4=
 github.com/orientwalt/go-ethereum v1.10.92 h1:El/TulVKcjecBEWzHX/LaCBsd36QuxSbVOFjO0eiO3k=
 github.com/orientwalt/go-ethereum v1.10.92/go.mod h1:YmSRTZNqAvVUg3BIG8uhT/BOkFk9+R2iCbxw5zOlnWY=
-github.com/orientwalt/tendermint v0.99.4 h1:7ZCaRbo6Cz+TG2o4GN74EX2wFq4IHcuG1eFeW5i9nO8=
-github.com/orientwalt/tendermint v0.99.4/go.mod h1:6NW9DVkvsvqmCY6wbRsOo66qGDhMXglRL70aXajvBEA=
+github.com/orientwalt/tendermint v0.99.5-rc1 h1:kuz/5pPoBRxspO2p7iMvGsZHkfo4qHnwdhR2N/a+GT8=
+github.com/orientwalt/tendermint v0.99.5-rc1/go.mod h1:tVBkxV2drojOeB3KU8Gt2cvNJWWbENAVLld/aXN9fk8=
 github.com/pact-foundation/pact-go v1.0.4/go.mod h1:uExwJY4kCzNPcHRj+hCR/HBbOOIwwtUjcrb0b5/5kLM=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/paulbellamy/ratecounter v0.2.0/go.mod h1:Hfx1hDpSGoqxkVVpBi/IlYD7kChlfo5C6hzIHwPqfFE=
