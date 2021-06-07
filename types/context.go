@@ -76,6 +76,7 @@ func (c Context) CoinFlowTrigger() string    { return c.Value(contextKeyCoinFlow
 func (c Context) BlockHeight() int64         { return c.Value(contextKeyBlockHeight).(int64) }
 func (c Context) CheckValidNum() uint64      { return c.Value(contextKeyCheckValidNum).(uint64) }
 func (c Context) ChainID() string            { return c.Value(contextKeyChainID).(string) }
+func (c Context) InitialHeight() int64       { return c.Value(contextKeyInitialHeight).(int64) }
 func (c Context) TxBytes() []byte            { return c.Value(contextKeyTxBytes).([]byte) }
 func (c Context) Logger() log.Logger         { return c.Value(contextKeyLogger).(log.Logger) }
 func (c Context) VoteInfos() []abci.VoteInfo {
@@ -136,6 +137,7 @@ const (
 	contextKeyBlockHeader
 	contextKeyBlockHeight
 	contextKeyChainID
+	contextKeyInitialHeight
 	contextKeyIsCheckTx
 	contextKeyTxBytes
 	contextKeyLogger
@@ -180,6 +182,10 @@ func (c Context) WithBlockHeight(height int64) Context {
 	newHeader := c.BlockHeader()
 	newHeader.Height = height
 	return c.withValue(contextKeyBlockHeight, height).withValue(contextKeyBlockHeader, newHeader)
+}
+
+func (c Context) WithInitialHeight(initialheight int64) Context {
+	return c.withValue(contextKeyInitialHeight, initialheight)
 }
 
 func (c Context) WithChainID(chainID string) Context {

@@ -123,6 +123,10 @@ type BaseApp struct {
 
 	// application's version string
 	appVersion string
+	// genesis block's initial height
+	initialHeight int64
+	//
+	lastblkheight int64
 }
 
 // var _ abci.Application = (*BaseApp)(nil)
@@ -254,7 +258,12 @@ func (app *BaseApp) LastCommitID() sdk.CommitID {
 
 // LastBlockHeight returns the last committed block height.
 func (app *BaseApp) LastBlockHeight() int64 {
-	return app.cms.LastCommitID().Version
+	lastcommit := app.cms.LastCommitID().Version
+	logger().Debugln("LastBlockHeight()-lastcommit: ", lastcommit)
+	// if lastcommit < app.initialHeight {
+	// 	lastcommit = app.initialHeight - 1
+	// }
+	return lastcommit
 }
 
 // initializes the remaining logic from app.cms

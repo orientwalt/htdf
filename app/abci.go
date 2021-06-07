@@ -48,8 +48,15 @@ func logger() *logrus.Entry {
 // InitChain implements the ABCI interface. It runs the initialization logic
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	app.initialHeight = req.GetInitialHeight()
+	if app.LastBlockHeight() == 0 {
+		app.cms.SetLastCommitID(req.GetInitialHeight() - 1)
+	}
 	// stash the consensus params in the cms main store and memoize
 	logger().Traceln("ConsensusParams", req.ConsensusParams)
+	logger().Traceln("req.GetInitialHeight():", req.GetInitialHeight())
+
+	// app.cms.Set
 	if req.ConsensusParams != nil {
 		app.setConsensusParams(req.ConsensusParams)
 		app.StoreConsensusParams(req.ConsensusParams)
@@ -204,7 +211,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx = app.deliverState.ctx.
+		WithBlockGasMeter(gasMeter).
+		WithInitialHeight(app.initialHeight)
 
 	app.beginBlocker = app.Engine.GetCurrentProtocol().GetBeginBlocker()
 	if app.beginBlocker != nil {
@@ -266,7 +275,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		}
 		return rsp
 	}
-	
+
 	return abci.ResponseCheckTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
@@ -462,12 +471,13 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) abci.R
 	}
 
 	req.Path = "/" + strings.Join(path[1:], "/")
-
+	logger().Debugln("req.Path: ", req.Path)
+	logger().Debugln("req.Height: ", req.Height)
 	// when a client did not provide a query height, manually inject the latest
 	if req.Height == 0 {
-		req.Height = app.LastBlockHeight()
+		req.Height = app.LastBlockHeight() - app.initialHeight
 	}
-
+	logger().Debugln("req.Height: ", req.Height)
 	if req.Height <= 1 && req.Prove {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrap(
@@ -479,7 +489,7 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) abci.R
 
 	resp := queryable.Query(req)
 	resp.Height = req.Height
-
+	logger().Debugln("req.Height: ", req.Height)
 	return resp
 }
 
@@ -519,13 +529,16 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no route for custom query specified"))
 	}
 	querier := app.Engine.GetCurrentProtocol().GetQueryRouter().Route(path[1])
+	logger().Debugln("path:", path)
 	if querier == nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "no custom querier found for route %s", path[1]))
 	}
 	// when a client did not provide a query height, manually inject the latest
+	logger().Debugln("req.Height:", req.Height)
 	if req.Height == 0 {
 		req.Height = app.LastBlockHeight()
 	}
+	logger().Debugln("req.Height:", req.Height)
 	if req.Height <= 1 && req.Prove {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrap(
@@ -534,7 +547,8 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 			),
 		)
 	}
-	cacheMS, err := app.cms.CacheMultiStoreWithVersion(req.Height)
+	logger().Debugln("app.initialHeight:", app.initialHeight)
+	cacheMS, err := app.cms.CacheMultiStoreWithVersion(req.Height - app.initialHeight + 1)
 	if err != nil {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrapf(

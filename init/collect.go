@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/orientwalt/htdf/app"
 	v0 "github.com/orientwalt/htdf/app/v0"
@@ -26,11 +26,12 @@ const (
 )
 
 type initConfig struct {
-	ChainID   string
-	GenTxsDir string
-	Name      string
-	NodeID    string
-	ValPubKey crypto.PubKey
+	ChainID       string
+	InitialHeight int64
+	GenTxsDir     string
+	Name          string
+	NodeID        string
+	ValPubKey     crypto.PubKey
 }
 
 // nolint
@@ -59,7 +60,7 @@ func CollectGenTxsCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 			}
 
 			toPrint := newPrintInfo(config.Moniker, genDoc.ChainID, nodeID, genTxsDir, json.RawMessage(""))
-			initCfg := newInitConfig(genDoc.ChainID, genTxsDir, name, nodeID, valPubKey)
+			initCfg := newInitConfig(genDoc.ChainID, genDoc.InitialHeight, genTxsDir, name, nodeID, valPubKey)
 
 			appMessage, err := genAppStateFromConfig(cdc, config, initCfg, genDoc)
 			if err != nil {
@@ -118,7 +119,7 @@ func genAppStateFromConfig(
 		return
 	}
 
-	err = ExportGenesisFile(genFile, initCfg.ChainID, nil, appState)
+	err = ExportGenesisFile(genFile, initCfg.ChainID, initCfg.InitialHeight, nil, appState)
 	return
 }
 
@@ -162,19 +163,20 @@ func genAppStateFromConfigEx(
 		return
 	}
 
-	err = ExportGenesisFile(genFile, initCfg.ChainID, nil, appState)
+	err = ExportGenesisFile(genFile, initCfg.ChainID, initCfg.InitialHeight, nil, appState)
 	return
 }
 
-func newInitConfig(chainID, genTxsDir, name, nodeID string,
+func newInitConfig(chainID string, initialHeight int64, genTxsDir, name, nodeID string,
 	valPubKey crypto.PubKey) initConfig {
 
 	return initConfig{
-		ChainID:   chainID,
-		GenTxsDir: genTxsDir,
-		Name:      name,
-		NodeID:    nodeID,
-		ValPubKey: valPubKey,
+		ChainID:       chainID,
+		InitialHeight: initialHeight,
+		GenTxsDir:     genTxsDir,
+		Name:          name,
+		NodeID:        nodeID,
+		ValPubKey:     valPubKey,
 	}
 }
 

@@ -19,6 +19,7 @@ type Committer interface {
 	Commit() CommitID
 	LastCommitID() CommitID
 	SetPruning(PruningOptions)
+	SetLastCommitID(int64)
 }
 
 // Stores of MultiStore must implement CommitStore.

@@ -133,7 +133,7 @@ new: install clear hsinit accs conf vals
 new.pure: clear hsinit accs conf vals
 
 hsinit:
-	@hsd init mynode --chain-id $(CHAIN_ID)
+	@hsd init mynode --chain-id $(CHAIN_ID) --initial-height 10
 
 accs:
 	@echo create new accounts....;\

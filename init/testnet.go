@@ -46,6 +46,8 @@ var (
 	flagAccountsFilePath       = "accounts-file-path"
 	flagStakerBechAddress      = "staker-bech-address"
 	flagPasswordFromFile       = "password-from-file"
+	//
+	flagInitialHeight = "initial-height"
 )
 
 const (
@@ -77,6 +79,9 @@ Example:
 
 	cmd.Flags().Int(flagNumValidators, 4,
 		"Number of validators to initialize the testnet with",
+	)
+	cmd.Flags().Int64(flagInitialHeight, 0,
+		"Genesis Block's Initial Height",
 	)
 	cmd.Flags().StringP(flagOutputDir, "o", "./mytestnet",
 		"Directory to store initialization data for the testnet",
@@ -115,6 +120,12 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 	chainID = viper.GetString(client.FlagChainID)
 	if chainID == "" {
 		chainID = "chain-" + rand.Str(6)
+	}
+
+	// junying-added, initial-height
+	initialHeight := viper.GetInt64(flagInitialHeight)
+	if initialHeight < 0 {
+		initialHeight = 0
 	}
 
 	monikers := make([]string, numValidators)
@@ -226,7 +237,7 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 
 		// commission rate change
 		rate, _ := sdk.NewDecFromStr("0.1")
-		maxRate, _  := sdk.NewDecFromStr("0.2")
+		maxRate, _ := sdk.NewDecFromStr("0.2")
 		maxChangeRrate, _ := sdk.NewDecFromStr("0.01")
 
 		valTokens := sdk.TokensFromTendermintPower(1)
@@ -236,7 +247,7 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 			sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
 			staking.NewDescription(nodeDirName, "", "", ""),
 
-			// 2021-05-18, yqq, 
+			// 2021-05-18, yqq,
 			// keep same commission configuration as mainnet
 			// staking.NewCommissionMsg(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 			staking.NewCommissionMsg(rate, maxRate, maxChangeRrate),
@@ -273,12 +284,12 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 
 	// yqq, 2021-04-27 , we set accs[0] as default guardian
 	defaultGuardian := accs[0].Address
-	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators, defaultGuardian); err != nil {
+	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators, initialHeight, defaultGuardian); err != nil {
 		return err
 	}
 
 	err := collectGenFiles(
-		cdc, config, chainID, monikers, nodeIDs, valPubKeys, numValidators,
+		cdc, config, chainID, initialHeight, monikers, nodeIDs, valPubKeys, numValidators,
 		outDir, viper.GetString(flagNodeDirPrefix), viper.GetString(flagNodeDaemonHome),
 	)
 	if err != nil {
@@ -292,7 +303,7 @@ func initTestnet(config *tmconfig.Config, cdc *codec.Codec) error {
 //
 func initGenFiles(
 	cdc *codec.Codec, chainID string, accs []v0.GenesisAccount,
-	genFiles []string, numValidators int, guadianAddr sdk.AccAddress,
+	genFiles []string, numValidators int, initialHeight int64, guadianAddr sdk.AccAddress,
 ) error {
 
 	appGenState := v0.NewDefaultGenesisState()
@@ -307,9 +318,10 @@ func initGenFiles(
 	}
 
 	genDoc := types.GenesisDoc{
-		ChainID:    chainID,
-		AppState:   appGenStateJSON,
-		Validators: nil,
+		ChainID:       chainID,
+		InitialHeight: initialHeight,
+		AppState:      appGenStateJSON,
+		Validators:    nil,
 	}
 
 	// generate empty genesis files for each validator and save
@@ -323,7 +335,7 @@ func initGenFiles(
 }
 
 func collectGenFiles(
-	cdc *codec.Codec, config *tmconfig.Config, chainID string,
+	cdc *codec.Codec, config *tmconfig.Config, chainID string, initialHeight int64,
 	monikers, nodeIDs []string, valPubKeys []crypto.PubKey,
 	numValidators int, outDir, nodeDirPrefix, nodeDaemonHomeName string,
 ) error {
@@ -341,7 +353,7 @@ func collectGenFiles(
 		config.SetRoot(nodeDir)
 
 		nodeID, valPubKey := nodeIDs[i], valPubKeys[i]
-		initCfg := newInitConfig(chainID, gentxsDir, moniker, nodeID, valPubKey)
+		initCfg := newInitConfig(chainID, initialHeight, gentxsDir, moniker, nodeID, valPubKey)
 
 		genDoc, err := LoadGenesisDoc(cdc, config.GenesisFile())
 		if err != nil {
