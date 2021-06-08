@@ -371,6 +371,8 @@ def test_hrc20_transfer_integer_overflow_attack(conftest_args):
     assert tx['logs'][0]['success'] == False
     assert int(tx['gas_used']) == gas_wanted  # all gas be consumed
 
+    time.sleep(10)
+
     new_to_acc = htdfrpc.get_account_info(address=new_to_addr.address)
     assert  new_to_acc.sequence == to_acc.sequence + 1
 

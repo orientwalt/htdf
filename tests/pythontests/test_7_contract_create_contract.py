@@ -188,6 +188,7 @@ def test_create_new_contract(conftest_args):
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
+    time.sleep(10)
     from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
     assert  from_acc_new.sequence == from_acc.sequence + 1
     assert  from_acc_new.balance_satoshi == from_acc.balance_satoshi - gas_price * int(tx['gas_used'])
@@ -244,6 +245,7 @@ def test_create_new_contract_100(conftest_args):
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
+    time.sleep(10)
     from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
     assert  from_acc_new.sequence == from_acc.sequence + 1
     assert  from_acc_new.balance_satoshi == from_acc.balance_satoshi - gas_price * int(tx['gas_used'])

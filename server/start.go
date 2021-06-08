@@ -45,15 +45,6 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 			}
 
 			ctx.Logger.Info("Starting ABCI with Tendermint")
-			// yqq, 2021-05-26
-			// we start a pprof at test environment for profiling
-			if _, ok := os.LookupEnv("HTDF_TEST_ENV"); ok {
-				go func() {
-					if err := http.ListenAndServe(":9999", nil); err != nil {
-						ctx.Logger.Info("pprof=====>" + err.Error())
-					}
-				}()
-			}
 
 			// yqq, 2021-05-26
 			// we start a pprof at test environment for profiling
