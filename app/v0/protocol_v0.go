@@ -417,7 +417,7 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 	}
 
 	evs := ctx.EventManager().ABCIEvents()
-	logrus.Infof("%v", evs)
+	// logrus.Infof("%v", evs)
 
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
