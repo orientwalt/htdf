@@ -19,6 +19,7 @@ const DefaultFeeCollection = "fee"
 const (
 	DefaultMaxMemoCharacters uint64 = 256
 	DefaultTxSigLimit        uint64 = 7
+	DefaultInitialHeight     uint64 = 1
 	//DefaultTxSizeLimit            uint64 = 1000
 	DefaultTxSizeCostPerByte      uint64 = 10
 	DefaultSigVerifyCostED25519   uint64 = 590
@@ -26,10 +27,11 @@ const (
 )
 
 var (
-	MinimumGasPrice    = sdk.ZeroInt()
-	MaximumGasPrice    = sdk.NewIntWithDecimal(1, 18) //1htdf, 10^18satoshi
-	MinimumTxSizeLimit = uint64(500)
-	MaximumTxSizeLimit = uint64(1500)
+	MinimumGasPrice      = sdk.ZeroInt()
+	MaximumGasPrice      = sdk.NewIntWithDecimal(1, 18) //1htdf, 10^18satoshi
+	MinimumTxSizeLimit   = uint64(500)
+	MaximumTxSizeLimit   = uint64(1500)
+	MinimumInitialHeight = uint64(1)
 )
 
 // Parameter keys
@@ -43,18 +45,23 @@ var (
 	KeySigVerifyCostSecp256k1 = []byte("SigVerifyCostSecp256k1")
 )
 
-var _ params.ParamSet = &Params{}
+var (
+	KeyInitialHeight = []byte("InitialHeight")
+)
 
 // Params defines the parameters for the auth module.
 type Params struct {
 	GasPriceThreshold sdk.Int `json:"gas_price_threshold"`
 	MaxMemoCharacters uint64  `json:"max_memo_characters"`
 	TxSigLimit        uint64  `json:"tx_sig_limit"`
+	InitialHeight     uint64  `json:"initial_height"`
 	//TxSizeLimit            uint64  `json:"tx_size"` // tx size limit
 	TxSizeCostPerByte      uint64 `json:"tx_size_cost_per_byte"`
 	SigVerifyCostED25519   uint64 `json:"sig_verify_cost_ed25519"`
 	SigVerifyCostSecp256k1 uint64 `json:"sig_verify_cost_secp256k1"`
 }
+
+var _ params.ParamSet = &Params{}
 
 // ParamKeyTable for auth module
 func ParamKeyTable() params.KeyTable {
@@ -66,13 +73,14 @@ func ParamKeyTable() params.KeyTable {
 // nolint
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
-		{KeygasPriceThreshold, &p.GasPriceThreshold},
-		{KeyMaxMemoCharacters, &p.MaxMemoCharacters},
-		{KeyTxSigLimit, &p.TxSigLimit},
+		{Key: KeygasPriceThreshold, Value: &p.GasPriceThreshold},
+		{Key: KeyMaxMemoCharacters, Value: &p.MaxMemoCharacters},
+		{Key: KeyTxSigLimit, Value: &p.TxSigLimit},
+		{Key: KeyInitialHeight, Value: &p.InitialHeight},
 		//{KeyTxSizeLimit, &p.TxSizeLimit},
-		{KeyTxSizeCostPerByte, &p.TxSizeCostPerByte},
-		{KeySigVerifyCostED25519, &p.SigVerifyCostED25519},
-		{KeySigVerifyCostSecp256k1, &p.SigVerifyCostSecp256k1},
+		{Key: KeyTxSizeCostPerByte, Value: &p.TxSizeCostPerByte},
+		{Key: KeySigVerifyCostED25519, Value: &p.SigVerifyCostED25519},
+		{Key: KeySigVerifyCostSecp256k1, Value: &p.SigVerifyCostSecp256k1},
 	}
 }
 
@@ -89,6 +97,7 @@ func DefaultParams() Params {
 		GasPriceThreshold: sdk.NewIntWithDecimal(6, 12),
 		MaxMemoCharacters: DefaultMaxMemoCharacters,
 		TxSigLimit:        DefaultTxSigLimit,
+		InitialHeight:     DefaultInitialHeight,
 		//TxSizeLimit:            DefaultTxSizeLimit,
 		TxSizeCostPerByte:      DefaultTxSizeCostPerByte,
 		SigVerifyCostED25519:   DefaultSigVerifyCostED25519,
@@ -121,6 +130,16 @@ func (p *Params) Validate(key string, value string) (interface{}, sdk.Error) {
 			return nil, sdk.NewError(params.DefaultCodespace, params.CodeInvalidTxSizeLimit, fmt.Sprintf("Tx size limit (%s) should be [500, 1500]", value))
 		}
 		return txsize, nil
+
+	case string(KeyInitialHeight):
+		initialHeight, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return nil, params.ErrInvalidString(value)
+		}
+		if initialHeight < MinimumInitialHeight {
+			return nil, sdk.NewError(params.DefaultCodespace, params.CodeInvalidInitialHeight, fmt.Sprintf("Initial Height (%s) should be same or greater than 1", value))
+		}
+		return initialHeight, nil
 	default:
 		return nil, sdk.NewError(params.DefaultCodespace, params.CodeInvalidKey, fmt.Sprintf("%s is not found", key))
 	}
@@ -134,6 +153,9 @@ func (p *Params) StringFromBytes(cdc *codec.Codec, key string, bytes []byte) (st
 	case string(KeyTxSizeLimit):
 		err := cdc.UnmarshalJSON(bytes, &p.TxSigLimit)
 		return strconv.FormatUint(uint64(p.TxSigLimit), 10), err
+	case string(KeyInitialHeight):
+		err := cdc.UnmarshalJSON(bytes, &p.InitialHeight)
+		return strconv.FormatUint(uint64(p.InitialHeight), 10), err
 	default:
 		return "", fmt.Errorf("%s is not existed", key)
 	}
@@ -146,6 +168,7 @@ func (p Params) String() string {
 	sb.WriteString(fmt.Sprintf("GasPriceThreshold: %d\n", p.GasPriceThreshold))
 	sb.WriteString(fmt.Sprintf("MaxMemoCharacters: %d\n", p.MaxMemoCharacters))
 	sb.WriteString(fmt.Sprintf("TxSigLimit: %d\n", p.TxSigLimit))
+	sb.WriteString(fmt.Sprintf("InitialHeight: %d\n", p.InitialHeight))
 	// sb.WriteString(fmt.Sprintf("TxSizeLimit: %d\n", p.TxSizeLimit))
 	sb.WriteString(fmt.Sprintf("TxSizeCostPerByte: %d\n", p.TxSizeCostPerByte))
 	sb.WriteString(fmt.Sprintf("SigVerifyCostED25519: %d\n", p.SigVerifyCostED25519))

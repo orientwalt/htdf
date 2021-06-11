@@ -19,6 +19,8 @@ type Protocol interface {
 	ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg) sdk.Error
 
 	// may be nil
+	GetInitialHeight(ctx sdk.Context) int64 // get initial height
+
 	GetInitChainer() sdk.InitChainer1  // initialize state with validators and state blob
 	GetBeginBlocker() sdk.BeginBlocker // logic to run before any txs
 	GetEndBlocker() sdk.EndBlocker     // logic to run after all txs, and to determine valset changes
@@ -28,4 +30,6 @@ type Protocol interface {
 	Init()
 	GetCodec() *codec.Codec
 	InitMetrics(store sdk.CommitMultiStore) // init metrics
+
+	SetInitialHeight(ctx sdk.Context, initialheight uint64)
 }

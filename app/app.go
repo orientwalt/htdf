@@ -106,12 +106,6 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 		cmn.Exit(err.Error())
 	}
 	//
-	initialHeight := viper.GetInt64(FlagInitialHeight)
-	if initialHeight < 1 {
-		app.initialHeight = 1
-	} else {
-		app.initialHeight = initialHeight
-	}
 
 	//Duplicate prometheus config
 	appPrometheusConfig := *config
@@ -122,6 +116,14 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	//engine.Add(v2.NewProtocolV1(2, ...))
 	logrus.Traceln("KeyMain----->	", app.GetKVStore(protocol.KeyMain))
 	loaded, current := engine.LoadCurrentProtocol(app.GetKVStore(protocol.KeyMain))
+
+	// initialHeight := viper.GetInt64(FlagInitialHeight)
+	initialHeight := v0.NewProtocolV0(0, logger, protocolKeeper, app.invCheckPeriod, &appPrometheusConfig).GetInitialHeight(app.checkState.ctx)
+	if initialHeight < 1 {
+		app.initialHeight = 1
+	} else {
+		app.initialHeight = initialHeight
+	}
 
 	fmt.Printf("currVersion=%v\n", engine.GetCurrentProtocol().GetVersion())
 	fmt.Printf("LastBlockHeight=%v\n", app.BaseApp.LastBlockHeight())
