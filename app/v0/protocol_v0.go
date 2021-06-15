@@ -188,7 +188,7 @@ func (p *ProtocolV0) SetInitialHeight(ctx sdk.Context, height uint64) {
 	var txSizeLimit uint64
 	subspace.Get(ctx, auth.KeySigVerifyCostSecp256k1, &txSizeLimit)
 	logrus.Traceln("txSizeLimit:", txSizeLimit)
-	var initialHeight uint64 = 10
+	var initialHeight uint64 = height
 	subspace.Set(ctx, auth.KeyInitialHeight, &initialHeight)
 }
 
