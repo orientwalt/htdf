@@ -27,6 +27,7 @@ var (
 	KeyComplaintRetrospect  = []byte("ComplaintRetrospect")
 	KeyArbitrationTimeLimit = []byte("ArbitrationTimeLimit")
 	KeyTxSizeLimit          = []byte("TxSizeLimit")
+	KeyInitialHeight        = []byte("InitialHeight")
 )
 
 // ParamTable for service module
@@ -43,6 +44,7 @@ type Params struct {
 	ComplaintRetrospect  time.Duration `json:"complaint_retrospect"`
 	ArbitrationTimeLimit time.Duration `json:"arbitration_time_limit"`
 	TxSizeLimit          uint64        `json:"tx_size_limit"`
+	InitialHeight        uint64        `json:"initial_height"`
 }
 
 func (p Params) String() string {
@@ -53,9 +55,10 @@ func (p Params) String() string {
   Slash Fraction:              %s
   Complaint Retrospect:        %s
   Arbitration Time Limit:      %s
-  Tx Size Limit:               %d`,
+  Tx Size Limit:               %d
+  Initial_Height:              %d`,
 		p.MaxRequestTimeout, p.MinDepositMultiple, p.ServiceFeeTax.String(), p.SlashFraction.String(),
-		p.ComplaintRetrospect, p.ArbitrationTimeLimit, p.TxSizeLimit)
+		p.ComplaintRetrospect, p.ArbitrationTimeLimit, p.TxSizeLimit, p.InitialHeight)
 }
 
 // Implements params.ParamStruct
@@ -72,6 +75,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyComplaintRetrospect, Value: &p.ComplaintRetrospect},
 		{Key: KeyArbitrationTimeLimit, Value: &p.ArbitrationTimeLimit},
 		{Key: KeyTxSizeLimit, Value: &p.TxSizeLimit},
+		{Key: KeyInitialHeight, Value: &p.InitialHeight},
 	}
 }
 
@@ -140,6 +144,16 @@ func (p *Params) Validate(key string, value string) (interface{}, sdk.Error) {
 			return nil, err
 		}
 		return txSizeLimit, nil
+
+	case string(KeyInitialHeight):
+		initialHeight, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return nil, params.ErrInvalidString(value)
+		}
+		if err := validateInitialHeight(initialHeight); err != nil {
+			return nil, err
+		}
+		return initialHeight, nil
 	default:
 		return nil, sdk.NewError(params.DefaultCodespace, params.CodeInvalidKey, fmt.Sprintf("%s is not found", key))
 	}
@@ -168,6 +182,10 @@ func (p *Params) StringFromBytes(cdc *codec.Codec, key string, bytes []byte) (st
 	case string(KeyTxSizeLimit):
 		err := cdc.UnmarshalJSON(bytes, &p.TxSizeLimit)
 		return strconv.FormatUint(p.TxSizeLimit, 10), err
+	case string(KeyInitialHeight):
+		err := cdc.UnmarshalJSON(bytes, &p.InitialHeight)
+		return strconv.FormatUint(p.InitialHeight, 10), err
+
 	default:
 		return "", fmt.Errorf("%s is not existed", key)
 	}
@@ -183,6 +201,7 @@ func DefaultParams() Params {
 		ComplaintRetrospect:  time.Duration(15 * sdk.Day), //15 days
 		ArbitrationTimeLimit: time.Duration(5 * sdk.Day),  //5 days
 		TxSizeLimit:          4000,
+		InitialHeight:        1,
 	}
 }
 
@@ -196,6 +215,7 @@ func DefaultParamsForTest() Params {
 		ComplaintRetrospect:  20 * time.Second,         //20 seconds
 		ArbitrationTimeLimit: 20 * time.Second,         //20 seconds
 		TxSizeLimit:          4000,
+		InitialHeight:        1,
 	}
 }
 
@@ -220,6 +240,9 @@ func validateParams(p Params) error {
 		return err
 	}
 	if err := validateTxSizeLimit(p.TxSizeLimit); err != nil {
+		return err
+	}
+	if err := validateInitialHeight(p.InitialHeight); err != nil {
 		return err
 	}
 	return nil
@@ -286,6 +309,13 @@ func validateArbitrationTimeLimit(v time.Duration) sdk.Error {
 func validateTxSizeLimit(v uint64) sdk.Error {
 	if v < uint64(2000) || v > uint64(6000) {
 		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidServiceTxSizeLimit, fmt.Sprintf("Invalid ServiceTxSizeLimit [%d] should be between [2000, 6000]", v))
+	}
+	return nil
+}
+
+func validateInitialHeight(v uint64) sdk.Error {
+	if v < uint64(1) || v > uint64(6000) {
+		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidServiceTxSizeLimit, fmt.Sprintf("Invalid Initial Height [%d] should be same and greater than 1", v))
 	}
 	return nil
 }

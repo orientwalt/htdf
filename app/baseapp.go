@@ -162,6 +162,15 @@ func (app *BaseApp) Name() string {
 	return app.name
 }
 
+// Name returns the name of the BaseApp.
+func (app *BaseApp) GetInitialHeight(ctx sdk.Context) int64 {
+	// if app.paramStore.Has(ctx, ParamStoreKeyEvidenceParams) {
+	// 	app.paramStore.Get(ctx, ParamStoreKeyEvidenceParams, &app.initialHeight)
+	// }
+	app.initialHeight = app.Engine.GetCurrentProtocol().GetInitialHeight(ctx)
+	return app.initialHeight
+}
+
 // Logger returns the logger of the BaseApp.
 func (app *BaseApp) Logger() log.Logger {
 	return app.logger

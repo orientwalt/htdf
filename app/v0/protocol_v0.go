@@ -166,6 +166,32 @@ func (p *ProtocolV0) GetVersion() uint64 {
 	return p.version
 }
 
+func (p *ProtocolV0) GetInitialHeight(ctx sdk.Context) int64 {
+	subspace, found := p.paramsKeeper.GetSubspace(auth.DefaultParamspace)
+	var initialHeight int64
+	if found {
+		// logrus.Traceln("22222222222@@@@@@@@@@@@@!!!!!!!!!", subspace)
+		subspace.Get(ctx, auth.KeyInitialHeight, &initialHeight)
+
+	}
+	if initialHeight > 1 {
+		return initialHeight
+	}
+	return 1
+}
+
+func (p *ProtocolV0) SetInitialHeight(ctx sdk.Context, height uint64) {
+	subspace, found := p.paramsKeeper.GetSubspace(auth.DefaultParamspace)
+	if !found {
+		panic("The subspace " + auth.DefaultParamspace + " cannot be found!")
+	}
+	var txSizeLimit uint64
+	subspace.Get(ctx, auth.KeySigVerifyCostSecp256k1, &txSizeLimit)
+	logrus.Traceln("txSizeLimit:", txSizeLimit)
+	var initialHeight uint64 = height
+	subspace.Set(ctx, auth.KeyInitialHeight, &initialHeight)
+}
+
 func (p *ProtocolV0) ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg) sdk.Error {
 
 	serviceMsgNum := 0
@@ -191,7 +217,7 @@ func (p *ProtocolV0) ValidateTx(ctx sdk.Context, txBytes []byte, msgs []sdk.Msg)
 		// logrus.Traceln("33333333333@@@@@@@@@@@@@!!!!!!!!!")
 
 		logrus.Debug(fmt.Sprintf("currTxSize=%d", len(txBytes)))
-		if uint64(len(txBytes)) > TxSizeLimit { 
+		if uint64(len(txBytes)) > TxSizeLimit {
 			return sdk.ErrExceedsTxSize(fmt.Sprintf("the tx size [%d] exceeds the limitation [%d]", len(txBytes), TxSizeLimit))
 		}
 	}
@@ -403,7 +429,7 @@ func (p *ProtocolV0) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) a
 func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 
 	//2021-05-12, yqq
-	// we should keep all Events in EventManager and return to Tendermint 
+	// we should keep all Events in EventManager and return to Tendermint
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 	gov.EndBlocker(ctx, p.govKeeper)
@@ -422,7 +448,7 @@ func (p *ProtocolV0) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.
 	return abci.ResponseEndBlock{
 		ValidatorUpdates: validatorUpdates,
 		// Tags:             tags,
-		Events: evs,//ctx.EventManager().ABCIEvents(),
+		Events: evs, //ctx.EventManager().ABCIEvents(),
 	}
 }
 
@@ -496,7 +522,10 @@ func (p *ProtocolV0) InitChainer(ctx sdk.Context, DeliverTx sdk.DeliverTx, req a
 	}
 	logrus.Traceln("@@@@@@@@@@@@@@@@	", genesisState.Accounts)
 	validators := p.initFromGenesisState(ctx, DeliverTx, genesisState)
-
+	// save initial height in db
+	// if req.InitialHeight > 0 {
+	// 	p.SetInitialHeight(ctx, req.InitialHeight)
+	// }
 	// sanity check
 	if len(req.Validators) > 0 {
 		if len(req.Validators) != len(validators) {
