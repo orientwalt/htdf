@@ -48,8 +48,15 @@ func logger() *logrus.Entry {
 // InitChain implements the ABCI interface. It runs the initialization logic
 // directly on the CommitMultiStore.
 func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
+	app.initialHeight = req.GetInitialHeight()
+	if app.LastBlockHeight() == 0 {
+		app.cms.SetLastCommitID(req.GetInitialHeight() - 1)
+	}
 	// stash the consensus params in the cms main store and memoize
 	logger().Traceln("ConsensusParams", req.ConsensusParams)
+	logger().Traceln("req.GetInitialHeight():", req.GetInitialHeight())
+
+	// app.cms.Set
 	if req.ConsensusParams != nil {
 		app.setConsensusParams(req.ConsensusParams)
 		app.StoreConsensusParams(req.ConsensusParams)
@@ -75,67 +82,11 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 		WithBlockGasMeter(sdk.NewInfiniteGasMeter())
 	logrus.Traceln("88888888888888888")
 	res = initChainer(app.deliverState.ctx, app.DeliverTx, req)
-
+	app.Engine.GetCurrentProtocol().SetInitialHeight(app.deliverState.ctx, uint64(req.GetInitialHeight()))
 	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
 	// deliverState.
 	return
 }
-
-// // InitChain implements the ABCI interface. It runs the initialization logic
-// // directly on the CommitMultiStore.
-// func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitChain) {
-// 	initHeader := abci.Header{ChainID: req.ChainId, Time: req.Time}
-
-// 	// initialize the deliver state and check state with a correct header
-// 	app.setDeliverState(initHeader)
-// 	app.setCheckState(initHeader)
-
-// 	// Store the consensus params in the BaseApp's paramstore. Note, this must be
-// 	// done after the deliver state and context have been set as it's persisted
-// 	// to state.
-// 	logrus.Traceln("1111111111111111")
-// 	if req.ConsensusParams != nil {
-// 		// app.StoreConsensusParams(app.deliverState.ctx, req.ConsensusParams)
-// 		app.setConsensusParams(req.ConsensusParams)
-// 		app.StoreConsensusParams(req.ConsensusParams)
-
-// 	}
-// 	logrus.Traceln("222222222222222")
-// 	if app.initChainer == nil {
-// 		return
-// 	}
-// 	logrus.Traceln("33333333333333")
-// 	// add block gas meter for any genesis transactions (allow infinite gas)
-// 	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
-
-// 	res = app.initChainer(app.deliverState.ctx, req)
-// 	logrus.Traceln("444444444444444")
-// 	// sanity check
-// 	if len(req.Validators) > 0 {
-// 		logrus.Traceln("55555555555555555")
-// 		if len(req.Validators) != len(res.Validators) {
-// 			panic(
-// 				fmt.Errorf(
-// 					"len(RequestInitChain.Validators) != len(GenesisValidators) (%d != %d)",
-// 					len(req.Validators), len(res.Validators),
-// 				),
-// 			)
-// 		}
-
-// 		sort.Sort(abci.ValidatorUpdates(req.Validators))
-// 		sort.Sort(abci.ValidatorUpdates(res.Validators))
-// 		logrus.Traceln("6666666666666666666")
-// 		for i, val := range res.Validators {
-// 			if !val.Equal(req.Validators[i]) {
-// 				panic(fmt.Errorf("genesisValidators[%d] != req.Validators[%d] ", i, i))
-// 			}
-// 		}
-// 	}
-
-// 	// NOTE: We don't commit, but BeginBlock for block 1 starts from this
-// 	// deliverState.
-// 	return res
-// }
 
 // Info implements the ABCI interface.
 func (app *BaseApp) Info(req abci.RequestInfo) abci.ResponseInfo {
@@ -204,7 +155,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx = app.deliverState.ctx.
+		WithBlockGasMeter(gasMeter).
+		WithInitialHeight(app.initialHeight)
 
 	app.beginBlocker = app.Engine.GetCurrentProtocol().GetBeginBlocker()
 	if app.beginBlocker != nil {
@@ -266,7 +219,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		}
 		return rsp
 	}
-	
+
 	return abci.ResponseCheckTx{
 		GasWanted: int64(gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
@@ -462,12 +415,14 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) abci.R
 	}
 
 	req.Path = "/" + strings.Join(path[1:], "/")
-
+	logger().Debugln("req.Path: ", req.Path)
+	logger().Debugln("req.Height: ", req.Height)
+	app.initialHeight = app.GetInitialHeight(app.checkState.ctx)
 	// when a client did not provide a query height, manually inject the latest
 	if req.Height == 0 {
-		req.Height = app.LastBlockHeight()
+		req.Height = app.LastBlockHeight() - app.initialHeight
 	}
-
+	logger().Debugln("req.Height: ", req.Height)
 	if req.Height <= 1 && req.Prove {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrap(
@@ -479,7 +434,7 @@ func handleQueryStore(app *BaseApp, path []string, req abci.RequestQuery) abci.R
 
 	resp := queryable.Query(req)
 	resp.Height = req.Height
-
+	logger().Debugln("req.Height: ", req.Height)
 	return resp
 }
 
@@ -519,13 +474,16 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no route for custom query specified"))
 	}
 	querier := app.Engine.GetCurrentProtocol().GetQueryRouter().Route(path[1])
+	logger().Debugln("path:", path)
 	if querier == nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "no custom querier found for route %s", path[1]))
 	}
 	// when a client did not provide a query height, manually inject the latest
+	logger().Debugln("req.Height:", req.Height)
 	if req.Height == 0 {
 		req.Height = app.LastBlockHeight()
 	}
+	logger().Debugln("req.Height:", req.Height)
 	if req.Height <= 1 && req.Prove {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrap(
@@ -534,7 +492,9 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 			),
 		)
 	}
-	cacheMS, err := app.cms.CacheMultiStoreWithVersion(req.Height)
+	logger().Debugln("app.initialHeight:", app.initialHeight)
+	app.initialHeight = app.GetInitialHeight(app.checkState.ctx)
+	cacheMS, err := app.cms.CacheMultiStoreWithVersion(req.Height - app.initialHeight + 1)
 	if err != nil {
 		return sdkerrors.QueryResult(
 			sdkerrors.Wrapf(

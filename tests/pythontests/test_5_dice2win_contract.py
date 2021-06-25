@@ -303,6 +303,14 @@ def test_placeBet_and_settleBet(conftest_args):
         print('reveal={}'.format(reveal))
         placeBet_tx_blocknumber = int(tx['height'])
         palceBet_gas_used = int(tx['gas_used']) 
+
+
+        tx_receipts = htdfrpc.get_transaction_receipt_until_timeout(transaction_hash=tx_hash,  timeout_secs=100)
+        assert tx_receipts is not None
+        assert 'results' in tx_receipts
+        assert 'logs' in tx_receipts['results']
+        assert tx_receipts['results']['logs']  is not None
+        assert 1 <= len(tx_receipts['results']['logs']) <= 2
         break
 
     time.sleep(15)
@@ -362,6 +370,15 @@ def test_placeBet_and_settleBet(conftest_args):
         # palyer win
         assert from_acc_last.balance_satoshi > from_acc_new.balance_satoshi - int(tx['gas_used']) * gas_price
         pass
+
+     # get transaction receipt
+    time.sleep(15)
+    tx_receipts = htdfrpc.get_transaction_receipt_until_timeout(transaction_hash=tx_hash,  timeout_secs=100)
+    assert tx_receipts is not None
+    assert 'results' in tx_receipts
+    assert 'logs' in tx_receipts['results']
+    assert tx_receipts['results']['logs']  is not None
+    assert 1 <= len(tx_receipts['results']['logs']) <= 2
 
     pass
 

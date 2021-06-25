@@ -60,7 +60,10 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command { // nolint: 
 			if chainID == "" {
 				chainID = fmt.Sprintf("test-chain-%v", common.Str(6))
 			}
-
+			initialHeight := viper.GetInt64(flagInitialHeight)
+			if initialHeight < 0 {
+				initialHeight = 0
+			}
 			nodeID, _, err := InitializeNodeValidatorFiles(config)
 			if err != nil {
 				return err
@@ -76,7 +79,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command { // nolint: 
 				return err
 			}
 
-			if err = ExportGenesisFile(genFile, chainID, nil, appState); err != nil {
+			if err = ExportGenesisFile(genFile, chainID, initialHeight, nil, appState); err != nil {
 				return err
 			}
 
@@ -90,6 +93,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command { // nolint: 
 	cmd.Flags().String(cli.HomeFlag, app.DefaultNodeHome, "node's home directory")
 	cmd.Flags().BoolP(flagOverwrite, "o", false, "overwrite the genesis.json file")
 	cmd.Flags().String(client.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
+	cmd.Flags().Int64(flagInitialHeight, 0, "genesis block's initial height")
 
 	return cmd
 }

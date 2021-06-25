@@ -50,3 +50,4 @@ func (s *Store) Commit() (id types.CommitID) { return }
 
 func (s *Store) SetPruning(pruning types.PruningOptions) {}
 func (s Store) LastCommitID() (id types.CommitID)        { return }
+func (s Store) SetLastCommitID(int64)                    {}

@@ -52,6 +52,7 @@ const (
 	//auth
 	CodeInvalidGasPriceThreshold sdk.CodeType = 600
 	CodeInvalidTxSizeLimit       sdk.CodeType = 601
+	CodeInvalidInitialHeight     sdk.CodeType = 602
 
 	//distribution
 	CodeInvalidCommunityTax        sdk.CodeType = 700

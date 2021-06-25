@@ -3,8 +3,8 @@ package transient
 import (
 	dbm "github.com/tendermint/tm-db"
 
-	"github.com/orientwalt/htdf/store/types"
 	"github.com/orientwalt/htdf/store/dbadapter"
+	"github.com/orientwalt/htdf/store/types"
 )
 
 var _ types.Committer = (*Store)(nil)
@@ -35,6 +35,8 @@ func (ts *Store) SetPruning(pruning types.PruningOptions) {
 func (ts *Store) LastCommitID() (id types.CommitID) {
 	return
 }
+
+func (ts *Store) SetLastCommitID(int64) {}
 
 // Implements Store.
 func (ts *Store) GetStoreType() types.StoreType {

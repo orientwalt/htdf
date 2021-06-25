@@ -307,6 +307,11 @@ func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
 }
 
+// junying-todo for initial-height
+func (rs *Store) SetLastCommitID(height int64) {
+	rs.lastCommitInfo.Version = height
+}
+
 // Commit implements Committer/CommitStore.
 func (rs *Store) Commit() types.CommitID {
 

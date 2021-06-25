@@ -109,7 +109,7 @@ func UnsafeNewStore(tree *iavl.MutableTree, po types.PruningOptions) *Store {
 // result in a panic.
 func (st *Store) GetImmutable(version int64) (*Store, error) {
 	if !st.VersionExists(version) {
-		return nil, iavl.ErrVersionDoesNotExist
+		return nil, fmt.Errorf("%s st.tree.Version()%d != version%d", iavl.ErrVersionDoesNotExist.Error(), st.tree.Version(), version)
 	}
 
 	iTree, err := st.tree.GetImmutable(version)
@@ -160,6 +160,10 @@ func (st *Store) LastCommitID() types.CommitID {
 		Version: st.tree.Version(),
 		Hash:    st.tree.Hash(),
 	}
+}
+
+func (st *Store) SetLastCommitID(int64) {
+
 }
 
 // SetPruning panics as pruning options should be provided at initialization

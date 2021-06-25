@@ -55,6 +55,8 @@ const (
 
 	FlagReplay = "replay-last-block"
 
+	FlagInitialHeight = "initial-height"
+
 	DefaultCacheSize = 100 // Multistore saves last 100 blocks
 
 	DefaultSyncableHeight = 10000 // Multistore saves a snapshot every 10000 blocks
@@ -103,6 +105,8 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	if err != nil {
 		cmn.Exit(err.Error())
 	}
+	//
+
 	//Duplicate prometheus config
 	appPrometheusConfig := *config
 	//Change namespace to appName
@@ -112,6 +116,14 @@ func NewHtdfServiceApp(logger log.Logger, config *cfg.InstrumentationConfig, db 
 	//engine.Add(v2.NewProtocolV1(2, ...))
 	logrus.Traceln("KeyMain----->	", app.GetKVStore(protocol.KeyMain))
 	loaded, current := engine.LoadCurrentProtocol(app.GetKVStore(protocol.KeyMain))
+
+	// initialHeight := viper.GetInt64(FlagInitialHeight)
+	initialHeight := v0.NewProtocolV0(0, logger, protocolKeeper, app.invCheckPeriod, &appPrometheusConfig).GetInitialHeight(app.checkState.ctx)
+	if initialHeight < 1 {
+		app.initialHeight = 1
+	} else {
+		app.initialHeight = initialHeight
+	}
 
 	fmt.Printf("currVersion=%v\n", engine.GetCurrentProtocol().GetVersion())
 	fmt.Printf("LastBlockHeight=%v\n", app.BaseApp.LastBlockHeight())

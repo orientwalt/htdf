@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"errors"
 
@@ -122,6 +123,10 @@ type BaseApp struct {
 
 	// application's version string
 	appVersion string
+	// genesis block's initial height
+	initialHeight int64
+	//
+	lastblkheight int64
 }
 
 // var _ abci.Application = (*BaseApp)(nil)
@@ -155,6 +160,15 @@ func NewBaseApp(
 // Name returns the name of the BaseApp.
 func (app *BaseApp) Name() string {
 	return app.name
+}
+
+// Name returns the name of the BaseApp.
+func (app *BaseApp) GetInitialHeight(ctx sdk.Context) int64 {
+	// if app.paramStore.Has(ctx, ParamStoreKeyEvidenceParams) {
+	// 	app.paramStore.Get(ctx, ParamStoreKeyEvidenceParams, &app.initialHeight)
+	// }
+	app.initialHeight = app.Engine.GetCurrentProtocol().GetInitialHeight(ctx)
+	return app.initialHeight
 }
 
 // Logger returns the logger of the BaseApp.
@@ -253,7 +267,12 @@ func (app *BaseApp) LastCommitID() sdk.CommitID {
 
 // LastBlockHeight returns the last committed block height.
 func (app *BaseApp) LastBlockHeight() int64 {
-	return app.cms.LastCommitID().Version
+	lastcommit := app.cms.LastCommitID().Version
+	logger().Debugln("LastBlockHeight()-lastcommit: ", lastcommit)
+	// if lastcommit < app.initialHeight {
+	// 	lastcommit = app.initialHeight - 1
+	// }
+	return lastcommit
 }
 
 // initializes the remaining logic from app.cms
@@ -799,6 +818,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	// var gasUsed uint64
 
 	logger().Traceln("runMsgs	begin~~~~~~~~~~~~~~~~~~~~~~~~")
+	start := time.Now()
 	for msgIdx, msg := range msgs {
 		// match message route
 		msgRoute := msg.Route()
@@ -864,6 +884,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		Events:    events.ToABCIEvents(),
 	}
 	logger().Traceln("runMsgs	end~~~~~~~~~~~~~~~~~~~~~~~~")
+	logger().Debugf("=======>>>>> runMsgs elapsed time: %v", time.Since(start))
 	return result, nil
 }
 
@@ -957,7 +978,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		result.Code = err.Code()
 		result.Codespace = err.Codespace()
 		result.Log = err.ABCILog()
-		return gInfo, result,  err  //err.Result()
+		return gInfo, result, err //err.Result()
 	}
 
 	var startingGas uint64
@@ -1080,7 +1101,7 @@ func (app *BaseApp) runTx(mode runTxMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.
 		gasWanted = result.GasWanted
 
 		if abort {
-			return gInfo, result, fmt.Errorf("%s", result.String() )
+			return gInfo, result, fmt.Errorf("%s", result.String())
 		}
 
 		msCache.Write()

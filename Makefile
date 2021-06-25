@@ -7,7 +7,7 @@ endif
 
 export GO111MODULE=on
 export LOG_LEVEL=info
-export CGO_ENABLED=0 
+export CGO_ENABLED=1
 
 #GOBIN
 GOBIN = $(shell pwd)/build/bin
@@ -133,7 +133,7 @@ new: install clear hsinit accs conf vals
 new.pure: clear hsinit accs conf vals
 
 hsinit:
-	@hsd init mynode --chain-id $(CHAIN_ID)
+	@hsd init mynode --chain-id $(CHAIN_ID) --initial-height 101
 
 accs:
 	@echo create new accounts....;\
@@ -196,7 +196,7 @@ hsnode: clean build.static# hstop
 echotest:
 	@echo  $(CURDIR)/${TESTNETDIR}
 
-hsinit-v4: 
+hsinit-v4:
 	@if ! [ -f ${TESTNETDIR}/node0/.hsd/config/genesis.json ]; then\
 	 docker run --rm -v $(CURDIR)/build/testnet:/root:Z ${DOCKER_VALIDATOR_IMAGE} testnet \
 																				  --chain-id ${CHAIN_ID} \
@@ -204,12 +204,19 @@ hsinit-v4:
 																				  -o . \
 																				  --starting-ip-address 192.168.10.2 \
 																				  --minimum-gas-prices ${MINIMUM_GAS_PRICES}; fi
-hsinit-test: 
+hsinit-test:
 	@hsd testnet --chain-id ${CHAIN_ID} \
 				 --v ${VALIDATOR_COUNT} \
 				 -o ${TESTNETDIR} \
 				 --starting-ip-address 192.168.0.171 \
 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
+hsinit-test-ex:
+	@hsd testnet --chain-id ${CHAIN_ID} \
+				 --v ${VALIDATOR_COUNT} \
+				 -o ${TESTNETDIR} \
+				 --validator-ip-addresses $(CURDIR)/ip.txt\
+				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
+
 hsinit-o1:
 	@mkdir -p ${TESTNETDIR}/node4/.hsd ${TESTNETDIR}/node4/.hscli
 	@hsd init node4 --home ${TESTNETDIR}/node4/.hsd

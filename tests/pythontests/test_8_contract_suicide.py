@@ -173,6 +173,7 @@ def test_kill(conftest_args):
     pprint(tx)
     assert tx['logs'][0]['success'] == True
 
+    time.sleep(5)
     from_acc_new = htdfrpc.get_account_info(address=from_addr.address)
     assert  from_acc_new.sequence == from_acc.sequence + 1
 

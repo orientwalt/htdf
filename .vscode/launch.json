@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/hsd/",
-            "env": {},
+            "env": {"LOG_LEVEL": "Debug"},
             "args": ["start"]
         },
         {

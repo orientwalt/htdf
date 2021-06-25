@@ -2,11 +2,15 @@ package server
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/tendermint/tendermint/abci/server"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
 	cmn "github.com/tendermint/tendermint/libs/os"
@@ -24,7 +28,8 @@ const (
 	flagPruning        = "pruning"
 	FlagMinGasPrices   = "minimum-gas-prices"
 
-	FlagReplay = "replay-last-block"
+	FlagReplay        = "replay-last-block"
+	FlagInitialHeight = "initial-height"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -41,13 +46,23 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 
 			ctx.Logger.Info("Starting ABCI with Tendermint")
 
+			// yqq, 2021-05-26
+			// we start a pprof at test environment for profiling
+			if _, ok := os.LookupEnv("HTDF_TEST_ENV"); ok {
+				go func() {
+					if err := http.ListenAndServe(":9999", nil); err != nil {
+						ctx.Logger.Info("pprof=====>" + err.Error())
+					}
+				}()
+			}
+
 			_, err := startInProcess(ctx, appCreator)
 			return err
 		},
 	}
 
 	cmd.Flags().Bool(FlagReplay, false, "Replay the last block")
-
+	cmd.Flags().Int64(FlagInitialHeight, 1, "genesis block's initial height")
 	// core flags for the ABCI application
 	cmd.Flags().Bool(flagWithTendermint, true, "Run abci app embedded in-process with tendermint")
 	cmd.Flags().String(flagAddress, "tcp://0.0.0.0:26658", "Listen address")
