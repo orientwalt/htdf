@@ -46,8 +46,10 @@ var (
 	flagAccountsFilePath       = "accounts-file-path"
 	flagStakerBechAddress      = "staker-bech-address"
 	flagPasswordFromFile       = "password-from-file"
+
 	//
 	flagInitialHeight = "initial-height"
+	flagDBBackend     = "db-backend"
 )
 
 const (

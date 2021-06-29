@@ -47,10 +47,11 @@ def get_regtest_validator_privatekey():
     private_key = None
     for val in validators:
         ret = os.popen("""hscli bech32 v2b %s | awk -F '=' '{print $3}' """ % val)
-        bech_addr  =ret.read().strip()
+        bech_addr  = ret.read().strip()
         try:
             ret = os.popen("""hscli accounts export %s 12345678 | awk '{print $2}'""" % bech_addr)
             privkey = ret.read().strip()
+            if len(privkey) != 64: continue
             private_key = privkey
             validator_address = val.strip()
             # validator_address_bech32 = bech_addr.strip()

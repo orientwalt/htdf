@@ -21,3 +21,5 @@ tests/evm/*.template
 *.list
 *.tmp
 cmd/hscli/__debug_bin
+
+tests/pythontests/nohup.out

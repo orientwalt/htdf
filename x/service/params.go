@@ -314,8 +314,8 @@ func validateTxSizeLimit(v uint64) sdk.Error {
 }
 
 func validateInitialHeight(v uint64) sdk.Error {
-	if v < uint64(1) || v > uint64(6000) {
-		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidServiceTxSizeLimit, fmt.Sprintf("Invalid Initial Height [%d] should be same and greater than 1", v))
+	if v < uint64(1) {
+		return sdk.NewError(params.DefaultCodespace, params.CodeInvalidInitHeight, fmt.Sprintf("Invalid Initial Height [%d] should be same and greater than 1", v))
 	}
 	return nil
 }

@@ -37,6 +37,7 @@ const (
 	CodeInvalidArbitrationTimeLimit sdk.CodeType = 204
 	CodeComplaintRetrospect         sdk.CodeType = 205
 	CodeInvalidServiceTxSizeLimit   sdk.CodeType = 206
+	CodeInvalidInitHeight           sdk.CodeType = 207
 
 	//upgrade
 	CodeInvalidUpgradeParams sdk.CodeType = 300

@@ -1,13 +1,13 @@
-# HTDF 2.0 
+# HTDF 2.0
 
 | 功能 |  HTDF 1.x  | HTDF 2.0 |
 |----- | ----| ------------|
 | 普通转账 | ✓ | ✓ |
 | 委托挖矿 | ✓ | ✓|
 | HRC20代币 | ✓| ✓|
-| solidity版本 | 0.4.20 | 0.5.x |
+| solidity版本 | 0.4.20 | 0.8.x |
 | 智能合约Event/Log | ✗ |✓ |
-| 事件订阅 | ✗ |✓  | 
+| 事件订阅 | ✗ |✓  |
 | Webscoket API| ✗ |✓  |
 | 轻节点 |✗  | ✓|
 | DApp生态支持 |✗  |✓ |
@@ -19,7 +19,7 @@
 
 ### 为什么要迁移?
 
-在升级底层Tendermint和Cosmos SDK的版本之后,集成了Ethermint的Event等功能, 必然存在和HTDF 1.x版本兼容性问题. 如果能够解决兼容性问题最好, 如果解决不了兼容问题或者根本不可能兼容,那么就需要一个备用方案. 这个备用方案就是将HTDF 1.x版本的链上数据迁移到 HTDF 2.0链上. 
+在升级底层Tendermint和Cosmos SDK的版本之后,集成了Ethermint的Event等功能, 必然存在和HTDF 1.x版本兼容性问题. 如果能够解决兼容性问题最好, 如果解决不了兼容问题或者根本不可能兼容,那么就需要一个备用方案. 这个备用方案就是将HTDF 1.x版本的链上数据迁移到 HTDF 2.0链上.
 
 ### 怎么迁移?
 
@@ -32,7 +32,7 @@
 - 验证节点的委托金额
 
 
-#### 普通账户的HTDF余额 
+#### 普通账户的HTDF余额
 
 - 将所有账户地址及余额导出
 - 写入创世区块 (或者通过空投的方式进行,这需要考虑交易所等场景会不会出现重复充币的问题)
@@ -50,7 +50,7 @@
 
 理想的状态: 如果HTDF2.0升级之后出现问题, HTDF1.x仍旧可以正常运行.
 
- 
+
 **方案A**
 
 | HTDF 1.x     |    HTDF 2.0                           |
@@ -74,7 +74,7 @@
 
 **方案B(弃用)**
 
-- 通知用户自行提取委托金和收益(限时) 
+- 通知用户自行提取委托金和收益(限时)
 - 2.0升级之后需要用户重新委托
 
 **方案C(弃用)**
@@ -140,7 +140,7 @@
         "coins": [
           "1999989997000000satoshi" // 余额 (格式已改为 sdk.Coins)
         ],
-        "sequence_number": "2", 
+        "sequence_number": "2",
         "account_number": "0"
       },
       {
@@ -452,12 +452,14 @@ cp -R ~/.hsd ~/.hsd_bak_03_09_15
 
 hsd unsafe-reset-all
 
-修改genesis.json 中的 consensus_params.evidence 
+修改genesis.json 中的 consensus_params.evidence
 修改为
 "evidence": {
        "max_age_num_blocks": "100000",
         "max_age_duration": "172800000000000"
 }
+
+genesis.json 添加  "initial_height": "新链起始高度",
 
 mv genesis.json ~/.hsd/config/
 

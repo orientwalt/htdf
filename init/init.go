@@ -64,6 +64,12 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command { // nolint: 
 			if initialHeight < 0 {
 				initialHeight = 0
 			}
+
+			dbBackend := viper.GetString(flagDBBackend)
+			if(dbBackend == "") {
+				dbBackend = "cleveldb"
+			}
+
 			nodeID, _, err := InitializeNodeValidatorFiles(config)
 			if err != nil {
 				return err
@@ -84,7 +90,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command { // nolint: 
 			}
 
 			toPrint := newPrintInfo(config.Moniker, chainID, nodeID, "", appState)
-
+			config.BaseConfig.DBBackend = dbBackend
 			cfg.WriteConfigFile(filepath.Join(config.RootDir, "config", "config.toml"), config)
 			return displayInfo(cdc, toPrint)
 		},
@@ -94,6 +100,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command { // nolint: 
 	cmd.Flags().BoolP(flagOverwrite, "o", false, "overwrite the genesis.json file")
 	cmd.Flags().String(client.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().Int64(flagInitialHeight, 0, "genesis block's initial height")
+	cmd.Flags().String(flagDBBackend, "cleveldb", "Database backend: goleveldb or cleveldb")
 
 	return cmd
 }

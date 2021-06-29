@@ -30,7 +30,12 @@ ERRCHECK_CHK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHK := $(shell command -v unparam 2> /dev/null)
 LEDGER_ENABLED ?= false
 
-build_tags = netgo
+
+# we use cleveldb to improve db performance
+# Install leveldb c library in linux: 
+#   Ubuntu: sudo apt-get install libleveldb-dev
+#   CentOS: yum install leveldb-devel
+build_tags = netgo cleveldb
 
 
 
