@@ -20,3 +20,5 @@ tests/evm/*.template
 cmd/hsd/__debug_bin
 
 cmd/hscli/__debug_bin
+
+tests/pythontests/__pycache__/
