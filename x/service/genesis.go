@@ -9,6 +9,27 @@ type GenesisState struct {
 	Params Params `json:"params"` // service params
 }
 
+// only for htdf2.0
+type GenesisStateEx struct {
+	Params ParamsEx `json:"params"` // service params
+}
+
+func NewGenesisStateEx(params Params) GenesisStateEx {
+	paramsEx := ParamsEx{}
+	paramsEx.ArbitrationTimeLimit = params.ArbitrationTimeLimit
+	paramsEx.ComplaintRetrospect = params.ComplaintRetrospect
+	paramsEx.InitialHeight = 1 // TODO:???
+	paramsEx.MaxRequestTimeout = params.MaxRequestTimeout
+	paramsEx.MinDepositMultiple = params.MinDepositMultiple
+	paramsEx.ServiceFeeTax = params.ServiceFeeTax
+	paramsEx.SlashFraction = params.SlashFraction
+	paramsEx.TxSizeLimit = params.TxSizeLimit
+	return GenesisStateEx{
+		Params: paramsEx,
+	}
+}
+
+
 func NewGenesisState(params Params) GenesisState {
 	return GenesisState{
 		Params: params,

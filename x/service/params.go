@@ -45,6 +45,18 @@ type Params struct {
 	TxSizeLimit          uint64        `json:"tx_size_limit"`
 }
 
+// ParamsEx only used for exporting to HTDF2.0,  by yqq 2021-06-25
+type ParamsEx struct {
+	MaxRequestTimeout    int64         `json:"max_request_timeout"`
+	MinDepositMultiple   int64         `json:"min_deposit_multiple"`
+	ServiceFeeTax        sdk.Dec       `json:"service_fee_tax"`
+	SlashFraction        sdk.Dec       `json:"slash_fraction"`
+	ComplaintRetrospect  time.Duration `json:"complaint_retrospect"`
+	ArbitrationTimeLimit time.Duration `json:"arbitration_time_limit"`
+	TxSizeLimit          uint64        `json:"tx_size_limit"`
+	InitialHeight        uint64        `json:"initial_height"`
+}
+
 func (p Params) String() string {
 	return fmt.Sprintf(`Service Params:
   Max Request Timeout:         %d

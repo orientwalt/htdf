@@ -499,6 +499,23 @@ type GenesisFileState struct {
 	GenTxs       []json.RawMessage     `json:"gentxs"`
 }
 
+// only use exporting data to htdf 2.0
+type GenesisFileStateEx struct {
+	Accounts     []GenesisAccount  `json:"accounts"`
+	AuthData     auth.GenesisStateEx     `json:"auth"`
+	StakeData    stake.GenesisState    `json:"staking"`
+	MintData     mint.GenesisState     `json:"mint"`
+	DistrData    distr.GenesisState    `json:"distr"`
+	GovData      gov.GenesisState      `json:"gov"`
+	UpgradeData  upgrade.GenesisState  `json:"upgrade"`
+	CrisisData   crisis.GenesisState   `json:"cirsis"`
+	SlashingData slashing.GenesisState `json:"slashing"`
+	ServiceData  service.GenesisStateEx `json:"service"`
+	GuardianData guardian.GenesisState `json:"guardian"`
+	GenTxs       []json.RawMessage     `json:"gentxs"`
+}
+
+
 // type GenesisFileAccount struct {
 // 	Address       sdk.AccAddress `json:"address"`
 // 	Coins         []string       `json:"coins"`
@@ -537,6 +554,36 @@ func NewGenesisFileState(accounts []GenesisAccount, authData auth.GenesisState, 
 		SlashingData: slashingData,
 	}
 }
+
+func NewGenesisFileStateEx(accounts []GenesisAccount, authData auth.GenesisState, stakeData stake.GenesisState, mintData mint.GenesisState,
+	distrData distr.GenesisState, govData gov.GenesisState, upgradeData upgrade.GenesisState, serviceData service.GenesisState,
+	guardianData guardian.GenesisState, slashingData slashing.GenesisState, crisisData crisis.GenesisState) GenesisFileStateEx {
+
+	newAuthData := auth.NewGenesisStateEx(authData.CollectedFees, authData.Params)
+	newServiceData := service.NewGenesisStateEx(serviceData.Params)
+
+	// reset protocol version to 0
+	newUpgradeData := upgradeData
+	newUpgradeData.GenesisVersion.UpgradeInfo.Protocol.Height = 1    // TODO:  yqq
+	newUpgradeData.GenesisVersion.UpgradeInfo.Protocol.Version = 0
+	newUpgradeData.GenesisVersion.UpgradeInfo.Protocol.Software = "https://github.com/orientwalt/htdf/releases/tag/v2.0.0"
+
+	return GenesisFileStateEx{
+		Accounts:     accounts,
+		AuthData:     newAuthData,
+		StakeData:    stakeData,
+		MintData:     mintData,
+		DistrData:    distrData,
+		GovData:      govData,
+		UpgradeData:  newUpgradeData,
+		CrisisData:   crisisData,
+		ServiceData:  newServiceData,
+		GuardianData: guardianData,
+		SlashingData: slashingData,
+		GenTxs:  []json.RawMessage{},
+	}
+}
+
 
 // NewDefaultGenesisState generates the default state for htdf.
 func NewDefaultGenesisFileState() GenesisFileState {

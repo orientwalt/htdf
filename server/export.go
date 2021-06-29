@@ -22,6 +22,7 @@ const (
 	flagHeight        = "height"
 	flagForZeroHeight = "for-zero-height"
 	flagJailWhitelist = "jail-whitelist"
+	flagNewChainInitialHeight = "new-chain-initial-height"
 )
 
 // ExportCmd dumps app state to JSON.
@@ -32,6 +33,9 @@ func ExportCmd(ctx *Context, cdc *codec.Codec, appExporter AppExporter) *cobra.C
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(cli.HomeFlag))
+
+			// only export to htdf2.0
+			initialHeight := viper.GetInt64(flagNewChainInitialHeight)
 
 			traceWriterFile := viper.GetString(flagTraceStore)
 			emptyState, err := isEmptyState(config.RootDir)
@@ -76,7 +80,9 @@ func ExportCmd(ctx *Context, cdc *codec.Codec, appExporter AppExporter) *cobra.C
 			doc.AppState = appState
 			doc.Validators = validators
 
-			encoded, err := codec.MarshalJSONIndent(cdc, doc)
+
+			docEx := tmtypes.NewGenesisDocEx(doc, initialHeight)
+			encoded, err := codec.MarshalJSONIndent(cdc, docEx)
 			if err != nil {
 				return err
 			}
@@ -88,6 +94,8 @@ func ExportCmd(ctx *Context, cdc *codec.Codec, appExporter AppExporter) *cobra.C
 	cmd.Flags().Int64(flagHeight, -1, "Export state from a particular height (-1 means latest height)")
 	cmd.Flags().Bool(flagForZeroHeight, false, "Export state to start at height zero (perform preproccessing)")
 	cmd.Flags().StringSlice(flagJailWhitelist, []string{}, "List of validators to not jail state export")
+	cmd.Flags().Int64(flagNewChainInitialHeight, 1, "new chain initial height")
+
 	return cmd
 }
 

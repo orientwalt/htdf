@@ -56,6 +56,19 @@ type Params struct {
 	SigVerifyCostSecp256k1 uint64 `json:"sig_verify_cost_secp256k1"`
 }
 
+// only used for exporting to htdf2.0
+type ParamsEx struct {
+	GasPriceThreshold sdk.Int `json:"gas_price_threshold"`
+	MaxMemoCharacters uint64  `json:"max_memo_characters"`
+	TxSigLimit        uint64  `json:"tx_sig_limit"`
+	InitialHeight     uint64  `json:"initial_height"`
+	//TxSizeLimit            uint64  `json:"tx_size"` // tx size limit
+	TxSizeCostPerByte      uint64 `json:"tx_size_cost_per_byte"`
+	SigVerifyCostED25519   uint64 `json:"sig_verify_cost_ed25519"`
+	SigVerifyCostSecp256k1 uint64 `json:"sig_verify_cost_secp256k1"`
+
+}
+
 // ParamKeyTable for auth module
 func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})

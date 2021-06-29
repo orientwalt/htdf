@@ -54,7 +54,7 @@ func (p *ProtocolV2) ExportAppStateAndValidators(ctx sdk.Context, forZeroHeight 
 	// 		})
 	// }
 
-	genState := NewGenesisFileState(
+	genState := NewGenesisFileStateEx(
 		accounts,
 		auth.ExportGenesis(ctx, p.accountMapper, p.feeCollectionKeeper),
 		stake.ExportGenesis(ctx, p.StakeKeeper),

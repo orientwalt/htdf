@@ -12,10 +12,35 @@ type GenesisState struct {
 	Params        Params    `json:"params"`
 }
 
+
+// GenesisStateEx only use for exporting data to htdf2.0
+type GenesisStateEx struct {
+	CollectedFees sdk.Coins `json:"collected_fees"`
+	Params        ParamsEx    `json:"params"`
+}
+
+
 // NewGenesisState - Create a new genesis state
 func NewGenesisState(collectedFees sdk.Coins, params Params) GenesisState {
 	return GenesisState{
 		Params:        params,
+		CollectedFees: collectedFees,
+	}
+}
+
+// NewGenesisStateEx - Create a new genesis state
+func NewGenesisStateEx(collectedFees sdk.Coins, params Params) GenesisStateEx {
+	newParams := ParamsEx{}
+	newParams.GasPriceThreshold = params.GasPriceThreshold
+	newParams.InitialHeight = 1 // TODO: yqq--------
+	newParams.MaxMemoCharacters = params.MaxMemoCharacters
+	newParams.SigVerifyCostED25519  = params.SigVerifyCostED25519
+	newParams.SigVerifyCostSecp256k1 = params.SigVerifyCostSecp256k1
+	newParams.TxSigLimit = params.TxSigLimit
+	newParams.TxSizeCostPerByte = params.TxSizeCostPerByte
+
+	return GenesisStateEx{
+		Params:        newParams,
 		CollectedFees: collectedFees,
 	}
 }
