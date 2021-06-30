@@ -4,7 +4,7 @@ rem This is Windows batch file of HTDF build
 set DEBUGAPI=ON
 for /F %%i in ('git rev-parse --short HEAD') do ( set COMMIT_HASH=%%i)
 rem echo COMMIT_HASH=%COMMIT_HASH%
-for /F %%i in ('git branch  --show-current') do ( set GIT_BRANCH=%%i)
+for /F %%i in ('git rev-parse --abbrev-ref HEAD') do ( set GIT_BRANCH=%%i)
 rem echo GIT_BRANCH=%GIT_BRANCH%
 set BUILD_FLAGS= -tags netgo  -ldflags "-X version.GitCommit=%COMMIT_HASH% -X main.GitCommit=%COMMIT_HASH% -X main.DEBUGAPI=%DEBUGAPI% -X main.GitBranch=%GIT_BRANCH%"
 rem echo BUILD_FLAGS=%BUILD_FLAGS%
@@ -22,10 +22,10 @@ echo:
 echo 1): buildquick, build hsd and hscli and output directory is ./build/bin/
 echo 2): install, build hsd and hscli and output directory is $HOME/go/bin/
 echo 3): test, run test cases
-echo 4): unittest, run unitest case 
+echo 4): unittest, run unitest case
 echo 5): clear,  delete \.hsd and \.hscli and .\build
-echo 6): new,  run clear + install then init node and genesis account 
-echo 7): startall, starts hsd and hscli 
+echo 6): new,  run clear + install then init node and genesis account
+echo 7): startall, starts hsd and hscli
 echo 0): quit, quit this batch
 echo ================================================================
 echo:
@@ -35,7 +35,7 @@ if "%input%"=="1" (
 ) else if  "%input%"=="2" (
     goto install
 ) else if  "%input%"=="3" (
-    goto test 
+    goto test
 ) else if  "%input%"=="4" (
     goto unittest
 ) else if  "%input%"=="5" (
@@ -86,7 +86,7 @@ rd /s /q \.hsd
 rd /s /q \.hscli
 rd /s /q .\build
 echo initialzing node
-hsd init mynode --chain-id %CHAIN_ID%
+hsd init mynode --chain-id %CHAIN_ID%  --db-backend goleveldb
 echo setting config....
 hscli config chain-id %CHAIN_ID%
 hscli config output json

@@ -30,9 +30,10 @@ ERRCHECK_CHK := $(shell command -v errcheck 2> /dev/null)
 UNPARAM_CHK := $(shell command -v unparam 2> /dev/null)
 LEDGER_ENABLED ?= false
 
+DB_BACKEND=cleveldb
 
 # we use cleveldb to improve db performance
-# Install leveldb c library in linux: 
+# Install leveldb c library in linux:
 #   Ubuntu: sudo apt-get install libleveldb-dev
 #   CentOS: yum install leveldb-devel
 build_tags = netgo cleveldb
@@ -138,7 +139,7 @@ new: install clear hsinit accs conf vals
 new.pure: clear hsinit accs conf vals
 
 hsinit:
-	@hsd init mynode --chain-id $(CHAIN_ID) --initial-height 101
+	@hsd init mynode --chain-id $(CHAIN_ID) --initial-height 101 --db-backend $(DB_BACKEND)
 
 accs:
 	@echo create new accounts....;\
