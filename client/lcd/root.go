@@ -54,7 +54,7 @@ func NewRestServer(cdc *codec.Codec) *RestServer {
 
 // Start starts the rest server
 func (rs *RestServer) Start(listenAddr string, maxOpen int) (err error) {
-	server.TrapSignal(func() {
+	server.TrapSignal(rs.log, func() {
 		err := rs.listener.Close()
 		rs.log.Error("error closing listener", "err", err)
 	})

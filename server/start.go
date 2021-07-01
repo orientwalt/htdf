@@ -1,19 +1,15 @@
 package server
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/tendermint/abci/server"
-
 	"net/http"
 	_ "net/http/pprof"
 
 	tcmd "github.com/tendermint/tendermint/cmd/tendermint/commands"
-	cmn "github.com/tendermint/tendermint/libs/os"
 	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
@@ -39,10 +35,10 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 		Use:   "start",
 		Short: "Run the full node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !viper.GetBool(flagWithTendermint) {
-				ctx.Logger.Info("Starting ABCI without Tendermint")
-				return startStandAlone(ctx, appCreator)
-			}
+			// if !viper.GetBool(flagWithTendermint) {
+			// 	ctx.Logger.Info("Starting ABCI without Tendermint")
+			// 	return startStandAlone(ctx, appCreator)
+			// }
 
 			ctx.Logger.Info("Starting ABCI with Tendermint")
 
@@ -56,8 +52,7 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 				}()
 			}
 
-			_, err := startInProcess(ctx, appCreator)
-			return err
+			return startInProcess(ctx, appCreator)
 		},
 	}
 
@@ -79,64 +74,25 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 	return cmd
 }
 
-func startStandAlone(ctx *Context, appCreator AppCreator) error {
-	addr := viper.GetString(flagAddress)
-	home := viper.GetString("home")
-	traceWriterFile := viper.GetString(flagTraceStore)
-
-	db, err := openDB(home)
-	if err != nil {
-		return err
-	}
-	traceWriter, err := openTraceWriter(traceWriterFile)
-	if err != nil {
-		return err
-	}
-
-	app := appCreator(ctx.Logger, db, traceWriter, ctx.Config.Instrumentation)
-
-	svr, err := server.NewServer(addr, "socket", app)
-	if err != nil {
-		return fmt.Errorf("error creating listener: %v", err)
-	}
-
-	svr.SetLogger(ctx.Logger.With("module", "abci-server"))
-
-	err = svr.Start()
-	if err != nil {
-		cmn.Exit(err.Error())
-	}
-
-	// wait forever
-	cmn.TrapSignal(ctx.Logger, func() {
-		// cleanup
-		err = svr.Stop()
-		if err != nil {
-			cmn.Exit(err.Error())
-		}
-	})
-	return nil
-}
-
-func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
+func startInProcess(ctx *Context, appCreator AppCreator) error {
 	cfg := ctx.Config
 	home := cfg.RootDir
 	traceWriterFile := viper.GetString(flagTraceStore)
 
 	db, err := openDB(home)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	traceWriter, err := openTraceWriter(traceWriterFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	app := appCreator(ctx.Logger, db, traceWriter, ctx.Config.Instrumentation)
 
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	UpgradeOldPrivValFile(cfg)
@@ -152,20 +108,27 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 		ctx.Logger.With("module", "node"),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = tmNode.Start()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	TrapSignal(func() {
+	// FIXBUG: yqq 2021-07-01
+	// TrapSignal(ctx.Logger, func() {
+	// 	if tmNode.IsRunning() {
+	// 		_ = tmNode.Stop()
+	// 	}
+	// })
+
+	defer func() {
 		if tmNode.IsRunning() {
 			_ = tmNode.Stop()
 		}
-	})
+		ctx.Logger.Info("exiting...")
+	}()
 
-	// run forever (the node will not be returned)
-	select {}
+	return WaitForQuitSignals()
 }

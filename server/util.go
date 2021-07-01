@@ -2,10 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -31,6 +33,15 @@ import (
 type Context struct {
 	Config *cfg.Config
 	Logger log.Logger
+}
+
+// ErrorCode contains the exit code for server exit.
+type ErrorCode struct {
+	Code int
+}
+
+func (e ErrorCode) Error() string {
+	return strconv.Itoa(e.Code)
 }
 
 func NewDefaultContext() *Context {
@@ -207,21 +218,42 @@ func ExternalIP() (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
+type logger interface {
+	Info(msg string, keyvals ...interface{})
+}
+
 // TrapSignal traps SIGINT and SIGTERM and terminates the server correctly.
-func TrapSignal(cleanupFunc func()) {
+func TrapSignal(logger logger, cleanupFunc func()) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	go func() {
 		sig := <-sigs
-		switch sig {
-		case syscall.SIGTERM:
-			defer cleanupFunc()
-			os.Exit(128 + int(syscall.SIGTERM))
-		case syscall.SIGINT:
-			defer cleanupFunc()
-			os.Exit(128 + int(syscall.SIGINT))
+
+		if cleanupFunc != nil {
+			cleanupFunc()
 		}
+		exitCode := 128
+
+		switch sig {
+		case syscall.SIGINT:
+			logger.Info(fmt.Sprintf("captured SIGTERM , exiting..."))
+			exitCode += int(syscall.SIGINT)
+		case syscall.SIGTERM:
+			logger.Info(fmt.Sprintf("captured SIGINT, exiting..."))
+			exitCode += int(syscall.SIGTERM)
+		}
+
+		os.Exit(exitCode)
 	}()
+}
+
+// WaitForQuitSignals waits for SIGINT and SIGTERM and returns.
+func WaitForQuitSignals() ErrorCode {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigs
+	return ErrorCode{Code: int(sig.(syscall.Signal)) + 128}
 }
 
 // UpgradeOldPrivValFile converts old priv_validator.json file (prior to Tendermint 0.28)
