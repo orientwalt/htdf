@@ -11,7 +11,8 @@
             "mode": "debug",
             "program": "${workspaceRoot}/cmd/hsd/",
             "env": {"LOG_LEVEL": "Debug"},
-            "args": ["start"]
+            "args": ["start"],
+            "buildFlags": "-tags=cleveldb"
         },
         {
             "name": "hscli",

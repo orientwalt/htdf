@@ -223,15 +223,17 @@ func BeginBlocker(ctx sdk.Context, evmk Keeper) {
 	var preBlockNumber int64
 	var preBlockHash []byte
 	preBlockNumber = ctx.BlockHeight() - 1
-	logger.Info("preBlockNumber: ", preBlockNumber)
+	logger.Info(fmt.Sprintf("preBlockNumber: %v", preBlockNumber))
 	// Block 1 is genesis block. Becasue we start from block 1, instead of block 0.
+	logger.Info(fmt.Sprintf("initialHeight: %v", ctx.InitialHeight()))
+	logger.Info(fmt.Sprintf("blockHeight: %v", ctx.BlockHeight()))
 	if ctx.BlockHeight() == ctx.InitialHeight() {
 		// compatible with core.vm.instructions.opBlockhash
 		preBlockHash, _ = hex.DecodeString(ZeroBlockHash)
 	} else if ctx.BlockHeight() > ctx.InitialHeight() {
 		preBlockHash = ctx.BlockHeader().LastBlockId.Hash
 	}
-	logger.Info("preBlockHash: ", preBlockHash)
+	logger.Info(fmt.Sprintf("preBlockHash %v", hex.EncodeToString(preBlockHash)))
 	evmk.SetBlockNumberToHash(ctx, preBlockNumber, preBlockHash)
 	evmk.SetBlockHashToNumber(ctx, preBlockHash, preBlockNumber)
 }

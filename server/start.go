@@ -51,8 +51,10 @@ func StartCmd(ctx *Context, appCreator AppCreator) *cobra.Command {
 					}
 				}()
 			}
-
-			return startInProcess(ctx, appCreator)
+			if err := startInProcess(ctx, appCreator); err != nil {
+				ctx.Logger.Error(err.Error())
+			}
+			return nil
 		},
 	}
 
