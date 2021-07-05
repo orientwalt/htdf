@@ -61,6 +61,26 @@ func ExportGenesisFileWithTime(
 	return genDoc.SaveAs(genFile)
 }
 
+func ExportGenesisFileWithTimeEx(
+	genFile, chainID string, initialHeight int64, validators []types.GenesisValidator,
+	appState json.RawMessage, genTime time.Time,
+) error {
+
+	genDoc := types.GenesisDoc{
+		GenesisTime:   genTime,
+		InitialHeight: initialHeight,
+		ChainID:       chainID,
+		Validators:    validators,
+		AppState:      appState,
+	}
+
+	if err := genDoc.ValidateAndComplete(); err != nil {
+		return err
+	}
+
+	return genDoc.SaveAs(genFile)
+}
+
 // InitializeNodeValidatorFiles creates private validator and p2p configuration files.
 func InitializeNodeValidatorFiles(
 	config *cfg.Config) (nodeID string, valPubKey crypto.PubKey, err error,

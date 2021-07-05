@@ -31,7 +31,9 @@ FIRST_ROW_INDEX = 2
 ## chain
 CHAIN_ID = testchain
 MINIMUM_GAS_PRICES = 100satoshi
-GUARDIAN_ADDRESS = htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3
+# guardian
+GUARDIAN_ADDRESS = htdf1l873ec5gnxt9gwx4g9d4lvympv7dp9qfzehwme
+# issuer
 ISSUER_ADDRESS = htdf1sh8d3h0nn8t4e83crcql80wua7u3xtlfj5dej3
 DEFAULT_PORT = 26656
 ## setup
@@ -56,6 +58,8 @@ MKFILE_PATH = $(CONFIGDIR)/Makefile
 # variables
 VALS_COUNT = $$(linecount ${SERVER_LIST})
 VALS_INDEX = $$(python -c "print ' '.join(str(item) for item in range(${VALS_COUNT}))")
+
+INITIAL_HEIGHT=8000000
 
 install: clean pre vals genesis.json config.toml refine distr.config start
 
@@ -94,7 +98,8 @@ vals:
 				 --validator-ip-addresses ${VALIDATOR_IP} \
 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES} \
 				 --issuer-bech-address ${ISSUER_ADDRESS} \
-				 --password-from-file ${VALIDATOR_PASSWORD}
+				 --password-from-file ${VALIDATOR_PASSWORD} \
+				 --initial-height ${INITIAL_HEIGHT}
 
 genesis.json:
 	@if ! [ -d ${GENDIR} ]; then mkdir -p ${GENDIR}; fi

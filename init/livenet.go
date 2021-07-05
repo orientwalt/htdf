@@ -55,7 +55,7 @@ hsd livenet --chain-id testchain --v 4 -o output --validator-ip-addresses ip.lis
 	cmd.Flags().Int(flagNumValidators, 4,
 		"Number of validators to initialize the testnet with",
 	)
-	cmd.Flags().Int64(flagInitialHeight, 0,
+	cmd.Flags().Int64(flagInitialHeight, 1,
 		"Genesis Block's Initial Height",
 	)
 	cmd.Flags().StringP(flagOutputDir, "o", "./mytestnet",
@@ -346,7 +346,6 @@ func initLiveNet(config *tmconfig.Config, cdc *codec.Codec) error {
 	if err := initGenFiles(cdc, chainID, accs, genFiles, numValidators, initialHeight, defaultGuardian); err != nil {
 		return err
 	}
-
 	err = collectGenFilesEx(
 		cdc, config, chainID, initialHeight, monikers, nodeIDs, valPubKeys, numValidators,
 		outDir, viper.GetString(flagNodeDirPrefix), viper.GetString(flagNodeDaemonHome),
@@ -367,7 +366,6 @@ func collectGenFilesEx(
 
 	var appState json.RawMessage
 	genTime := tmtime.Now()
-
 	for i := 0; i < numValidators; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outDir, nodeDirName, nodeDaemonHomeName)
@@ -395,9 +393,8 @@ func collectGenFilesEx(
 			appState = nodeAppState
 		}
 		genFile := config.GenesisFile()
-
 		// overwrite each validator's genesis file to have a canonical genesis time
-		err = ExportGenesisFileWithTime(genFile, chainID, nil, appState, genTime)
+		err = ExportGenesisFileWithTimeEx(genFile, chainID, initialHeight, nil, appState, genTime)
 		if err != nil {
 			return err
 		}

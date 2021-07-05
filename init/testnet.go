@@ -80,7 +80,7 @@ Example:
 	cmd.Flags().Int(flagNumValidators, 4,
 		"Number of validators to initialize the testnet with",
 	)
-	cmd.Flags().Int64(flagInitialHeight, 0,
+	cmd.Flags().Int64(flagInitialHeight, 1,
 		"Genesis Block's Initial Height",
 	)
 	cmd.Flags().StringP(flagOutputDir, "o", "./mytestnet",
@@ -316,7 +316,7 @@ func initGenFiles(
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("initialHeight:", initialHeight)
 	genDoc := types.GenesisDoc{
 		ChainID:       chainID,
 		InitialHeight: initialHeight,
@@ -342,7 +342,7 @@ func collectGenFiles(
 
 	var appState json.RawMessage
 	genTime := tmtime.Now()
-
+	fmt.Println("initialHeight:", initialHeight)
 	for i := 0; i < numValidators; i++ {
 		nodeDirName := fmt.Sprintf("%s%d", nodeDirPrefix, i)
 		nodeDir := filepath.Join(outDir, nodeDirName, nodeDaemonHomeName)
@@ -372,7 +372,7 @@ func collectGenFiles(
 		genFile := config.GenesisFile()
 
 		// overwrite each validator's genesis file to have a canonical genesis time
-		err = ExportGenesisFileWithTime(genFile, chainID, nil, appState, genTime)
+		err = ExportGenesisFileWithTimeEx(genFile, chainID, initialHeight, nil, appState, genTime)
 		if err != nil {
 			return err
 		}
