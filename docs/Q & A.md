@@ -36,12 +36,12 @@ Delegators are Atom holders who cannot, or do not want to run a validator themse
           concealing the real ip addresses of the validators, where network is divided into external and internal.
        Q: Usage
        A:  1. To create a full node as a sentry node.
-           2. To edit $HOME/.gaiad/config/config.toml so that fill "private_peer_ids" with a validator node ID.
+           2. To edit $HOME/.hsd/config/config.toml so that fill "private_peer_ids" with a validator node ID.
               > private_peer_ids = "5a533005d74b40ab954b33029a5682ec8794d014"
               > hsd tendermint show_node_id
            3. On the validator node, disallow all incoming connections in the firewall.
           Only allow incoming connection on 46656/tcp from the internal IP of the sentry node.
-           4. On the validator node, edit $HOME/.gaiad/config/config.toml.
+           4. On the validator node, edit $HOME/.hsd/config/config.toml.
           Remove all existing peer information from persistent_peers and put the node information of
           your sentry node in the format of ID@IP:PORT here.
               > persistent_peers = "1ebc5ca705b3ae1c06a0888ff1287ada82149dc3@10.10.0.2:46656"

@@ -29,7 +29,7 @@ func init() {
 	}
 }
 
-// ParseConfig retrieves the default environment configuration for Gaia.
+// ParseConfig retrieves the default environment configuration for HtdfService.
 func ParseConfig() (*Config, error) {
 	conf := DefaultConfig()
 	err := viper.Unmarshal(conf)

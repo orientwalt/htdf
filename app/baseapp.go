@@ -309,7 +309,7 @@ func (app *BaseApp) initFromMainStore(baseKey *sdk.KVStoreKey) error {
 		}
 	}
 
-	// needed for `gaiad export`, which inits from store but never calls initchain
+	// needed for `hsd export`, which inits from store but never calls initchain
 	app.setCheckState(abci.Header{})
 	app.Seal()
 

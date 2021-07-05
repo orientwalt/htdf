@@ -151,7 +151,7 @@ func createVerifier() tmlite.Verifier {
 	}
 	cacheSize := 10 // TODO: determine appropriate cache size
 	verifier, err := tmliteProxy.NewVerifier(
-		chainID, filepath.Join(home, ".gaialite"),
+		chainID, filepath.Join(home, ".hslite"),
 		node, log.NewNopLogger(), cacheSize,
 	)
 

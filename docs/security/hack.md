@@ -1,5 +1,5 @@
 
-### [gaia security issues](https://github.com/cosmos/cosmos-sdk/issues?utf8=%E2%9C%93&q=label%3Asecurity+)
+### [hs security issues](https://github.com/cosmos/cosmos-sdk/issues?utf8=%E2%9C%93&q=label%3Asecurity+)
    To defend validators is to protect DPoS iteself
 #### analysis/classification
    * [validators](https://medium.com/irisnet-blog/tech-choices-for-cosmos-validators-27c7242061ea)
