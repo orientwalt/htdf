@@ -42,10 +42,15 @@ func BlockCommand() *cobra.Command {
 }
 
 // Single block (with meta)
+type BlockMeta struct {
+	BlockID tmTypes.BlockID `json:"block_id"`
+	Header  tmTypes.Header  `json:"header"`
+}
 type ResultBlockEx struct {
-	BlockID tmTypes.BlockID  `json:"block_id"`
-	Block   *tmTypes.Block   `json:"block"`
-	Events  sdk.StringEvents `json:"events"`
+	BlockMeta BlockMeta        `json:"block_meta"` // keep same as HTDF1.x
+	BlockID   tmTypes.BlockID  `json:"-"`          // `json:"block_id"`
+	Block     *tmTypes.Block   `json:"block"`
+	Events    sdk.StringEvents `json:"events"`
 }
 
 func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
@@ -85,9 +90,11 @@ func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
 	}
 
 	var resEx ResultBlockEx
-	resEx.BlockID = res.BlockID
+	// resEx.BlockID = res.BlockID
 	resEx.Block = res.Block
 	resEx.Events = sdk.StringifyEvents(blockResults.EndBlockEvents)
+	resEx.BlockMeta.BlockID = res.BlockID
+	resEx.BlockMeta.Header = res.Block.Header
 
 	if cliCtx.Indent {
 		return cdc.MarshalJSONIndent(resEx, "", "  ")
@@ -193,6 +200,7 @@ type DisplayTx struct {
 	Data       string
 	TxClassify uint32
 	TypeName   string
+	Success    bool // `json:"Success,omitempty"`
 }
 
 type DisplayBlock struct {
@@ -298,9 +306,19 @@ func GetBlockDetailFn(cliCtx context.CLIContext, cdc *codec.Codec) http.HandlerF
 				return
 			}
 
+			resTx, err := queryTx(cdc, cliCtx, tx.Hash())
+			if err != nil {
+				fmt.Printf("queryTx error|err=%s\n", err)
+				sdkRest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
 			switch currTx := sdkTx.(type) {
 			case auth.StdTx:
 				var displayTx DisplayTx
+				if len(resTx.Logs) > 0 {
+					displayTx.Success = resTx.Logs[0].Success
+				}
 				for _, msg := range currTx.GetMsgs() {
 					//fmt.Printf("msg|route=%s|type=%s\n", msg.Route(), msg.Type())
 					switch msg := msg.(type) {
@@ -502,4 +520,35 @@ func getBlocksForTxResults(cliCtx context.CLIContext, resTxs []*ctypes.ResultTx)
 	}
 
 	return resBlocks, nil
+}
+
+func queryTx(cdc *codec.Codec, cliCtx context.CLIContext, hash []byte) (sdk.TxResponse, error) {
+
+	node, err := cliCtx.GetNode()
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	resTx, err := node.Tx(hash, !cliCtx.TrustNode)
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	// if !cliCtx.TrustNode {
+	// 	if err = ValidateTxResult(cliCtx, resTx); err != nil {
+	// 		return sdk.TxResponse{}, err
+	// 	}
+	// }
+
+	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	out, err := formatTxResult(cdc, resTx, resBlocks[resTx.Height])
+	if err != nil {
+		return out, err
+	}
+
+	return out, nil
 }
