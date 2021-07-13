@@ -55,5 +55,5 @@ replace (
 	github.com/ethereum/go-ethereum v1.10.2 => github.com/orientwalt/go-ethereum v1.10.92
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.1
 	github.com/tendermint/iavl => github.com/tendermint/iavl v0.13.3
-	github.com/tendermint/tendermint => github.com/orientwalt/tendermint v0.99.5-rc4
+	github.com/tendermint/tendermint => github.com/orientwalt/tendermint v0.99.5-rc5
 )
