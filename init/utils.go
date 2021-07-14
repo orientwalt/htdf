@@ -45,13 +45,15 @@ func ExportGenesisFile(
 func ExportGenesisFileWithTime(
 	genFile, chainID string, validators []types.GenesisValidator,
 	appState json.RawMessage, genTime time.Time,
+	initialHeight int64,
 ) error {
 
 	genDoc := types.GenesisDoc{
-		GenesisTime: genTime,
-		ChainID:     chainID,
-		Validators:  validators,
-		AppState:    appState,
+		GenesisTime:   genTime,
+		ChainID:       chainID,
+		InitialHeight: initialHeight,
+		Validators:    validators,
+		AppState:      appState,
 	}
 
 	if err := genDoc.ValidateAndComplete(); err != nil {

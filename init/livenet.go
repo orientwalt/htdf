@@ -55,7 +55,7 @@ hsd livenet --chain-id testchain --v 4 -o output --validator-ip-addresses ip.lis
 	cmd.Flags().Int(flagNumValidators, 4,
 		"Number of validators to initialize the testnet with",
 	)
-	cmd.Flags().Int64(flagInitialHeight, 0,
+	cmd.Flags().Int64(flagInitialHeight, 1,
 		"Genesis Block's Initial Height",
 	)
 	cmd.Flags().StringP(flagOutputDir, "o", "./mytestnet",
@@ -109,8 +109,8 @@ func initLiveNet(config *tmconfig.Config, cdc *codec.Codec) error {
 	}
 	// junying-added, initial-height
 	initialHeight := viper.GetInt64(flagInitialHeight)
-	if initialHeight < 0 {
-		initialHeight = 0
+	if initialHeight <= 0 {
+		initialHeight = 1
 	}
 	monikers := make([]string, numValidators)
 	nodeIDs := make([]string, numValidators)
@@ -397,7 +397,7 @@ func collectGenFilesEx(
 		genFile := config.GenesisFile()
 
 		// overwrite each validator's genesis file to have a canonical genesis time
-		err = ExportGenesisFileWithTime(genFile, chainID, nil, appState, genTime)
+		err = ExportGenesisFileWithTime(genFile, chainID, nil, appState, genTime, initialHeight)
 		if err != nil {
 			return err
 		}

@@ -20,7 +20,7 @@ func TestExportGenesisFileWithTime(t *testing.T) {
 	defer cleanup()
 
 	fname := filepath.Join(dir, "genesis.json")
-	require.NoError(t, ExportGenesisFileWithTime(fname, "test", nil, json.RawMessage(""), time.Now()))
+	require.NoError(t, ExportGenesisFileWithTime(fname, "test", nil, json.RawMessage(""), time.Now(), 1))
 }
 
 func TestLoadGenesisDoc(t *testing.T) {
@@ -29,7 +29,7 @@ func TestLoadGenesisDoc(t *testing.T) {
 	defer cleanup()
 
 	fname := filepath.Join(dir, "genesis.json")
-	require.NoError(t, ExportGenesisFileWithTime(fname, "test", nil, json.RawMessage(""), time.Now()))
+	require.NoError(t, ExportGenesisFileWithTime(fname, "test", nil, json.RawMessage(""), time.Now(), 1))
 
 	_, err := LoadGenesisDoc(codec.Cdc, fname)
 	require.NoError(t, err)

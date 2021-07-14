@@ -216,12 +216,14 @@ hsinit-test:
 	@hsd testnet --chain-id ${CHAIN_ID} \
 				 --v ${VALIDATOR_COUNT} \
 				 -o ${TESTNETDIR} \
+				 --initial-height 8000000 \
 				 --starting-ip-address 192.168.0.171 \
 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
 hsinit-test-ex:
 	@hsd testnet --chain-id ${CHAIN_ID} \
 				 --v ${VALIDATOR_COUNT} \
 				 -o ${TESTNETDIR} \
+				 --initial-height 8000000 \
 				 --validator-ip-addresses $(CURDIR)/ip.txt\
 				 --minimum-gas-prices ${MINIMUM_GAS_PRICES}
 
